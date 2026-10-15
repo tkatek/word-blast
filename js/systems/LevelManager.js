@@ -52,7 +52,7 @@ export class LevelManager {
     return !!lvl && lvl.projectiles.includes(typeKey);
   }
 
-  get totalShotsForLevel(levelId) {
+  totalShotsForLevel(levelId) {
     const lvl = this.getLevel(levelId);
     return lvl ? lvl.shotsPerQuestion * lvl.questions.length : 0;
   }
