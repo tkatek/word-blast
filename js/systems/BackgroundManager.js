@@ -20,17 +20,15 @@ const FILES = {
 };
 
 /**
- * Fit tuning per device:
- *   offsetX/offsetY — small world-px nudges for cover-fit.
- *   grassFrac — vertical fraction of the art where the flat gameplay
- *     grass surface sits (see scripts/analyze-grass.mjs). When present,
- *     the art is scaled so that grass line lands exactly on the physics
- *     ground (y=640) and gameplay stands on the artwork's own grass.
+ * Cover-fit tuning per device (world px). Positive Y shifts art down,
+ * positive X shifts art right. Used to protect important art regions
+ * from cover-cropping instead of stretching. Terrain alignment for each
+ * art lives in TERRAIN_PROFILES (config.js), measured per background.
  */
 const FIT_TUNING = {
-  [DEVICE_TYPES.DESKTOP]: { offsetX: 0, offsetY: 0, grassFrac: null },
-  [DEVICE_TYPES.TABLET]: { offsetX: 0, offsetY: 0, grassFrac: 0.54 }, // measured plateau
-  [DEVICE_TYPES.MOBILE]: { offsetX: -80, offsetY: 0, grassFrac: null }    // cliff edge & platform map to TERRAIN_PROFILES.mobile
+  [DEVICE_TYPES.DESKTOP]: { offsetX: 0, offsetY: 0 },
+  [DEVICE_TYPES.TABLET]: { offsetX: 0, offsetY: 0 },
+  [DEVICE_TYPES.MOBILE]: { offsetX: -80, offsetY: 0 }    // cliff edge & platform map to TERRAIN_PROFILES.mobile
 };
 
 export class BackgroundManager {
@@ -70,36 +68,17 @@ export class BackgroundManager {
     return true;
   }
 
-  /**
-   * Aspect-preserving fit into the logical world.
-   * With grassFrac: grass-anchored cover — the art's grass line is placed
-   * exactly on the physics ground (WORLD.GROUND_Y), scaling up as needed
-   * so no empty borders remain. Without: plain centered cover-fit.
-   */
+  /** Aspect-preserving cover-fit into the logical world. */
   layout() {
     if (!this.image) return;
     const src = this.image.texture.getSourceImage();
-    const tune = FIT_TUNING[this.type] || { offsetX: 0, offsetY: 0, grassFrac: null };
-    let scale;
-    let y;
-    if (tune.grassFrac) {
-      const cover = Math.max(WORLD.WIDTH / src.width, WORLD.HEIGHT / src.height);
-      const needTop = WORLD.GROUND_Y / (tune.grassFrac * src.height);   // art top edge reaches y=0
-      const needBottom = (WORLD.HEIGHT - WORLD.GROUND_Y) / ((1 - tune.grassFrac) * src.height);
-      scale = Math.max(cover, needTop, needBottom);
-      y = WORLD.GROUND_Y - (tune.grassFrac - 0.5) * src.height * scale;
-    } else {
-      scale = Math.max(WORLD.WIDTH / src.width, WORLD.HEIGHT / src.height);
-      y = WORLD.HEIGHT / 2 + tune.offsetY;
-    }
+    const tune = FIT_TUNING[this.type] || { offsetX: 0, offsetY: 0 };
+    const scale = Math.max(WORLD.WIDTH / src.width, WORLD.HEIGHT / src.height);
     this.image.setScale(scale);
-    this.image.setPosition(WORLD.WIDTH / 2 + tune.offsetX, y);
-  }
-
-  /** True when the current background provides its own gameplay grass. */
-  hasGameplayGrass() {
-    const tune = FIT_TUNING[this.type];
-    return !!(tune && tune.grassFrac);
+    this.image.setPosition(
+      WORLD.WIDTH / 2 + tune.offsetX,
+      WORLD.HEIGHT / 2 + tune.offsetY
+    );
   }
 
   /** Re-evaluate the device class after a viewport change (debounced). */
