@@ -41,7 +41,9 @@ export class ObjectFactory {
 
     this.scene.matter.world.on('beforeupdate', this.captureVelocities, this);
     this.scene.events.once('shutdown', () => {
-      this.scene.matter.world.off('beforeupdate', this.captureVelocities, this);
+      // on scene restart the physics world can already be torn down
+      const w = this.scene.matter && this.scene.matter.world;
+      if (w) w.off('beforeupdate', this.captureVelocities, this);
     });
   }
 

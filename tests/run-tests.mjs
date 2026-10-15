@@ -19,6 +19,11 @@ import { ScoringSystem } from '../js/systems/ScoringSystem.js';
 import { GameStateMachine } from '../js/systems/GameStateMachine.js';
 import { predictPath, solveLaunch } from '../js/systems/Trajectory.js';
 import { clientToWorld, worldToClient } from '../js/systems/InputMapper.js';
+import { TOWER_ASSETS as TOWER_ASSETS_MAP } from '../js/data/tower-assets.js';
+
+function awaitImportTowerAssets() {
+  return { TOWER_ASSETS: TOWER_ASSETS_MAP };
+}
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../js/systems/Device.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -104,6 +109,7 @@ test('#7 CEFR difficulty progresses A1 → B1+ across levels', () => {
 
 test('#8 physics configurations are valid and inside the world', () => {
   const lm = new LevelManager(levelsData, questionsData);
+  const { TOWER_ASSETS } = awaitImportTowerAssets();
   eq(lm.count, 15);
   for (let id = 1; id <= 15; id++) {
     for (let i = 0; i < 4; i++) {
@@ -113,12 +119,19 @@ test('#8 physics configurations are valid and inside the world', () => {
         assert(t.x > 60 && t.x < WORLD.WIDTH - 60, `L${id} q${i}: target x ${t.x} in band`);
         assert(t.y > 60 && t.y < WORLD.GROUND_Y, `L${id} q${i}: target y ${t.y} above ground`);
       }
-      for (const b of layout.blocks) {
-        assert(b.w >= 8 && b.w <= 400 && b.h >= 8 && b.h <= 400, `L${id} q${i}: block size`);
-        assert(b.x > 0 && b.x < WORLD.WIDTH, `L${id} q${i}: block x inside world`);
-        assert(b.y > 0 && b.y <= WORLD.GROUND_Y, `L${id} q${i}: block y inside world`);
+      for (const p of layout.pieces) {
+        const asset = TOWER_ASSETS[p.a];
+        assert(asset, `L${id} q${i}: piece asset "${p.a}" exists`);
+        const [w, h] = asset.size;
+        assert(Math.min(w, h) >= 20, `L${id} q${i}: piece ${p.a} min dim >= 20 (anti-tunneling)`);
+        assert(p.x > 0 && p.x < WORLD.WIDTH, `L${id} q${i}: piece x inside world`);
+        assert(p.y > 0 && p.y <= WORLD.GROUND_Y + 1, `L${id} q${i}: piece y inside world (y=${p.y})`);
       }
-      assert(layout.blocks.length <= 24, `L${id} q${i}: block budget`);
+      assert(layout.pieces.length <= 40, `L${id} q${i}: piece budget (${layout.pieces.length})`);
+      for (const g of layout.pigs) {
+        assert(TOWER_ASSETS[g.a], `L${id} q${i}: pig asset "${g.a}" exists`);
+        assert(g.y > 0 && g.y <= WORLD.GROUND_Y + 1, `L${id} q${i}: pig y inside world`);
+      }
     }
   }
 });

@@ -62,7 +62,7 @@ export function createDefaultSave() {
     version: SAVE.VERSION,
     unlockedLevel: 1,
     tutorialDone: false,
-    settings: { sound: true },
+    settings: { sound: true, reducedMotion: false },
     levels: {} // id -> { completed, bestScore, bestStars, attempts }
   };
 }
@@ -89,6 +89,9 @@ export function sanitizeSave(data) {
   if (typeof data.tutorialDone === 'boolean') out.tutorialDone = data.tutorialDone;
   if (data.settings && typeof data.settings === 'object' && typeof data.settings.sound === 'boolean') {
     out.settings.sound = data.settings.sound;
+  }
+  if (data.settings && typeof data.settings === 'object' && typeof data.settings.reducedMotion === 'boolean') {
+    out.settings.reducedMotion = data.settings.reducedMotion;
   }
   if (data.levels && typeof data.levels === 'object' && !Array.isArray(data.levels)) {
     for (let id = 1; id <= SAVE.MAX_LEVELS; id++) {

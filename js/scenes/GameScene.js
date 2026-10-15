@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import {
-  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, slingshotAnchor
+  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK, slingshotAnchor
 } from '../config.js';
 import { GameStateMachine } from '../systems/GameStateMachine.js';
 import { ObjectFactory } from '../systems/PhysicsObjects.js';
@@ -14,6 +14,8 @@ import { Slingshot } from '../systems/Slingshot.js';
 import { ScoringSystem } from '../systems/ScoringSystem.js';
 import { solveLaunch } from '../systems/Trajectory.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
+import { EffectsSystem } from '../systems/EffectsSystem.js';
+import { TerrainLayer } from '../systems/TerrainLayer.js';
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
 import { DebugLog } from '../systems/DebugLog.js';
 
@@ -43,6 +45,7 @@ export class GameScene extends Phaser.Scene {
     this.hudLevel = this.hudQuestion = this.hudShots = this.hudScore = this.hudState = null;
     this.questionText = this.choicesText = null;
     this.projectileButtons = [];
+    this.questionIndex = 0; // known before create() for logging
     this.abilityHint = null;
     this.tutorialHint = null;
   }
@@ -79,6 +82,10 @@ export class GameScene extends Phaser.Scene {
     this.buildHUD();
     this.buildOverlays();
 
+    // destruction/impact effects (particles, shake) — capped, reduced-motion aware
+    this.fx = new EffectsSystem(this);
+    this.events.once('shutdown', () => this.fx.destroy());
+
     this.slingshot = new Slingshot(this, {
       // origin = the pouch position at release, so the physics body spawns
       // exactly where the player saw the projectile leave the slingshot
@@ -113,9 +120,10 @@ export class GameScene extends Phaser.Scene {
 
   buildWorld() {
     this.cameras.main.setBackgroundColor(COLORS.SKY);
-    // distant ground strip for visual grounding
-    this.add.rectangle(WORLD.WIDTH / 2, WORLD.GROUND_Y + 40, WORLD.WIDTH, 80, 0x74a892).setDepth(1);
-    this.factory.createGround();
+    // canonical gameplay terrain: physics bodies + foreground visuals are
+    // generated from the SAME config numbers, identical on every device
+    this.factory.createTerrain();
+    this.terrainLayer = new TerrainLayer(this);
     // device background sits behind everything (depth -100)
     this.device = this.registry.get('device') || deviceInfo();
     this.background = new BackgroundManager(this);
@@ -197,6 +205,13 @@ export class GameScene extends Phaser.Scene {
     this.overlayButton(this.pauseOverlay, 'RESUME', 320, () => this.togglePause());
     this.overlayButton(this.pauseOverlay, 'RESTART LEVEL', 390, () => this.restartLevel());
     this.overlayButton(this.pauseOverlay, 'EXIT TO MENU', 460, () => this.exitToMenu());
+    // accessibility: disable camera shake + heavy particles
+    this.motionBtn = this.overlayButton(this.pauseOverlay, '', 520, () => {
+      const next = !this.save.data.settings.reducedMotion;
+      this.save.setSetting('reducedMotion', next);
+      this.refreshMotionButton();
+    });
+    this.refreshMotionButton();
 
     // fail overlay
     this.failOverlay = this.add.container(0, 0).setDepth(DEPTH.OVERLAY).setVisible(false);
@@ -318,6 +333,15 @@ export class GameScene extends Phaser.Scene {
       this.factory.createTarget(t, { choiceId: meta.choiceId, label: meta.label, text: meta.text, questionIndex: index });
     });
 
+    // Build-time settle: silent fixed steps with damage suppressed, then
+    // everything sleeps. Towers are therefore at rest before the first
+    // possible input; drift beyond SETTLE_MAX_DRIFT means the layout was
+    // unstable (the generator battery guarantees this never ships).
+    const settle = this.factory.settleLayout(PHYSICS.SETTLE_STEPS);
+    if (settle.drift > PHYSICS.SETTLE_MAX_DRIFT || settle.lost > 0) {
+      DebugLog.warn(`L${this.levelId}/Q${index + 1} settle drift ${settle.drift.toFixed(1)}px, lost ${settle.lost}`);
+    }
+
     this.questionText.setText(`Q${index + 1}/4 [${question.cefr}] ${question.text}`);
     this.choicesText.setText(this.prepared.targets.map((t) => `${t.label}: ${t.text}`).join('    '));
     this.choicesText.y = 84 + this.questionText.height + 8;
@@ -432,6 +456,10 @@ export class GameScene extends Phaser.Scene {
     const go = projBody.gameObject;
     if (!go || !go.wb || go.wb.kind !== 'projectile' || go.wb.consumed) return;
     if (!this.currentShot || go.wb.shotId !== this.currentShot.id) return;
+    // At most ONE answer selection per launch (spec §8): once this shot has
+    // answered (or resolved and re-armed — an old projectile), contacts are
+    // ignored. Split children share the shot identity and this same guard.
+    if (this.currentShot.answered || this.currentShot.resolvedHandled) return;
 
     this.factory.onProjectileFirstImpact(go, otherBody);
 
@@ -601,13 +629,21 @@ export class GameScene extends Phaser.Scene {
     DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY slingshot re-armed (AIMING, shots left: ${this.shotsLeft})`);
   }
 
+  /**
+   * Feedback pacing (spec §9): the panel stays visible at least
+   * FEEDBACK.MIN_VISIBLE_MS, then advances once the world has genuinely
+   * settled for a short run of frames; a hard cap ends the presentation
+   * after a validated answer without ever waiting for perfect stillness.
+   */
   updateAnswerSettle() {
+    const elapsed = this.time.now - this.settleStartedAt;
     const settled = this.factory.isSettled();
     this.settleFrames = settled ? this.settleFrames + 1 : 0;
-    const timedOut = this.time.now - this.settleStartedAt > PHYSICS.SETTLE_TIMEOUT_MS;
-    if (this.settleFrames >= PHYSICS.SETTLE_FRAMES || timedOut) {
+    const minVisible = elapsed >= FEEDBACK.MIN_VISIBLE_MS;
+    const capped = elapsed >= FEEDBACK.MAX_RESOLVE_MS;
+    if ((this.settleFrames >= 12 && minVisible) || capped) {
       this.settleFrames = 0;
-      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS feedback settle completed (${timedOut ? 'settle timeout' : 'settled'})`);
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS feedback settle completed (${capped ? 'cap reached' : 'settled'})`);
       this.advanceAfterFeedback();
     }
   }
@@ -859,6 +895,12 @@ export class GameScene extends Phaser.Scene {
 
   hideFeedback() {
     this.feedback.setVisible(false);
+  }
+
+  refreshMotionButton() {
+    if (!this.motionBtn) return;
+    const on = !!this.save.data.settings.reducedMotion;
+    this.motionBtn.setText(on ? 'REDUCED MOTION: ON' : 'REDUCED MOTION: OFF');
   }
 
   showToast(msg, ms = 1500) {

@@ -74,40 +74,61 @@ function layoutQuestion(levelId, qIndex, rand) {
   }
 
   // collect anchors for the 3 answer plaques: structure slots first, then
-  // clear ground positions on the terrace
+  // clear ground positions on the terrace, and finally small pedestal
+  // towers if space ran out — every layout is GUARANTEED 3 anchors.
+  const pieces = [];
+  const pigs = [];
   const anchors = [];
   const occupied = []; // x-ranges blocked by structures (footprint + margin)
-  for (const inst of instances) {
+  const addInstance = (inst) => {
     for (const s of inst.slots) anchors.push({ x: s.x, y: s.y });
-    occupied.push([inst.baseX - inst.width / 2 - 78, inst.baseX + inst.width / 2 + 78]);
-  }
-  // ground anchor candidates across the terrace
+    occupied.push([inst.baseX - inst.width / 2 - 66, inst.baseX + inst.width / 2 + 66]);
+    pieces.push(...inst.pieces);
+    pigs.push(...inst.pigs);
+  };
+  for (const inst of instances) addInstance(inst);
+
+  // ground anchor candidates across the terrace (incl. the approach lane)
   const groundXs = [];
-  for (let x = 560; x <= 1180; x += 10) groundXs.push(x);
+  for (let x = 488; x <= 1180; x += 10) groundXs.push(x);
   const clearGround = (x) => occupied.every(([a, b]) => x < a - 58 || x > b + 58);
   while (anchors.length < 3) {
-    const candidates = groundXs.filter((x) => clearGround(x) && !anchors.some((s) => Math.abs(s.x - x) < 130));
+    const candidates = groundXs.filter((x) => clearGround(x) && !anchors.some((s) => Math.abs(s.x - x) < 118));
     if (!candidates.length) break;
     const x = candidates[Math.floor(rand() * candidates.length)];
     anchors.push({ x, y: TERRACE_TOP - GROUND_MARGIN });
   }
-  if (anchors.length > 3) {
-    // keep variety: prefer spread — sort by x and drop from the densest side
-    anchors.sort((a, b) => a.x - b.x);
-    while (anchors.length > 3) {
-      const gaps = anchors.slice(1).map((a, i) => a.x - anchors[i].x);
-      const minGap = gaps.indexOf(Math.min(...gaps));
-      anchors.splice(minGap + 1, 1);
+
+  // still short on space → append small pedestal towers with one slot each
+  // (a pedestal is 110px wide; occupied ranges already carry a 66px margin,
+  // so clearance against them is sufficient)
+  let guard = 0;
+  while (anchors.length < 3 && guard++ < 4) {
+    let placed = false;
+    for (let x = 1180; x >= 490; x -= 10) {
+      if (occupied.every(([a, b]) => x < a || x > b)
+        && !anchors.some((s) => Math.abs(s.x - x) < 118)) {
+        const inst = instantiate('pedestal', Math.round(x), TERRACE_TOP, {});
+        addInstance(inst);
+        placed = true;
+        break;
+      }
     }
+    if (!placed) break;
+  }
+  if (anchors.length < 3) {
+    throw new Error(`cannot place 3 anchors for L${levelId}Q${qIndex} (have ${anchors.length})`);
+  }
+
+  // keep exactly 3: sort by x and drop from the densest side
+  anchors.sort((a, b) => a.x - b.x);
+  while (anchors.length > 3) {
+    const gaps = anchors.slice(1).map((a, i) => a.x - anchors[i].x);
+    const minGap = gaps.indexOf(Math.min(...gaps));
+    anchors.splice(minGap + 1, 1);
   }
 
   // assemble layout
-  const pieces = [];
-  const pigs = [];
-  for (const inst of instances) {
-    pieces.push(...inst.pieces);
-    pigs.push(...inst.pigs);
-  }
   // stable, readable ids
   pieces.forEach((p, i) => { p.id = `L${levelId}Q${qIndex}-p${i}`; });
   pigs.forEach((p, i) => { p.id = `L${levelId}Q${qIndex}-g${i}`; });

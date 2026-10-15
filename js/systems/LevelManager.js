@@ -36,14 +36,16 @@ export class LevelManager {
     return lvl.questions[index];
   }
 
-  /** Per-question runtime layout: blocks + targets + moving obstacles. */
+  /** Per-question runtime layout: pieces + pigs + targets + movers. */
   getLayout(levelId, index) {
     const entry = this.getQuestionEntry(levelId, index);
     if (!entry) return null;
+    const l = entry.layout || {};
     return {
-      blocks: (entry.layout && entry.layout.blocks) || [],
-      targets: (entry.layout && entry.layout.targets) || [],
-      moving: (entry.layout && entry.layout.moving) || []
+      pieces: l.pieces || [],
+      pigs: l.pigs || [],
+      targets: l.targets || [],
+      moving: l.moving || []
     };
   }
 

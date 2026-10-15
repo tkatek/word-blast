@@ -3,7 +3,10 @@
  * Pure module — runs at boot AND in the Node test suite, so a broken data
  * file can never silently reach players.
  */
-import { SAVE, CEFR_ORDER, WORLD, MATERIALS, PROJECTILE_TYPES, SLINGSHOT } from '../config.js';
+import { SAVE, CEFR_ORDER, WORLD, MATERIALS, PROJECTILE_TYPES, SLINGSHOT, BUDGETS } from '../config.js';
+import { TOWER_ASSETS } from '../data/tower-assets.js';
+
+const TOWER_ASSET_KEYS = Object.keys(TOWER_ASSETS);
 
 const cefrRank = (cefr) => {
   const i = CEFR_ORDER.indexOf(cefr);
@@ -222,27 +225,42 @@ function validateLayout(lvl, entry, where, errors, warnings) {
     });
   }
 
+  // tower pieces: manifest assets, world bounds, tunneling minimum,
+  // budget. (Support/no-overlap is proven by scripts/check-towers.mjs and
+  // the headless stability battery — here we validate the baked data.)
+  if (layout.pieces !== undefined) {
+    if (!Array.isArray(layout.pieces)) {
+      errors.push(`${layoutName}: pieces must be an array`);
+    } else {
+      const assets = TOWER_ASSET_KEYS;
+      layout.pieces.forEach((p, i) => {
+        if (!p || !assets.includes(p.a)) {
+          errors.push(`${layoutName}: piece ${i} unknown asset "${p && p.a}"`);
+          return;
+        }
+        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+          errors.push(`${layoutName}: piece ${i} needs numeric x/y`);
+        }
+        if (p.rot !== undefined && (p.rot < -90 || p.rot > 90)) {
+          errors.push(`${layoutName}: piece ${i} rotation ${p.rot} out of range ±90`);
+        }
+      });
+      if (layout.pieces.length > BUDGETS.MAX_PIECES) {
+        errors.push(`${layoutName}: ${layout.pieces.length} pieces exceeds budget ${BUDGETS.MAX_PIECES}`);
+      }
+    }
+  }
+  if (layout.pigs !== undefined && !Array.isArray(layout.pigs)) {
+    errors.push(`${layoutName}: pigs must be an array`);
+  }
+  if (layout.pigs && layout.pigs.length > 8) {
+    warnings.push(`${layoutName}: ${layout.pigs.length} pigs (performance watch)`);
+  }
+
+  // legacy field kept for compatibility: old layouts may still carry blocks
   if (layout.blocks) {
     if (!Array.isArray(layout.blocks)) {
       errors.push(`${layoutName}: blocks must be an array`);
-    } else {
-      layout.blocks.forEach((b, i) => {
-        if (!MATERIALS[b.m]) {
-          errors.push(`${layoutName}: block ${i} unknown material "${b.m}"`);
-        }
-        if (!Number.isFinite(b.x) || !Number.isFinite(b.y) || !Number.isFinite(b.w) || !Number.isFinite(b.h)) {
-          errors.push(`${layoutName}: block ${i} needs numeric x/y/w/h`);
-        }
-        if (Number.isFinite(b.w) && (b.w < 8 || b.w > 400)) {
-          errors.push(`${layoutName}: block ${i} width ${b.w} out of range 8..400`);
-        }
-        if (Number.isFinite(b.h) && (b.h < 8 || b.h > 400)) {
-          errors.push(`${layoutName}: block ${i} height ${b.h} out of range 8..400`);
-        }
-      });
-      if (layout.blocks.length > 24) {
-        warnings.push(`${layoutName}: ${layout.blocks.length} blocks (performance watch)`);
-      }
     }
   }
 

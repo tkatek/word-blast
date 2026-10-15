@@ -9,10 +9,11 @@ export const WORLD = {
   HEIGHT: 720,
   GROUND_Y: 560,          // top surface of the MAIN gameplay terrace (towers)
   GROUND_THICKNESS: 240,  // extends below the visible area
-  // Legacy aliases of SLINGSHOT.ANCHORS.desktop (kept for the test suite and
-  // headless helpers). Gameplay code reads the live anchor off the Slingshot.
-  SLING_X: 150,
-  SLING_Y: 334,
+  // Canonical slingshot anchor (aliases SLINGSHOT.ANCHORS.desktop — kept
+  // for the test suite and headless helpers; gameplay code reads the live
+  // anchor off the Slingshot).
+  SLING_X: 175,
+  SLING_Y: 390,
   KILL_MARGIN: 260        // bodies this far outside the world get removed
 };
 
@@ -94,21 +95,19 @@ export const SLINGSHOT = {
   TRAJECTORY_STEPS: 60,
   TRAJECTORY_STEP_MS: 1000 / 60,
   /**
-   * Pouch rest position per device background (world px = the fixed
-   * 1280×720 logical world). Each background art paints the elevated
-   * grassy cliff on the left at a slightly different height, so the
-   * anchor is measured per art (grass-top rows: desktop ≈385,
-   * tablet ≈424, mobile-landscape ≈403) and BASE_OFFSET_Y plants the
-   * wooden base a few pixels into that grass — never floating, never
-   * sunk into the rocks below. The playable world itself is identical
-   * on every device; only this visual anchor shifts.
+   * Pouch rest position (world px in the fixed 1280×720 logical world).
+   * The canonical anchor stands the slingshot on the FOREGROUND plateau
+   * (TERRAIN.PLATEAU.top, identical on every device), so the anchor is the
+   * same for all backgrounds: painted cliff heights can differ per art,
+   * but the gameplay ground is the drawn foreground layer. Per-device
+   * entries remain for compatibility and are all canonical.
    */
   ANCHORS: {
-    desktop: { x: 150, y: 334 },
-    tablet: { x: 155, y: 373 },
-    mobile: { x: 150, y: 351 }
+    desktop: { x: 175, y: 390 },
+    tablet: { x: 175, y: 390 },
+    mobile: { x: 175, y: 390 }
   },
-  BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact) distance
+  BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact at 448)
 };
 
 /** Slingshot pouch anchor for a device type (clone; safe to mutate). */

@@ -12,6 +12,7 @@ import { SaveManager } from '../systems/SaveManager.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
+import { preloadList } from '../data/tower-assets.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
 
@@ -22,12 +23,25 @@ export class BootScene extends Phaser.Scene {
   }
 
   /**
-   * Detect the device once and queue only the background variant it needs.
+   * Detect the device once and queue the background + tower sprite pack
+   * it needs. A missing tower file falls back to a procedural texture with
+   * the same key (load error listener below), so the game never breaks.
    */
   preload() {
     const info = deviceInfo();
     this.registry.set('device', info);
     BackgroundManager.preload(this, info.type);
+
+    const BASE = (import.meta.env.BASE_URL || '/') + 'assets/images/tower/';
+    for (const { key, file } of preloadList()) {
+      this.load.image(`tw-${key}`, BASE + file);
+    }
+    this.load.on('loaderror', (file) => {
+      if (!file.src.includes('/tower/')) return;
+      const key = file.key;
+      console.warn(`[Boot] tower sprite missing (${key}) — procedural fallback`);
+      this.generateFallbackTexture(key);
+    });
   }
 
   create() {
@@ -107,6 +121,54 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(4, 4, 4);
     g.generateTexture('dot', 8, 8);
 
+    // particle textures (EffectsSystem)
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(12, 12, 12);
+    g.generateTexture('p-dust', 24, 24);
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, 10, 4);
+    g.generateTexture('p-splinter', 10, 4);
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(0, 8, 4, 0, 8, 8);
+    g.generateTexture('p-shard', 8, 8);
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(10, 10, 10);
+    g.generateTexture('p-puff', 20, 20);
+    g.clear();
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(6, 6, 6);
+    g.generateTexture('p-spark', 12, 12);
+
+    // fragment textures (factory spawnFragments) — material chips
+    this.blockTexture(g, 'frag-wood', COLORS.WOOD, COLORS.WOOD_DARK);
+    this.blockTexture(g, 'frag-stone', COLORS.STONE, COLORS.STONE_DARK);
+    this.blockTexture(g, 'frag-glass', COLORS.GLASS, COLORS.GLASS_DARK, 0.8);
+    this.blockTexture(g, 'frag-boom', COLORS.BOOM, 0x8a3a24);
+
+    g.destroy();
+  }
+
+  /** Procedural stand-in for a missing tower sprite (keeps the game up). */
+  generateFallbackTexture(key) {
+    if (this.textures.exists(key)) return;
+    const g = this.add.graphics();
+    const map = {
+      wood: [COLORS.WOOD, COLORS.WOOD_DARK], stone: [COLORS.STONE, COLORS.STONE_DARK],
+      glass: [COLORS.GLASS, COLORS.GLASS_DARK], boom: [COLORS.BOOM, 0x8a3a24],
+      pig: [0xf4a9b8, 0xc97b8f]
+    };
+    const mat = key.includes('stone') ? 'stone' : key.includes('glass') ? 'glass'
+      : key.includes('tnt') || key.includes('boom') ? 'boom' : key.includes('pig') ? 'pig' : 'wood';
+    const [fill, edge] = map[mat];
+    g.fillStyle(fill, 1);
+    g.fillRect(0, 0, 64, 64);
+    g.lineStyle(4, edge, 1);
+    g.strokeRect(2, 2, 60, 60);
+    g.generateTexture(key, 64, 64);
     g.destroy();
   }
 

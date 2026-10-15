@@ -19,7 +19,7 @@
  * always the same point. This structurally prevents double launches,
  * stuck bodies and shooting while paused.
  */
-import { SLINGSHOT, WORLD, COLORS, PROJECTILE_TYPES, slingshotAnchor } from '../config.js';
+import { SLINGSHOT, WORLD, COLORS, PROJECTILE_TYPES, TERRAIN, slingshotAnchor } from '../config.js';
 import { predictPath } from './Trajectory.js';
 import { DEVICE_TYPES } from './Device.js';
 
@@ -112,8 +112,8 @@ export class Slingshot {
     // wooden base touches the cliff grass; the fork opens toward the towers
     this.base = { x: a.x, y: a.y + SLINGSHOT.BASE_OFFSET_Y };
     this.fork = { x: a.x, y: a.y + 24 };          // where the prongs split
-    this.forkBack = { x: a.x - 17, y: a.y - 25 }; // far prong tip
-    this.forkFront = { x: a.x + 19, y: a.y - 29 };// near prong tip (forward)
+    this.forkBack = { x: a.x - 21, y: a.y - 27 }; // far prong tip
+    this.forkFront = { x: a.x + 24, y: a.y - 29 };// near prong tip (forward)
     this.drawWood();
     this.redraw();
   }
@@ -122,14 +122,24 @@ export class Slingshot {
   /* Static wood (redrawn only when the anchor changes)                  */
   /* ------------------------------------------------------------------ */
 
+  /** Trace a quadratic Bézier (p0 → p1, control p2) as a polyline. */
+  curvePath(g, p0, p1, p2) {
+    g.moveTo(p0.x, p0.y);
+    if (!p2) { g.lineTo(p1.x, p1.y); return; }
+    const N = 8;
+    for (let i = 1; i <= N; i++) {
+      const t = i / N;
+      const u = 1 - t;
+      g.lineTo(u * u * p0.x + 2 * u * t * p2.x + t * t * p1.x, u * u * p0.y + 2 * u * t * p2.y + t * t * p1.y);
+    }
+  }
+
   /** Rounded "bone" from p0 to p1 (optional quadratic control p2). */
   limb(g, p0, p1, p2, width, fill) {
     for (const [w, c] of [[width + 5, WOOD.outline], [width, fill]]) {
       g.lineStyle(w, c, 1);
       g.beginPath();
-      g.moveTo(p0.x, p0.y);
-      if (p2) g.quadraticCurveTo(p2.x, p2.y, p1.x, p1.y);
-      else g.lineTo(p1.x, p1.y);
+      this.curvePath(g, p0, p1, p2);
       g.strokePath();
     }
     for (const p of [p0, p1]) this.knob(g, p, width / 2, fill);
@@ -143,9 +153,11 @@ export class Slingshot {
   }
 
   drawWood() {
-    // --- back layer: the far prong, shaded darker for depth
+    // --- back layer: contact shadow + the far prong, shaded darker
     const b = this.layerBackArm;
     b.clear();
+    b.fillStyle(0x1e2a12, 0.22); // soft shadow plants the base into the grass
+    b.fillEllipse(this.base.x, this.base.y + 7, 58, 12);
     this.limb(b, this.fork, this.forkBack, { x: this.fork.x - 15, y: this.fork.y - 5 }, 9, WOOD.back);
 
     // --- front layer: trunk + near prong + foot plate
@@ -331,17 +343,14 @@ export class Slingshot {
 
   drawBand(g, tip, target, width, color, stretch) {
     const sag = 7 * (1 - stretch); // taut when stretched, slack at rest
-    const cx = (tip.x + target.x) / 2;
-    const cy = (tip.y + target.y) / 2 + sag;
+    const ctrl = { x: (tip.x + target.x) / 2, y: (tip.y + target.y) / 2 + sag };
     g.lineStyle(width + 2, WOOD.bandDark, 0.55);
     g.beginPath();
-    g.moveTo(tip.x, tip.y);
-    g.quadraticCurveTo(cx, cy, target.x, target.y);
+    this.curvePath(g, tip, target, ctrl);
     g.strokePath();
     g.lineStyle(width, color, 1);
     g.beginPath();
-    g.moveTo(tip.x, tip.y);
-    g.quadraticCurveTo(cx, cy, target.x, target.y);
+    this.curvePath(g, tip, target, ctrl);
     g.strokePath();
   }
 
@@ -397,7 +406,9 @@ export class Slingshot {
     g.fillStyle(COLORS.TRAJECTORY, 0.85);
     for (let i = 2; i < pts.length; i += 3) {
       const pt = pts[i];
-      if (pt.y > WORLD.GROUND_Y) break;
+      // terrain-aware cutoff: dots stop at the plateau/terrace surface
+      const ground = pt.x < TERRAIN.WATER_GAP[1] ? TERRAIN.PLATEAU.top : TERRAIN.TERRACE.top;
+      if (pt.y > ground) break;
       const r = Math.max(2, 4.5 - i * 0.05);
       g.fillCircle(pt.x, pt.y, r);
     }

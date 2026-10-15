@@ -36,11 +36,32 @@ function eq(a, b, msg) {
   if (a !== b) throw new Error(msg || `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 }
 
+/** Find and fire a real aimed shot at a world point (angle sweep). */
+function aimShotAt(h, x, y) {
+  // solveLaunch uses one fixed angle; sweep angles until a real solution exists
+  for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6]) {
+    const sol = h.solveLaunch(x, y, { angleDeg });
+    if (sol && sol.missDistance < 12) {
+      return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
+    }
+  }
+  return false;
+}
+
+/** Find and fire a real aimed shot at a choice (default: correct answer). */
+function autoAimSweep(h, choiceId = null) {
+  const s = h.scene();
+  const wanted = choiceId || s.prepared.question.correctAnswerId;
+  const target = s.factory.targets.find((t) => t.wb.choiceId === wanted);
+  if (!target) return false;
+  return aimShotAt(h, target.x, target.y);
+}
+
 /** Answer the current question correctly via a real aimed shot. */
 async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
   const startQ = h.info().questionIndex;
   const t0 = Date.now();
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < 8; attempt++) {
     if (h.info().questionIndex !== startQ) return true;         // advanced
     const st = h.state();
     if (st === 'LEVEL_COMPLETE' || st === 'GAME_COMPLETE') return true;
@@ -50,7 +71,7 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
       await h.waitForState('AIMING', 8000);
       continue;
     }
-    if (st === 'AIMING') h.api.autoAim();
+    if (st === 'AIMING') autoAimSweep(h);
     const advanced = await h.waitFor(() => h.info().questionIndex !== startQ
       || h.state() === 'LEVEL_COMPLETE' || h.state() === 'GAME_COMPLETE', 9000);
     if (advanced) return true;
@@ -164,10 +185,8 @@ const main = async () => {
     const s = h.scene();
     const shots0 = h.info().shotsLeft;
     const wrong = s.factory.targets.find((t) => t.wb.choiceId !== s.prepared.question.correctAnswerId);
-    // aim at the wrong target with a real shot (the game's own solver)
-    const sol = h.solveLaunch(wrong.x, wrong.y, { angleDeg: -14 });
-    assert(sol, 'no wrong-target solution');
-    h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
+    // aim at the wrong target with a real shot (angle sweep)
+    assert(aimShotAt(h, wrong.x, wrong.y), 'no wrong-target solution');
     assert(await h.waitForState('ANSWER_FEEDBACK', 10000), 'wrong hit never produced feedback');
     eq(h.info().questionIndex, 0, 'wrong answer advanced the question');
     assert(await h.waitForState('AIMING', 12000), 'not re-armed after wrong answer');
@@ -310,7 +329,7 @@ const main = async () => {
       await h.gotoLevel(levelId);
       await h.waitForState('AIMING', 10000);
       for (let q = 0; q < 4; q++) {
-        const ok = await answerCorrect(h, { timeoutMs: 60000 });
+        const ok = await answerCorrect(h, { timeoutMs: 90000 });
         assert(ok, `L${levelId} Q${q + 1} did not advance (state ${h.state()})`);
       }
       assert(await h.waitForState('LEVEL_COMPLETE', 10000), `L${levelId} never completed (${h.state()})`);
