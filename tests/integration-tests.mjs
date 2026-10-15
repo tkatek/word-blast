@@ -41,7 +41,7 @@ function aimShotAt(h, x, y) {
   // solveLaunch uses one fixed angle; sweep angles until a real solution exists
   for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6]) {
     const sol = h.solveLaunch(x, y, { angleDeg });
-    if (sol && sol.missDistance < 12) {
+    if (sol && sol.missDistance < 40) {
       return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
     }
   }

@@ -28,17 +28,21 @@ const main = async () => {
         if (info.questionIndex !== q) { row.error = `expected Q${q + 1}, at Q${info.questionIndex + 1}`; break; }
 
         // legitimate launches: solved ballistic arcs through the correct
-        // target (several lob angles), one shot at a time, like a player.
+        // target. Angle choice mirrors a reasonable player: steep lobs for
+        // far/shielded targets, flatter arcs for near ones; retries rotate.
         const ANGLES = [-14, -22, -30, -38, -46, -8, -54];
+        const orderedAngles = (targetX, attempt) => {
+          const steepFirst = targetX > 1000 || attempt > 0;
+          const list = steepFirst ? [-30, -38, -22, -46, -14, -54, -8] : ANGLES;
+          return list.map((_, i) => list[(i + attempt) % list.length]);
+        };
         let fired = 0;
         const maxShots = info.shotsLeft;
         while (fired < maxShots && h.info().questionIndex === q && h.state() !== 'LEVEL_FAILED') {
           let launched = false;
-          // rotate the first angle per shot so a blocked line isn't repeated
-          const order = ANGLES.map((_, i) => ANGLES[(i + fired) % ANGLES.length]);
-          for (const angleDeg of order) {
-            const target = h.correctTarget();
-            if (!target) break;
+          const target = h.correctTarget();
+          if (!target) break;
+          for (const angleDeg of orderedAngles(target.x, fired)) {
             // solve from the live slingshot anchor (device art aware)
             const sol = h.solveLaunch(target.x, target.y, { angleDeg });
             if (sol && sol.missDistance < 30) {

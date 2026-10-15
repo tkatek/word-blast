@@ -58,9 +58,12 @@ function layoutQuestion(levelId, qIndex, rand) {
     chosen.push(second);
   }
 
-  // place structures left→right with spacing
+  // place structures left→right with spacing. Tier 1 keeps the approach
+  // lane wide: structures start at 660+ so at least one ground plaque fits
+  // in front and one behind (a first, gentle introduction to lobbing).
   const instances = [];
-  let cursor = STRUCT_MIN_X + rand() * 40;
+  const structMinX = tier === 1 ? 660 : STRUCT_MIN_X;
+  let cursor = structMinX + rand() * 40;
   for (const key of chosen) {
     const t = TEMPLATES[key];
     const mirror = rand() < 0.35 && key !== 'leaning_tower';
@@ -88,16 +91,20 @@ function layoutQuestion(levelId, qIndex, rand) {
   };
   for (const inst of instances) addInstance(inst);
 
-  // ground anchor candidates across the terrace (incl. the approach lane).
-  // Tier 1 (early levels, spec §10: "accessible targets, generous aiming
-  // paths"): ground plaques sit LEFT of the first structure so nothing
-  // accidentally shields them. Later tiers allow anchors anywhere clear —
-  // sheltered ground plaques are intended difficulty there.
+  // ground anchor candidates on the terrace. Tier 1 (early levels, spec
+  // §10: "accessible targets, generous aiming paths"): plaques only in the
+  // front lane (left of every structure) or the rear lane (right of all
+  // structures, behind a SHORT tower — an easy lob). Later tiers allow
+  // any clear position; sheltered plaques are intended difficulty there.
   const groundXs = [];
-  const frontLimit = tier === 1
-    ? Math.min(...occupied.map(([a]) => a)) - 58
-    : 1180;
-  for (let x = 488; x <= Math.min(1180, frontLimit); x += 10) groundXs.push(x);
+  if (tier === 1) {
+    const front = Math.min(...occupied.map(([a]) => a)) - 58;
+    const rear = Math.max(...occupied.map(([, b]) => b)) + 58;
+    for (let x = 488; x <= Math.min(1180, front); x += 10) groundXs.push(x);
+    for (let x = Math.max(488, rear); x <= 1180; x += 10) groundXs.push(x);
+  } else {
+    for (let x = 488; x <= 1180; x += 10) groundXs.push(x);
+  }
   const clearGround = (x) => occupied.every(([a, b]) => x < a - 58 || x > b + 58);
   while (anchors.length < 3) {
     const candidates = groundXs.filter((x) => clearGround(x) && !anchors.some((s) => Math.abs(s.x - x) < 118));
@@ -108,12 +115,19 @@ function layoutQuestion(levelId, qIndex, rand) {
 
   // still short on space → append small pedestal towers with one slot each
   // (a pedestal is 110px wide; occupied ranges already carry a 66px margin,
-  // so clearance against them is sufficient). Tier 1 keeps them in front.
+  // so clearance against them is sufficient). Tier 1 keeps them out of the
+  // front/rear lanes' way by respecting the same zones.
+  const tier1Zone = (x) => {
+    if (tier !== 1) return true;
+    const front = Math.min(...occupied.map(([a]) => a)) - 58;
+    const rear = Math.max(...occupied.map(([, b]) => b)) + 58;
+    return x <= front || x >= rear;
+  };
   let guard = 0;
   while (anchors.length < 3 && guard++ < 4) {
     let placed = false;
     for (let x = 1180; x >= 490; x -= 10) {
-      if (tier === 1 && x > frontLimit) continue;
+      if (!tier1Zone(x)) continue;
       if (occupied.every(([a, b]) => x < a || x > b)
         && !anchors.some((s) => Math.abs(s.x - x) < 118)) {
         const inst = instantiate('pedestal', Math.round(x), TERRACE_TOP, {});
