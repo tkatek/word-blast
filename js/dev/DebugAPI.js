@@ -22,7 +22,7 @@ export function installDebugAPI(game) {
 
     state() {
       const s = api.scene();
-      return s ? s.stateMachine.current : 'none';
+      return s && s.stateMachine ? s.stateMachine.current : 'scene-pending';
     },
 
     /** Programmatic launch (same internal path as a real slingshot release). */
@@ -42,9 +42,9 @@ export function installDebugAPI(game) {
 
     /** Start any level directly (respects nothing — for tests). */
     gotoLevel(levelId) {
-      const s = api.scene();
-      if (s) s.scene.restart({ levelId });
-      else game.scene.getScene('LevelSelectScene');
+      // SceneManager.start boots pending scenes and restarts running ones —
+      // scene.restart() alone fails on a scene that never booted.
+      game.scene.start('GameScene', { levelId });
       return true;
     },
 
@@ -54,11 +54,21 @@ export function installDebugAPI(game) {
       return clientToWorld(clientX, clientY, canvas.getBoundingClientRect());
     },
 
-    /** Await a game state. */
+    /** Await a game state (polling — robust across scene restarts). */
     waitForState(target, timeoutMs = 12000) {
-      const s = api.scene();
-      if (!s) return Promise.reject(new Error('no game scene'));
-      return s.waitForState(target, timeoutMs);
+      const start = Date.now();
+      return new Promise((resolve, reject) => {
+        const poll = () => {
+          const s = api.scene();
+          const current = s && s.stateMachine ? s.stateMachine.current : null;
+          if (current === target) return resolve(true);
+          if (Date.now() - start > timeoutMs) {
+            return reject(new Error(`waitForState(${target}) timed out; state=${current || 'scene-pending'}`));
+          }
+          setTimeout(poll, 60);
+        };
+        poll();
+      });
     },
 
     /** Positions of active projectiles (trajectory verification). */
@@ -75,7 +85,14 @@ export function installDebugAPI(game) {
     },
 
     game,
-    world: { WIDTH: WORLD.WIDTH, HEIGHT: WORLD.HEIGHT }
+    world: { WIDTH: WORLD.WIDTH, HEIGHT: WORLD.HEIGHT },
+
+    /** Disable/enable blur & visibility auto-pause (for automated runs). */
+    setAutoPause(enabled) {
+      const s = api.scene();
+      if (s) s.disableAutoPause = !enabled;
+      return enabled;
+    }
   };
 
   window.__WB__ = api;

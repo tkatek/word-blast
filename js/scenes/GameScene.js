@@ -19,6 +19,8 @@ const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
+    this.stateChangeHandlers = []; // must exist before the state machine first fires
+    this.disableAutoPause = false; // set via debug API for automated runs; survives restarts
   }
 
   init(data) {
@@ -34,6 +36,7 @@ export class GameScene extends Phaser.Scene {
     this.level = this.levels.getLevel(this.levelId);
 
     this.stateMachine = new GameStateMachine((next, prev) => this.onStateChanged(next, prev));
+    this.stateMachine.set(STATES.LOADING); // BOOTING -> LOADING while the level builds
     this.factory = new ObjectFactory(this);
     this.scoring = new ScoringSystem();
     this.scoring.configure(this.levels.totalShotsForLevel(this.levelId));
@@ -49,7 +52,6 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs = 0;          // pause-aware clock (movers)
     this.settleFrames = 0;
     this.settleStartedAt = 0;
-    this.stateChangeHandlers = [];
 
     this.buildWorld();
     this.buildHUD();
@@ -594,6 +596,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   autoPause() {
+    if (this.disableAutoPause) return;
     const terminal = [STATES.LEVEL_COMPLETE, STATES.LEVEL_FAILED, STATES.GAME_COMPLETE];
     if (terminal.includes(this.stateMachine.current)) return;
     if (!this.stateMachine.pause()) return;
@@ -609,10 +612,11 @@ export class GameScene extends Phaser.Scene {
   /* ------------------------------------------------------------------ */
 
   refreshHUD() {
+    if (!this.hudLevel) return; // transitions can fire before the HUD exists
     this.hudLevel.setText(`Lv ${this.levelId} ${this.level.name}`);
     this.hudQuestion.setText(`Question ${this.questionIndex + 1}/4 — ${this.prepared?.question.cefr || ''}`);
     this.hudShots.setText(`Shots: ${this.shotsLeft}`);
-    this.hudScore.setText(`Score: ${this.scoring.computeScore()}`);
+    this.hudScore.setText(`Score: ${this.scoring.liveScore()}`);
     this.hudState.setText(`${this.stateMachine.current}`);
     for (const { key, btn } of this.projectileButtons) {
       btn.setBackgroundColor(key === this.selectedProjectile ? '#e76f51' : '#457b9d');
@@ -673,7 +677,7 @@ export class GameScene extends Phaser.Scene {
       questionIndex: this.questionIndex,
       state: this.stateMachine.current,
       shotsLeft: this.shotsLeft,
-      score: this.scoring.computeScore(),
+      score: this.scoring.liveScore(),
       shotsUsed: this.scoring.shotsUsed,
       correctAttempts: [...this.scoring.correctAttempts],
       wrongHits: this.scoring.wrongHits,

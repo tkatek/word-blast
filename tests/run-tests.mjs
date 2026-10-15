@@ -222,6 +222,18 @@ test('#17b perfect score = theoretical maximum', () => {
   eq(s.computeScore(), ScoringSystem.maxScore(4));
 });
 
+test('live score hides end-of-level bonuses until completion', () => {
+  const s = new ScoringSystem();
+  s.configure(16);
+  eq(s.liveScore(), 0, 'fresh level shows zero, not the unused-shot bonus');
+  s.recordCorrect(1);
+  s.recordShot();
+  eq(s.liveScore(), 1000);
+  s.recordCorrect(1); s.recordCorrect(1); s.recordCorrect(1);
+  for (let i = 0; i < 3; i++) s.recordShot();
+  eq(s.liveScore(), 4000 - 450 + 500, 'completion bonus appears only when done');
+});
+
 test('#15 stars require all four questions completed', () => {
   const s = new ScoringSystem();
   s.configure(16);

@@ -50,7 +50,7 @@ export class ScoringSystem {
     return Math.max(0, this.totalShots - this.shotsUsed);
   }
 
-  /** Final raw score for the level. */
+  /** Final raw score for the level (includes end-of-level bonuses). */
   computeScore() {
     let score = 0;
     for (const attempt of this.correctAttempts) {
@@ -61,6 +61,16 @@ export class ScoringSystem {
     score += this.unusedShots * SCORING.UNUSED_SHOT_BONUS;
     if (this.questionsCompleted === 4) score += SCORING.COMPLETION_BONUS;
     return Math.max(SCORING.MIN_SCORE, score);
+  }
+
+  /**
+   * Score as it should be displayed mid-level: no unused-shot or
+   * completion bonuses before the level is actually finished.
+   */
+  liveScore() {
+    const finals = this.computeScore();
+    if (this.questionsCompleted === 4) return finals;
+    return Math.max(SCORING.MIN_SCORE, finals - this.unusedShots * SCORING.UNUSED_SHOT_BONUS);
   }
 
   /**
