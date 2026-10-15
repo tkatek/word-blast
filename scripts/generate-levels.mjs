@@ -85,8 +85,8 @@ function rng(seed) {
 //   tablet  dx=-16 → 544..1213 on terrace [544, 1280]
 //   mobile  dx=+50 → 610..1279 on terrace [610, 1280]
 const TERRACE_TOP = 428;           // TERRAIN_PROFILES.desktop.TERRACE.top
-const SPAN_LEFT = 560;             // leftmost structure EDGE (tablet: 544 = its terrace edge)
-const SPAN_RIGHT = 1229;           // rightmost structure EDGE (mobile: 1279 on-screen)
+const SPAN_LEFT = 578;             // leftmost structure EDGE (slot plaques may overhang 18px → 560)
+const SPAN_RIGHT = 1211;           // rightmost structure EDGE (overhang → 1229; mobile dx+50 → 1279)
 const PANEL_SAFE_X = 760;          // tall structures sit right of the question panel
 const TALL_H = 300;
 const GROUND_MARGIN = 42;          // plaque half height: ground anchor y = TERRACE_TOP - 40
