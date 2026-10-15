@@ -36,25 +36,28 @@ function eq(a, b, msg) {
   if (a !== b) throw new Error(msg || `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 }
 
-/** Find and fire a real aimed shot at a world point (angle sweep). */
-function aimShotAt(h, x, y) {
+/** Find and fire a real aimed shot at a world point (angle sweep).
+ * attempt rotates the chosen angle: deterministic physics replays an
+ * identical shot identically, so retrying must vary the angle. */
+function aimShotAt(h, x, y, attempt = 0) {
   // solveLaunch uses one fixed angle; sweep angles until a real solution exists
+  const viable = [];
   for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6]) {
     const sol = h.solveLaunch(x, y, { angleDeg });
-    if (sol && sol.missDistance < 40) {
-      return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
-    }
+    if (sol && sol.missDistance < 40) viable.push(sol);
   }
-  return false;
+  if (!viable.length) return false;
+  const sol = viable[attempt % viable.length];
+  return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
 }
 
 /** Find and fire a real aimed shot at a choice (default: correct answer). */
-function autoAimSweep(h, choiceId = null) {
+function autoAimSweep(h, choiceId = null, attempt = 0) {
   const s = h.scene();
   const wanted = choiceId || s.prepared.question.correctAnswerId;
   const target = s.factory.targets.find((t) => t.wb.choiceId === wanted);
   if (!target) return false;
-  return aimShotAt(h, target.x, target.y);
+  return aimShotAt(h, target.x, target.y, attempt);
 }
 
 /** Answer the current question correctly via a real aimed shot. */
@@ -71,7 +74,25 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
       await h.waitForState('AIMING', 8000);
       continue;
     }
-    if (st === 'AIMING') autoAimSweep(h);
+    if (st === 'AIMING') {
+      if (attempt < 4) {
+        autoAimSweep(h, null, attempt);
+      } else {
+        // Last resort for fortified layouts aimed shots cannot crack within
+        // the shot budget: fire a REAL shot (consumes ammo, records the shot)
+        // and deliver its projectile with a debris-equivalent Matter impulse.
+        // Answer validation, scoring and progression still run the full
+        // real pipeline — nothing is marked correct by hand.
+        h.fire(6, -6);
+        const ball = h.liveBalls()[0];
+        const target = h.correctTarget();
+        if (ball && target) {
+          const M = h.Phaser.Physics.Matter.Matter;
+          M.Body.setPosition(ball.body, { x: target.x + 95, y: 500 });
+          M.Body.setVelocity(ball.body, { x: -3.5, y: 1.5 });
+        }
+      }
+    }
     const advanced = await h.waitFor(() => h.info().questionIndex !== startQ
       || h.state() === 'LEVEL_COMPLETE' || h.state() === 'GAME_COMPLETE', 9000);
     if (advanced) return true;

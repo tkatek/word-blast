@@ -7,30 +7,62 @@
 export const WORLD = {
   WIDTH: 1280,
   HEIGHT: 720,
-  GROUND_Y: 560,          // top surface of the MAIN gameplay terrace (towers)
+  GROUND_Y: 428,          // top surface of the MAIN gameplay terrace (towers, desktop art)
   GROUND_THICKNESS: 240,  // extends below the visible area
   // Canonical slingshot anchor (aliases SLINGSHOT.ANCHORS.desktop — kept
   // for the test suite and headless helpers; gameplay code reads the live
   // anchor off the Slingshot).
-  SLING_X: 175,
-  SLING_Y: 390,
+  SLING_X: 195,
+  SLING_Y: 335,
   KILL_MARGIN: 260        // bodies this far outside the world get removed
 };
 
 /**
- * Canonical gameplay terrain (world px). Two flat surfaces:
- *  - LEFT plateau (slingshot): top y=448, spans x -120..390
- *  - MAIN terrace (towers):    top y=560, spans x 430..1400
- * The 40px gap between them shows the painted water; anything falling into
- * it leaves the playable area and is cleaned up. The foreground terrain
- * layer is drawn FROM THESE NUMBERS, so visual ground == collision ground
- * on every device — backgrounds can never shift live physics.
+ * Gameplay terrain, measured FROM the painted backgrounds (world px under
+ * each device's cover-fit; see scripts/measure-terrain.mjs). The background
+ * art is the ONLY visible terrain — these are invisible static colliders
+ * that match the painted grassy surfaces:
+ *  - LEFT plateau (slingshot cliff): top = painted grass line
+ *  - MAIN terrace (towers):           top = painted grass line
+ * The painted water gap between them has NO collider: anything falling in
+ * drops out of the world and is cleaned up / recovered.
+ *
+ * LAYOUT.dx rigidly translates the canonical (desktop) baked layouts so
+ * every structure stands on THIS device's painted terrace. Translations
+ * only — never scaled — so tower stacking geometry is preserved exactly.
  */
-export const TERRAIN = {
-  PLATEAU: { left: -120, right: 390, top: 448 },
-  TERRACE: { left: 430, right: 1400, top: 560 },
-  get WATER_GAP() { return [this.PLATEAU.right, this.TERRACE.left]; }
+export const TERRAIN_PROFILES = {
+  desktop: {
+    PLATEAU: { left: -120, right: 299, top: 393 },
+    TERRACE: { left: 459, right: 1400, top: 428 },
+    LAYOUT: { dx: 0 }
+  },
+  tablet: {
+    PLATEAU: { left: -120, right: 273, top: 458 },
+    TERRACE: { left: 544, right: 1400, top: 502 },
+    LAYOUT: { dx: -16 }
+  },
+  mobile: {
+    PLATEAU: { left: -120, right: 146, top: 406 },
+    TERRACE: { left: 610, right: 1400, top: 463 },
+    LAYOUT: { dx: 50 }
+  }
 };
+
+/** Resolve a device's terrain profile (unknown types fall back to desktop). */
+export function terrainFor(deviceType) {
+  const p = TERRAIN_PROFILES[deviceType] || TERRAIN_PROFILES.desktop;
+  return {
+    device: TERRAIN_PROFILES[deviceType] ? deviceType : 'desktop',
+    PLATEAU: p.PLATEAU,
+    TERRACE: p.TERRACE,
+    LAYOUT: p.LAYOUT,
+    get WATER_GAP() { return [this.PLATEAU.right, this.TERRACE.left]; }
+  };
+}
+
+/** Canonical profile (desktop art) — reference for baked level layouts. */
+export const TERRAIN = terrainFor('desktop');
 
 export const PHYSICS = {
   GRAVITY_Y: 1,
@@ -95,19 +127,17 @@ export const SLINGSHOT = {
   TRAJECTORY_STEPS: 60,
   TRAJECTORY_STEP_MS: 1000 / 60,
   /**
-   * Pouch rest position (world px in the fixed 1280×720 logical world).
-   * The canonical anchor stands the slingshot on the FOREGROUND plateau
-   * (TERRAIN.PLATEAU.top, identical on every device), so the anchor is the
-   * same for all backgrounds: painted cliff heights can differ per art,
-   * but the gameplay ground is the drawn foreground layer. Per-device
-   * entries remain for compatibility and are all canonical.
+   * Pouch rest position (world px in the fixed 1280×720 logical world),
+   * measured per device so the wooden base stands exactly on the PAINTED
+   * grassy cliff of that device's background (TERRAIN_PROFILES.*.PLATEAU):
+   * y = plateau top - BASE_OFFSET_Y, x sits comfortably inside the cliff.
    */
   ANCHORS: {
-    desktop: { x: 175, y: 390 },
-    tablet: { x: 175, y: 390 },
-    mobile: { x: 175, y: 390 }
+    desktop: { x: 195, y: 335 },
+    tablet: { x: 170, y: 400 },
+    mobile: { x: 80, y: 348 }
   },
-  BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact at 448)
+  BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact)
 };
 
 /** Slingshot pouch anchor for a device type (clone; safe to mutate). */

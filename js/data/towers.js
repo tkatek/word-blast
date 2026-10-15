@@ -79,14 +79,15 @@ export const TEMPLATES = {
     pigs: []
   },
   asym_peak: {
-    width: 240, height: 250,
-    // tall post + triangle peak on the left, low crate on the right
+    width: 250, height: 330,
+    // tall post + triangle peak on the left, low crate on the right;
+    // the answer plaque rides the PEAK (open sky), never the sheltered base
     pieces: [
       { a: 'wood_beam_v', x: -80, y: H('wood_beam_v') / 2 },
       { a: 'wood_triangle', x: -80, y: H('wood_beam_v') + H('wood_triangle') / 2 },
       { a: 'wood_crate_cross', x: 50, y: H('wood_crate_cross') / 2 }
     ],
-    slots: [{ x: 50, y: H('wood_crate_cross') + plaqueHalf }],
+    slots: [{ x: -80, y: H('wood_beam_v') + H('wood_triangle') + plaqueHalf }],
     pigs: []
   },
 
@@ -97,7 +98,7 @@ export const TEMPLATES = {
     pigs: [{ a: 'pig_small', x: 0, y: pigHalf('pig_small') }]
   },
   stone_keep: {
-    width: 270, height: 308,
+    width: 330, height: 308,
     pieces: [
       { a: 'stone_block_l', x: -38, y: H('stone_block_l') / 2 },
       { a: 'stone_block_l', x: 38, y: H('stone_block_l') / 2 },
@@ -115,8 +116,8 @@ export const TEMPLATES = {
       { a: 'stone_column', x: -80, y: H('stone_column') / 2 },
       { a: 'stone_column', x: 80, y: H('stone_column') / 2 },
       { a: 'stone_beam_h', x: 0, y: H('stone_column') + H('stone_beam_h') / 2 },
-      { a: 'barrel_wood', x: -145, y: 30 },
-      { a: 'barrel_wood', x: 145, y: 30 }
+      { a: 'barrel_wood', x: -145, y: 33 },
+      { a: 'barrel_wood', x: 145, y: 33 }
     ],
     slots: [{ x: 0, y: H('stone_column') + H('stone_beam_h') + plaqueHalf }],
     pigs: [{ a: 'pig_medium', x: 0, y: pigHalf('pig_medium') }]
@@ -148,7 +149,7 @@ export const TEMPLATES = {
 
   /* ---- tier 3 (L11–15): taller, combined mechanics ---------------------- */
   two_storey: {
-    width: 300, height: 380,
+    width: 380, height: 380,
     pieces: [
       { a: 'stone_column', x: -64, y: H('stone_column') / 2 },
       { a: 'stone_column', x: 64, y: H('stone_column') / 2 },
@@ -176,7 +177,7 @@ export const TEMPLATES = {
     pigs: []
   },
   tnt_depot: {
-    width: 360, height: 330,
+    width: 400, height: 330,
     // TNT crate inside a wood frame, second TNT on the roof plank
     pieces: [
       { a: 'wood_beam_v', x: -76, y: H('wood_beam_v') / 2 },
@@ -209,7 +210,7 @@ export const TEMPLATES = {
     pigs: []
   },
   leaning_tower: {
-    width: 250, height: 330,
+    width: 300, height: 330,
     pieces: [
       { a: 'stone_block_l', x: 0, y: H('stone_block_l') / 2 },
       { a: 'wood_crate_cross', x: 0, y: H('stone_block_l') + H('wood_crate_cross') / 2 },

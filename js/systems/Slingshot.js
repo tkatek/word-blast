@@ -19,7 +19,7 @@
  * always the same point. This structurally prevents double launches,
  * stuck bodies and shooting while paused.
  */
-import { SLINGSHOT, WORLD, COLORS, PROJECTILE_TYPES, TERRAIN, slingshotAnchor } from '../config.js';
+import { SLINGSHOT, WORLD, COLORS, PROJECTILE_TYPES, terrainFor, slingshotAnchor } from '../config.js';
 import { predictPath } from './Trajectory.js';
 import { DEVICE_TYPES } from './Device.js';
 
@@ -102,6 +102,7 @@ export class Slingshot {
    */
   applyDeviceAnchor(deviceType) {
     this.deviceType = DEVICE_TYPES[deviceType] ? deviceType : DEVICE_TYPES.DESKTOP;
+    this.terrain = terrainFor(this.deviceType);
     this.setAnchor(slingshotAnchor(this.deviceType));
   }
 
@@ -406,8 +407,8 @@ export class Slingshot {
     g.fillStyle(COLORS.TRAJECTORY, 0.85);
     for (let i = 2; i < pts.length; i += 3) {
       const pt = pts[i];
-      // terrain-aware cutoff: dots stop at the plateau/terrace surface
-      const ground = pt.x < TERRAIN.WATER_GAP[1] ? TERRAIN.PLATEAU.top : TERRAIN.TERRACE.top;
+      // terrain-aware cutoff: dots stop at the painted platform surface
+      const ground = pt.x < this.terrain.WATER_GAP[1] ? this.terrain.PLATEAU.top : this.terrain.TERRACE.top;
       if (pt.y > ground) break;
       const r = Math.max(2, 4.5 - i * 0.05);
       g.fillCircle(pt.x, pt.y, r);

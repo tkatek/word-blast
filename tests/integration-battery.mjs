@@ -23,23 +23,20 @@ const main = async () => {
   {
     let worst = 0, worstAt = '', lostTotal = 0;
     for (let lvl = 1; lvl <= 15; lvl++) {
-      await h.gotoLevel(lvl);
+      const h1 = await createHeadlessGame();
+      await h1.gotoLevel(lvl);
       for (let q = 0; q < 4; q++) {
-        const s = h.scene();
-        // rebuild the layout exactly as loadQuestion does and measure
+        const s = h1.scene();
         const layout = s.levels.getLayout(lvl, q);
         s.factory.clearQuestionObjects();
         s.factory.buildLayout(layout);
         const r = s.factory.settleLayout(75);
         lostTotal += r.lost;
         if (r.drift > worst) { worst = r.drift; worstAt = `L${lvl}Q${q + 1}`; }
-        // advance the question bookkeeping to the next index
-        if (q < 3) { s.questionIndex = q; s.loadQuestion(q + 1); await h.waitFor(() => h.state() === 'AIMING' || h.state() === 'QUESTION_READY', 4000); }
       }
-      await h.destroy();
-      break; // one game instance per level batch (fresh world each)
+      await h1.destroy();
     }
-    check('all layouts settle with zero losses', lostTotal === 0, `lost=${lostTotal}`);
+    check('all 60 layouts settle with zero losses', lostTotal === 0, `lost=${lostTotal}`);
     check('worst settle drift within budget', worst <= 8.5, `${worst.toFixed(1)}px at ${worstAt}`);
   }
 
@@ -129,6 +126,8 @@ const main = async () => {
     await h5.gotoLevel(3);
     await h5.waitForState('AIMING', 8000);
     const s = h5.scene();
+    h5.api.setDeviceOverride('mobile'); // landscape lock applies to phones
+    await new Promise((r) => setTimeout(r, 200));
     h5.api.setOrientationOverride('portrait');
     await new Promise((r) => setTimeout(r, 300));
     const pausedOk = s.stateMachine.isPaused() && s.rotateOverlay.visible;
@@ -166,12 +165,11 @@ const main = async () => {
     await h7.gotoLevel(1);
     await h7.waitForState('AIMING', 8000);
     const correct = h7.correctTarget();
-    // shove the correct plaque into the water gap
-    M.Body.setPosition(correct.body, { x: 410, y: 300 });
-    M.Body.setVelocity(correct.body, { x: 0, y: 3 });
+    // knock the correct plaque off the right edge of the world
+    M.Body.setPosition(correct.body, { x: 1268, y: 400 });
+    M.Body.setVelocity(correct.body, { x: 2, y: 3 });
     M.Sleeping.set(correct.body, false);
-    await h7.waitFor(() => correct.y > 700 || correct.wb.respawned > 0, 6000);
-    await h7.waitFor(() => correct.wb.respawned > 0, 6000);
+    await h7.waitFor(() => correct.wb.respawned > 0, 8000);
     check('out-of-bounds plaque respawns at its anchor', correct.wb.respawned > 0 && Math.abs(correct.x - correct.wb.anchorX) < 5,
       `respawned=${correct.wb.respawned} x=${correct.x.toFixed(0)}`);
     const i = h7.info();

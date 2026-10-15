@@ -18,7 +18,7 @@
 import Phaser from 'phaser';
 import {
   MATERIALS, DAMAGE, EXPLOSION, ICE, PROJECTILE_TYPES, SPLIT_CHILD, BOOST,
-  TARGETS, WORLD, TERRAIN, TUNNELING, BUDGETS, COLORS, PHYSICS
+  TARGETS, WORLD, terrainFor, TUNNELING, BUDGETS, COLORS, PHYSICS
 } from '../config.js';
 import { TOWER_ASSETS } from '../data/tower-assets.js';
 
@@ -28,6 +28,7 @@ export class ObjectFactory {
   constructor(scene) {
     this.scene = scene;
     this.terrain = [];      // static terrain bodies (plateau + terrace)
+    this.terrainDef = terrainFor('desktop'); // profile the colliders follow
     this.blocks = [];       // active destructible pieces + pigs
     this.targets = [];      // active answer plaques
     this.movers = [];       // moving obstacles ({ go, baseX, baseY, axis, range, speed })
@@ -68,13 +69,15 @@ export class ObjectFactory {
   /* ------------------------------------------------------------------ */
 
   /**
-   * Static gameplay terrain from TERRAIN: the left plateau (slingshot)
-   * and the main terrace (towers). The TerrainLayer draws its visuals from
-   * the same numbers, so collision surface == painted surface, on every
-   * device. The 40px gap between them is the painted water — anything
-   * falling in leaves the playable area.
+   * Invisible static colliders matching the PAINTED platforms of the active
+   * device background (see TERRAIN_PROFILES in config.js): the left grassy
+   * cliff (slingshot) and the main grassy terrace (towers). No visuals are
+   * drawn for these — the background art IS the terrain. The painted water
+   * gap between them has no collider; anything falling in drops out of the
+   * world (cleanupOutOfBound) or is recovered (answer plaques).
    */
-  createTerrain() {
+  createTerrain(profile) {
+    this.terrainDef = profile || terrainFor('desktop');
     const mk = (seg) => {
       const w = seg.right - seg.left;
       const h = (WORLD.HEIGHT + 80) - seg.top;
@@ -85,8 +88,15 @@ export class ObjectFactory {
       this.terrain.push(body);
       return body;
     };
-    mk(TERRAIN.PLATEAU);
-    mk(TERRAIN.TERRACE);
+    mk(this.terrainDef.PLATEAU);
+    mk(this.terrainDef.TERRACE);
+  }
+
+  /** Hot-swap the static colliders after a device-class change mid-scene. */
+  applyTerrainProfile(profile) {
+    for (const body of this.terrain) this.scene.matter.world.remove(body);
+    this.terrain.length = 0;
+    this.createTerrain(profile);
   }
 
   /* ------------------------------------------------------------------ */
@@ -676,7 +686,7 @@ export class ObjectFactory {
     for (const t of this.targets) {
       if (t.wb.hit || t.wb.respawned >= 3) continue;
       const out = t.y > WORLD.HEIGHT - 10
-        || t.x < TERRAIN.WATER_GAP[0] - 20
+        || t.x < this.terrainDef.WATER_GAP[0] - 20
         || t.x > WORLD.WIDTH - 30;
       if (out) this.respawnQueue.push(t);
     }

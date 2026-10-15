@@ -6,7 +6,8 @@
  */
 import Phaser from 'phaser';
 import {
-  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK, slingshotAnchor
+  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK,
+  slingshotAnchor, terrainFor
 } from '../config.js';
 import { GameStateMachine } from '../systems/GameStateMachine.js';
 import { ObjectFactory } from '../systems/PhysicsObjects.js';
@@ -15,7 +16,6 @@ import { ScoringSystem } from '../systems/ScoringSystem.js';
 import { solveLaunch } from '../systems/Trajectory.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { EffectsSystem } from '../systems/EffectsSystem.js';
-import { TerrainLayer } from '../systems/TerrainLayer.js';
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
 import { DebugLog } from '../systems/DebugLog.js';
 
@@ -120,12 +120,12 @@ export class GameScene extends Phaser.Scene {
 
   buildWorld() {
     this.cameras.main.setBackgroundColor(COLORS.SKY);
-    // canonical gameplay terrain: physics bodies + foreground visuals are
-    // generated from the SAME config numbers, identical on every device
-    this.factory.createTerrain();
-    this.terrainLayer = new TerrainLayer(this);
-    // device background sits behind everything (depth -100)
+    // Device background is the ONLY visible terrain (depth -100). The
+    // gameplay surfaces are invisible static colliders measured from the
+    // painted platforms of THIS device's art (TERRAIN_PROFILES in config).
     this.device = this.registry.get('device') || deviceInfo();
+    this.terrain = terrainFor(this.device.type);
+    this.factory.createTerrain(this.terrain);
     this.background = new BackgroundManager(this);
     this.background.apply(this.device.type);
   }
@@ -326,7 +326,9 @@ export class GameScene extends Phaser.Scene {
     const question = this.questions.getQuestion(entry.questionId);
     this.prepared = this.questions.prepare(question);
 
-    const layout = this.levels.getLayout(this.levelId, index);
+    // layouts are baked for the canonical desktop terrace and rigidly
+    // translated onto THIS device's painted platform (LevelManager)
+    const layout = this.levels.getLayout(this.levelId, index, this.device.type);
     this.factory.buildLayout(layout);
     layout.targets.forEach((t, i) => {
       const meta = this.prepared.targets[i];
@@ -779,15 +781,22 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * A real device-class change (e.g. tablet → phone window) swaps the
-   * background art, whose cliff sits at a different height — re-stand the
-   * slingshot on that art's anchor. Never mid-drag (an aimed shot is never
-   * yanked away), and never for an in-flight projectile (its body was
-   * already spawned at launch and is independent of the anchor).
+   * background art, whose painted platforms sit elsewhere — re-stand the
+   * slingshot on that art's anchor AND rebuild the invisible colliders to
+   * match. Never mid-drag (an aimed shot is never yanked away), and never
+   * for an in-flight projectile (its body was already spawned at launch and
+   * is independent of the anchor). Dynamic pieces settle onto the new
+   * colliders naturally; the next question is laid out for the new device.
    */
   syncSlingshotDevice() {
     if (!this.slingshot || this.slingshot.isDragging()) return;
     const type = deviceInfo().type;
-    if (type !== this.slingshot.deviceType) this.slingshot.applyDeviceAnchor(type);
+    if (type !== this.slingshot.deviceType) {
+      this.slingshot.applyDeviceAnchor(type);
+      this.terrain = terrainFor(type);
+      this.factory.applyTerrainProfile(this.terrain);
+      this.device = { ...deviceInfo() };
+    }
   }
 
   /**
@@ -979,9 +988,17 @@ export class GameScene extends Phaser.Scene {
     const target = this.factory.targets.find((t) => t.wb.choiceId === wanted);
     if (!target) return null;
     const a = this.slingshot.anchor;
-    const sol = solveLaunch(a.x, a.y, target.x, target.y, { angleDeg: -14 });
-    if (!sol) return null;
-    this.debugLaunch(sol.vx, sol.vy, this.selectedProjectile);
-    return sol;
+    // sweep launch angles: solveLaunch optimizes power at ONE angle, and a
+    // single fixed angle cannot reach every plaque height (tall towers sit
+    // above the apex of a shallow arc)
+    let best = null;
+    for (const angleDeg of [-12, -18, -24, -30, -36, -42, -48, -54]) {
+      const sol = solveLaunch(a.x, a.y, target.x, target.y, { angleDeg });
+      if (sol && (!best || sol.missDistance < best.missDistance)) best = sol;
+      if (best && best.missDistance < 4) break;
+    }
+    if (!best) return null;
+    this.debugLaunch(best.vx, best.vy, this.selectedProjectile);
+    return best;
   }
 }
