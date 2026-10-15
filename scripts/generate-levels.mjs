@@ -24,10 +24,23 @@ const SLING = { x: 195, y: 335 }; // canonical desktop anchor (SLINGSHOT.ANCHORS
  * Verified reachability (spec §10): at least one solved launch arc must
  * pass through the PLAQUE (center or its upper half — a graze still hits
  * the 116×80 board) WITHOUT clipping any piece that rises above the
- * anchor's level between the sling and the anchor. Pure math over the
- * baked piece geometry — the same integrator the game uses.
+ * anchor's level between the sling and the anchor — including OTHER answer
+ * plaques already placed to the left, which are real physical bodies.
+ * Pure math over the baked geometry — the same integrator the game uses.
  */
-function anchorReachable(anchorX, anchorY, pieces, requireTwo = false) {
+const PLAQUE = { w: 116, h: 80 }; // TARGETS sign_blank logical size
+
+function anchorReachable(anchorX, anchorY, pieces, blockers, requireTwo = false) {
+  // shield rects: tower pieces (by asset size) + already-placed plaques
+  const shields = [];
+  for (const q of pieces) {
+    const a = TOWER_ASSETS[q.a];
+    if (!a) continue;
+    shields.push({ x: q.x, w: a.size[0], top: q.y - a.size[1] / 2 });
+  }
+  for (const b of blockers || []) {
+    shields.push({ x: b.x, w: PLAQUE.w, top: b.y - PLAQUE.h / 2 });
+  }
   let clearing = 0;
   const aimPoints = [[anchorX, anchorY], [anchorX, anchorY - 28]];
   for (const [ax, ay] of aimPoints) {
@@ -41,13 +54,9 @@ function anchorReachable(anchorX, anchorY, pieces, requireTwo = false) {
       let ok = true;
       for (const p of pts) {
         if (p.x > anchorX - 10) break;
-        for (const q of pieces) {
-          const a = TOWER_ASSETS[q.a];
-          if (!a) continue;
-          const [w, hh] = a.size;
-          const top = q.y - hh / 2;
-          if (top > anchorY - 12) continue; // below plaque level: not a shield
-          if (p.x > q.x - w / 2 - 14 && p.x < q.x + w / 2 + 14 && p.y > top - 14) { ok = false; break; }
+        for (const q of shields) {
+          if (q.top > anchorY - 12) continue; // below plaque level: not a shield
+          if (p.x > q.x - q.w / 2 - 14 && p.x < q.x + q.w / 2 + 14 && p.y > q.top - 14) { ok = false; break; }
         }
         if (!ok) break;
       }
@@ -156,10 +165,12 @@ function tryLayout(levelId, qIndex, rand) {
   for (const inst of instances) addInstance(inst);
 
   // slot anchors must be reachable too: a rear tower shielded by a front
-  // tower is only fair if some arc clears it (checked against all pieces)
+  // tower is only fair if some arc clears it — checked against all pieces
+  // AND the other plaques (real bodies that can shield what is behind them)
   const allPiecesNow = [...pieces];
   for (let i = anchors.length - 1; i >= 0; i--) {
-    if (!anchorReachable(anchors[i].x, anchors[i].y, allPiecesNow)) {
+    const others = anchors.filter((_, j) => j !== i);
+    if (!anchorReachable(anchors[i].x, anchors[i].y, allPiecesNow, others)) {
       anchors.splice(i, 1);
     }
   }
@@ -175,7 +186,7 @@ function tryLayout(levelId, qIndex, rand) {
   while (anchors.length < 3) {
     const candidates = groundXs.filter((x) => clearGround(x)
       && !anchors.some((s) => Math.abs(s.x - x) < 118)
-      && anchorReachable(x, TERRACE_TOP - GROUND_MARGIN, allPiecesNow));
+      && anchorReachable(x, TERRACE_TOP - GROUND_MARGIN, allPiecesNow, anchors));
     if (!candidates.length) break;
     const x = candidates[Math.floor(rand() * candidates.length)];
     anchors.push({ x, y: TERRACE_TOP - GROUND_MARGIN });
@@ -190,7 +201,7 @@ function tryLayout(levelId, qIndex, rand) {
     for (let x = 1165; x >= 625; x -= 10) {
       if (occupied.every(([a, b]) => x < a || x > b)
         && !anchors.some((s) => Math.abs(s.x - x) < 118)
-        && anchorReachable(x, TERRACE_TOP - GROUND_MARGIN + 124, allPiecesNow)) {
+        && anchorReachable(x, TERRACE_TOP - GROUND_MARGIN + 124, allPiecesNow, anchors)) {
         const inst = instantiate('pedestal', Math.round(x), TERRACE_TOP, {});
         addInstance(inst);
         placed = true;

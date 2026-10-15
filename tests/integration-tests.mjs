@@ -138,7 +138,8 @@ const main = async () => {
     await h.gotoLevel(3);
     await h.waitForState('AIMING', 8000);
     // soft lob far short of everything → resolves & re-arms with ball resting
-    const sol = h.solveLanding(420);
+    const landX = Math.max(450, h.correctTarget().x - 260);
+    const sol = h.solveLanding(landX);
     assert(sol, 'landing solution');
     assert(h.fire(sol.vx, sol.vy), 'launch rejected');
     assert(await h.waitForState('AIMING', 15000), 'shot never resolved');
@@ -162,7 +163,8 @@ const main = async () => {
   await test('late WRONG answer after re-arm shows feedback and stays playable', async () => {
     await h.gotoLevel(1);
     await h.waitForState('AIMING', 8000);
-    const sol = h.solveLanding(420);
+    const landX = Math.max(450, h.correctTarget().x - 260);
+    const sol = h.solveLanding(landX);
     assert(h.fire(sol.vx, sol.vy), 'launch rejected');
     assert(await h.waitForState('AIMING', 15000), 'shot never resolved');
     const s = h.scene();

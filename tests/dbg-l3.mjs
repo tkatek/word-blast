@@ -12,6 +12,7 @@ const main = async () => {
   for (let q = 0; q < 4; q++) {
     await h.waitForState('AIMING', 10000);
     const ANGLES = [-14, -22, -30, -38, -46, -8, -54];
+    let blockedBy = null;
     const arcClear = (sol, tx, ty) => {
       const s = h.scene();
       const pts = h.predictPath(sol.vx, sol.vy);
@@ -22,7 +23,7 @@ const main = async () => {
           const bw = b.displayWidth, bh = b.displayHeight;
           const top = b.y - bh / 2;
           if (top > ty - 12) continue;
-          if (p.x > b.x - bw / 2 - 14 && p.x < b.x + bw / 2 + 14 && p.y > top - 14) return false;
+          if (p.x > b.x - bw / 2 - 14 && p.x < b.x + bw / 2 + 14 && p.y > top - 14) { blockedBy = b.wb.asset + "@" + b.x.toFixed(0) + " top " + top.toFixed(0) + " arcY " + p.y.toFixed(0) + " at x " + p.x.toFixed(0); return false; }
         }
       }
       return true;
@@ -34,12 +35,12 @@ const main = async () => {
       for (let i = 0; i < ANGLES.length; i++) {
         const ang = ANGLES[(i + shot) % ANGLES.length];
         const sol = h.solveLaunch(target.x, target.y, { angleDeg: ang });
-        if (sol && sol.missDistance < 30) ranked.push({ ang, sol, clear: arcClear(sol, target.x, target.y) });
+        if (sol && sol.missDistance < 30) ranked.push({ ang, sol, clear: arcClear(sol, target.x, target.y), why: blockedBy });
       }
       ranked.sort((a, b) => (b.clear ? 1 : 0) - (a.clear ? 1 : 0));
       if (!ranked.length) { console.log('NO SOLUTIONS'); break; }
       const pick = ranked[0];
-      console.log(`shot ${shot + 1}: ang=${pick.ang} clear=${pick.clear} miss=${pick.sol.missDistance.toFixed(0)} target=(${target.x.toFixed(0)},${target.y.toFixed(0)}) candidates=${ranked.map(r => r.ang + (r.clear ? '✓' : '')).join(',')}`);
+      console.log(`shot ${shot + 1}: ang=${pick.ang} why=${pick.why || '-'} clear=${pick.clear} miss=${pick.sol.missDistance.toFixed(0)} target=(${target.x.toFixed(0)},${target.y.toFixed(0)}) candidates=${ranked.map(r => r.ang + (r.clear ? '✓' : '')).join(',')}`);
       h.fire(pick.sol.vx, pick.sol.vy, null);
       let minD = 1e9, t0 = Date.now();
       while (Date.now() - t0 < 9000) {
