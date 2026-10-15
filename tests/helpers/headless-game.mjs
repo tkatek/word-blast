@@ -72,13 +72,23 @@ export async function createHeadlessGame() {
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  /** Live slingshot pouch anchor of the running scene (desktop fallback). */
+  const slingAnchor = () => {
+    const s = api.scene();
+    return (s && s.slingshot && s.slingshot.anchor) || { x: WORLD.SLING_X, y: WORLD.SLING_Y };
+  };
+
   const harness = {
     game, Phaser, api,
     scene: () => api.scene(),
     state: () => api.state(),
     info: () => api.info(),
-    /** The game's own inverse solver (Trajectory.js). */
-    solveLaunch: (tx, ty, opts) => solveLaunch(WORLD.SLING_X, WORLD.SLING_Y, tx, ty, opts),
+    slingAnchor,
+    /** The game's own inverse solver (Trajectory.js), from the live anchor. */
+    solveLaunch: (tx, ty, opts) => {
+      const a = slingAnchor();
+      return solveLaunch(a.x, a.y, tx, ty, opts);
+    },
 
     async gotoLevel(levelId) {
       // BootScene must finish wiring the shared managers into the registry
@@ -117,7 +127,10 @@ export async function createHeadlessGame() {
     },
 
     /** Ballistic landing predictor — mirrors the game's Trajectory integrator. */
-    predictLandX(vx, vy, { x0 = WORLD.SLING_X, y0 = WORLD.SLING_Y, groundY = WORLD.GROUND_Y - 16 } = {}) {
+    predictLandX(vx, vy, { x0, y0, groundY = WORLD.GROUND_Y - 16 } = {}) {
+      const a = slingAnchor();
+      x0 = x0 ?? a.x;
+      y0 = y0 ?? a.y;
       let x = x0, y = y0, UX = vx, UY = vy;
       for (let i = 0; i < 1200; i++) {
         UX *= 0.995; UY = UY * 0.995 + 0.27778;

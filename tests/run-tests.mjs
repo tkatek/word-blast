@@ -416,7 +416,7 @@ test('stale projectiles cannot answer from non-shot states', () => {
 console.log('\n== trajectory ===============================================');
 
 test('prediction integrates gravity downward monotonically', () => {
-  const pts = predictPath(175, 545, 15, -12, { steps: 90 });
+  const pts = predictPath(WORLD.SLING_X, WORLD.SLING_Y, 15, -12, { steps: 90 });
   eq(pts.length, 90);
   let vy = -12;
   for (let i = 1; i < pts.length; i++) {
@@ -439,6 +439,78 @@ test('launch power is capped by MAX_SPEED', () => {
   const sol = solveLaunch(WORLD.SLING_X, WORLD.SLING_Y, 1200, 300, { angleDeg: -30 });
   const speed = Math.hypot(sol.vx, sol.vy);
   assert(speed <= SLINGSHOT.MAX_SPEED + 0.01, `speed ${speed} exceeds cap`);
+});
+
+console.log('\n== slingshot positioning ====================================');
+
+import { slingshotAnchor } from '../js/config.js';
+const _DT = DEVICE_TYPES; // already imported from Device.js above
+const LEVELS = levelsData; // alias for the reachability sweep below
+
+test('every device background has a slingshot anchor on the left cliff', () => {
+  for (const type of [_DT.DESKTOP, _DT.TABLET, _DT.MOBILE]) {
+    const a = slingshotAnchor(type);
+    // on the elevated left plateau (measured grass tops ≈ y 385-424 per art,
+    // pouch sits BASE_OFFSET_Y above the grass contact point)
+    assert(a.x >= 100 && a.x <= 220, `${type}: anchor x ${a.x} on the flat cliff top`);
+    assert(a.y >= 300 && a.y <= 400, `${type}: anchor y ${a.y} above the cliff grass`);
+    const baseY = a.y + SLINGSHOT.BASE_OFFSET_Y;
+    assert(baseY >= 370 && baseY <= 450, `${type}: base y ${baseY} rests on the painted grass`);
+    // clear of the question panel (bottom ≈ y 210) and inside the world
+    assert(a.y - 60 > 210, `${type}: fork stays below the question panel`);
+    assert(a.x > 0 && a.y > 0 && a.x < WORLD.WIDTH && a.y < WORLD.HEIGHT, `${type}: inside world`);
+  }
+});
+
+test('legacy WORLD.SLING_X/Y stay in sync with the desktop anchor', () => {
+  const a = slingshotAnchor(_DT.DESKTOP);
+  eq(WORLD.SLING_X, a.x, 'SLING_X alias matches ANCHORS.desktop.x');
+  eq(WORLD.SLING_Y, a.y, 'SLING_Y alias matches ANCHORS.desktop.y');
+});
+
+test('slingshotAnchor returns an independent copy per call', () => {
+  const a = slingshotAnchor(_DT.MOBILE);
+  a.x = 999; a.y = 999;
+  const b = slingshotAnchor(_DT.MOBILE);
+  assert(b.x !== 999 && b.y !== 999, 'mutating a returned anchor must not leak');
+});
+
+test('unknown device types fall back to the desktop anchor', () => {
+  const a = slingshotAnchor('smart-fridge');
+  eq(a.x, slingshotAnchor(_DT.DESKTOP).x);
+  eq(a.y, slingshotAnchor(_DT.DESKTOP).y);
+});
+
+test('the anchor leaves full pull-back room inside the world', () => {
+  for (const type of [_DT.DESKTOP, _DT.TABLET, _DT.MOBILE]) {
+    const a = slingshotAnchor(type);
+    // pulling straight back (left) the pouch must stay comfortably visible:
+    // at least 120px of the 140px drag range before the world edge
+    assert(a.x - 16 >= 120, `${type}: only ${a.x - 16}px of back-drag inside the world`);
+  }
+});
+
+test('all targets in all levels stay reachable from every device anchor', () => {
+  const totalTargets = LEVELS.levels.reduce((n, l) => n + l.questions.reduce((m, q) => m + q.layout.targets.length, 0), 0);
+  assert(totalTargets > 0, 'level data present');
+  let checked = 0;
+  for (const type of [_DT.DESKTOP, _DT.TABLET, _DT.MOBILE]) {
+    const a = slingshotAnchor(type);
+    for (const lvl of LEVELS.levels) {
+      for (const q of lvl.questions) {
+        for (const t of q.layout.targets) {
+          let best = Infinity;
+          for (let ang = -50; ang <= 30; ang += 4) {
+            const sol = solveLaunch(a.x, a.y, t.x, t.y, { angleDeg: ang });
+            if (sol) best = Math.min(best, sol.missDistance);
+          }
+          assert(best < 40, `L${lvl.id} q${lvl.questions.indexOf(q) + 1} target (${t.x},${t.y}) unreachable from ${type} anchor (miss ${best.toFixed(1)}px)`);
+          checked++;
+        }
+      }
+    }
+  }
+  eq(checked, totalTargets * 3, 'swept every target from every device anchor');
 });
 
 console.log('\n== input mapping ============================================');

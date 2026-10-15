@@ -294,8 +294,11 @@ const main = async () => {
   await test('resize/orientation event mid-question does not break progression', async () => {
     await h.gotoLevel(1);
     await h.waitForState('AIMING', 8000);
-    h.scene().scale.emit('resize');
-    h.scene().updateOrientationState();
+    const s = h.scene();
+    // well-formed resize event (Phaser's own argument tuple) + the game's
+    // orientation handler, as a real viewport change would deliver
+    s.scale.emit('resize', s.scale.gameSize, s.scale.baseSize, s.scale.displaySize, 1);
+    s.updateOrientationState();
     assert(await answerCorrect(h), 'question did not advance after resize');
   });
 

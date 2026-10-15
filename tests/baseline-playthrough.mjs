@@ -39,9 +39,8 @@ const main = async () => {
           for (const angleDeg of order) {
             const target = h.correctTarget();
             if (!target) break;
-            const { solveLaunch } = await import('../js/systems/Trajectory.js');
-            const { WORLD } = await import('../js/config.js');
-            const sol = solveLaunch(WORLD.SLING_X, WORLD.SLING_Y, target.x, target.y, { angleDeg });
+            // solve from the live slingshot anchor (device art aware)
+            const sol = h.solveLaunch(target.x, target.y, { angleDeg });
             if (sol && sol.missDistance < 30) {
               if (h.fire(sol.vx, sol.vy, null)) { launched = true; break; }
             }
