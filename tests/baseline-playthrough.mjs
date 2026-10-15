@@ -27,14 +27,26 @@ const main = async () => {
         const info = h.info();
         if (info.questionIndex !== q) { row.error = `expected Q${q + 1}, at Q${info.questionIndex + 1}`; break; }
 
-        // legitimate launches: solved ballistic arcs through the correct
-        // target. Angle choice mirrors a reasonable player: steep lobs for
-        // far/shielded targets, flatter arcs for near ones; retries rotate.
+        // Legitimate launches: solved ballistic arcs through the correct
+        // target. Angle choice mirrors a SKILLED player: simulate each
+        // candidate arc against the live piece positions and fire the first
+        // one that reaches the plaque without clipping anything taller than
+        // the plaque's level; retries rotate through the remaining angles.
         const ANGLES = [-14, -22, -30, -38, -46, -8, -54];
-        const orderedAngles = (targetX, attempt) => {
-          const steepFirst = targetX > 1000 || attempt > 0;
-          const list = steepFirst ? [-30, -38, -22, -46, -14, -54, -8] : ANGLES;
-          return list.map((_, i) => list[(i + attempt) % list.length]);
+        const arcClear = (sol, tx, ty) => {
+          const s = h.scene();
+          const pts = h.predictPath(sol.vx, sol.vy);
+          for (const p of pts) {
+            if (p.x > tx - 10) break;
+            for (const b of s.factory.blocks) {
+              if (b.wb.removed) continue;
+              const bw = b.displayWidth, bh = b.displayHeight;
+              const top = b.y - bh / 2;
+              if (top > ty - 12) continue; // below plaque level: not a shield
+              if (p.x > b.x - bw / 2 - 14 && p.x < b.x + bw / 2 + 14 && p.y > top - 14) return false;
+            }
+          }
+          return true;
         };
         let fired = 0;
         const maxShots = info.shotsLeft;
@@ -42,12 +54,18 @@ const main = async () => {
           let launched = false;
           const target = h.correctTarget();
           if (!target) break;
-          for (const angleDeg of orderedAngles(target.x, fired)) {
-            // solve from the live slingshot anchor (device art aware)
+          // ranked candidates: clearing arcs first, then everything by rotation
+          const ranked = [];
+          for (let i = 0; i < ANGLES.length; i++) {
+            const angleDeg = ANGLES[(i + fired) % ANGLES.length];
             const sol = h.solveLaunch(target.x, target.y, { angleDeg });
             if (sol && sol.missDistance < 30) {
-              if (h.fire(sol.vx, sol.vy, null)) { launched = true; break; }
+              ranked.push({ sol, clear: arcClear(sol, target.x, target.y), angleDeg });
             }
+          }
+          ranked.sort((a, b) => (b.clear ? 1 : 0) - (a.clear ? 1 : 0));
+          for (const c of ranked) {
+            if (h.fire(c.sol.vx, c.sol.vy, null)) { launched = true; break; }
           }
           if (!launched) { row.error = `Q${q + 1} no launch solution`; break; }
           fired++;
