@@ -1,0 +1,902 @@
+[
+  {
+    "id": "q01_1",
+    "levelId": 1,
+    "cefr": "A1",
+    "category": "vocabulary-basic",
+    "text": "Which word is a color?",
+    "choices": [
+      { "id": "a", "text": "chair" },
+      { "id": "b", "text": "blue" },
+      { "id": "c", "text": "run" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Blue' is a color. 'Chair' is a thing you sit on, and 'run' is an action.",
+    "audio": "q01_1"
+  },
+  {
+    "id": "q01_2",
+    "levelId": 1,
+    "cefr": "A1",
+    "category": "vocabulary-basic",
+    "text": "Which word is an animal?",
+    "choices": [
+      { "id": "a", "text": "spoon" },
+      { "id": "b", "text": "red" },
+      { "id": "c", "text": "dog" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "'Dog' is an animal. 'Spoon' is an object and 'red' is a color.",
+    "audio": "q01_2"
+  },
+  {
+    "id": "q01_3",
+    "levelId": 1,
+    "cefr": "A1",
+    "category": "vocabulary-basic",
+    "text": "Which word is a fruit?",
+    "choices": [
+      { "id": "a", "text": "apple" },
+      { "id": "b", "text": "shoe" },
+      { "id": "c", "text": "happy" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "'Apple' is a fruit. 'Shoe' is something you wear, and 'happy' describes a feeling.",
+    "audio": "q01_3"
+  },
+  {
+    "id": "q01_4",
+    "levelId": 1,
+    "cefr": "A1",
+    "category": "vocabulary-basic",
+    "text": "Which word means the opposite of \"big\"?",
+    "choices": [
+      { "id": "a", "text": "tall" },
+      { "id": "b", "text": "small" },
+      { "id": "c", "text": "quick" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "The opposite of 'big' is 'small'. 'Tall' describes height, and 'quick' describes speed.",
+    "audio": "q01_4"
+  },
+  {
+    "id": "q02_1",
+    "levelId": 2,
+    "cefr": "A1",
+    "category": "vocabulary-everyday",
+    "text": "You sit on a ___.",
+    "choices": [
+      { "id": "a", "text": "table" },
+      { "id": "b", "text": "chair" },
+      { "id": "c", "text": "roof" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "You sit on a chair. A table is for putting things on, and a roof is the top of a house.",
+    "audio": "q02_1"
+  },
+  {
+    "id": "q02_2",
+    "levelId": 2,
+    "cefr": "A1",
+    "category": "vocabulary-everyday",
+    "text": "You sleep in a ___.",
+    "choices": [
+      { "id": "a", "text": "bed" },
+      { "id": "b", "text": "lamp" },
+      { "id": "c", "text": "carpet" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "You sleep in a bed. A lamp gives light, and a carpet covers the floor.",
+    "audio": "q02_2"
+  },
+  {
+    "id": "q02_3",
+    "levelId": 2,
+    "cefr": "A1",
+    "category": "vocabulary-everyday",
+    "text": "You read a ___.",
+    "choices": [
+      { "id": "a", "text": "door" },
+      { "id": "b", "text": "wall" },
+      { "id": "c", "text": "book" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "You read a book. A door opens and closes, and a wall is part of a building.",
+    "audio": "q02_3"
+  },
+  {
+    "id": "q02_4",
+    "levelId": 2,
+    "cefr": "A1",
+    "category": "vocabulary-everyday",
+    "text": "You open a ___ to go into the garden.",
+    "choices": [
+      { "id": "a", "text": "window" },
+      { "id": "b", "text": "door" },
+      { "id": "c", "text": "floor" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "You walk through a door to enter or leave a place. A window is for light and air, and you cannot walk through the floor.",
+    "audio": "q02_4"
+  },
+  {
+    "id": "q03_1",
+    "levelId": 3,
+    "cefr": "A1",
+    "category": "grammar-present-simple",
+    "text": "She ___ to school every day.",
+    "choices": [
+      { "id": "a", "text": "go" },
+      { "id": "b", "text": "goes" },
+      { "id": "c", "text": "going" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "With 'he', 'she' or 'it' in the present simple, we add -s to the verb: she goes.",
+    "audio": "q03_1"
+  },
+  {
+    "id": "q03_2",
+    "levelId": 3,
+    "cefr": "A1",
+    "category": "grammar-present-simple",
+    "text": "I ___ football on Sundays.",
+    "choices": [
+      { "id": "a", "text": "plays" },
+      { "id": "b", "text": "playing" },
+      { "id": "c", "text": "play" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "With 'I', 'you', 'we' or 'they', the present simple verb has no -s: I play.",
+    "audio": "q03_2"
+  },
+  {
+    "id": "q03_3",
+    "levelId": 3,
+    "cefr": "A1",
+    "category": "grammar-present-simple",
+    "text": "The dog ___ in the garden.",
+    "choices": [
+      { "id": "a", "text": "sleeps" },
+      { "id": "b", "text": "sleep" },
+      { "id": "c", "text": "sleeping" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "'The dog' is like 'it', so the verb takes -s in the present simple: the dog sleeps.",
+    "audio": "q03_3"
+  },
+  {
+    "id": "q03_4",
+    "levelId": 3,
+    "cefr": "A1",
+    "category": "grammar-present-simple",
+    "text": "They ___ television at night.",
+    "choices": [
+      { "id": "a", "text": "watches" },
+      { "id": "b", "text": "watch" },
+      { "id": "c", "text": "watching" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'They' takes the base form of the verb without -s: they watch.",
+    "audio": "q03_4"
+  },
+  {
+    "id": "q04_1",
+    "levelId": 4,
+    "cefr": "A1",
+    "category": "grammar-basics",
+    "text": "I see ___ apple on the table.",
+    "choices": [
+      { "id": "a", "text": "a" },
+      { "id": "b", "text": "an" },
+      { "id": "c", "text": "some" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "We use 'an' before a vowel sound: an apple, an egg, an orange.",
+    "audio": "q04_1"
+  },
+  {
+    "id": "q04_2",
+    "levelId": 4,
+    "cefr": "A1",
+    "category": "grammar-basics",
+    "text": "This is my sister. ___ is a doctor.",
+    "choices": [
+      { "id": "a", "text": "He" },
+      { "id": "b", "text": "They" },
+      { "id": "c", "text": "She" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "A sister is female, so the correct pronoun is 'she'.",
+    "audio": "q04_2"
+  },
+  {
+    "id": "q04_3",
+    "levelId": 4,
+    "cefr": "A1",
+    "category": "grammar-basics",
+    "text": "___ name is Tom. I am ten years old.",
+    "choices": [
+      { "id": "a", "text": "My" },
+      { "id": "b", "text": "Me" },
+      { "id": "c", "text": "Mine" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "'My' comes before a noun (my name). 'Me' is an object pronoun, and 'mine' stands alone (that book is mine).",
+    "audio": "q04_3"
+  },
+  {
+    "id": "q04_4",
+    "levelId": 4,
+    "cefr": "A1",
+    "category": "grammar-basics",
+    "text": "We ___ students at Park School.",
+    "choices": [
+      { "id": "a", "text": "am" },
+      { "id": "b", "text": "are" },
+      { "id": "c", "text": "is" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "The verb 'to be' with 'we' is 'are': we are students.",
+    "audio": "q04_4"
+  },
+  {
+    "id": "q05_1",
+    "levelId": 5,
+    "cefr": "A1+",
+    "category": "mixed-beginner",
+    "text": "What is the plural of \"child\"?",
+    "choices": [
+      { "id": "a", "text": "childs" },
+      { "id": "b", "text": "children" },
+      { "id": "c", "text": "child's" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Child' has an irregular plural: one child, two children. 'Child's' is possessive, not plural.",
+    "audio": "q05_1"
+  },
+  {
+    "id": "q05_2",
+    "levelId": 5,
+    "cefr": "A1+",
+    "category": "mixed-beginner",
+    "text": "Yesterday, I ___ very happy.",
+    "choices": [
+      { "id": "a", "text": "was" },
+      { "id": "b", "text": "am" },
+      { "id": "c", "text": "will be" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "'Yesterday' signals the past, so we use the past form of 'to be' with 'I': I was.",
+    "audio": "q05_2"
+  },
+  {
+    "id": "q05_3",
+    "levelId": 5,
+    "cefr": "A1+",
+    "category": "mixed-beginner",
+    "text": "Which of these words is a drink?",
+    "choices": [
+      { "id": "a", "text": "bread" },
+      { "id": "b", "text": "plate" },
+      { "id": "c", "text": "milk" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "Milk is a drink. Bread is food, and a plate is a dish you eat from.",
+    "audio": "q05_3"
+  },
+  {
+    "id": "q05_4",
+    "levelId": 5,
+    "cefr": "A1+",
+    "category": "mixed-beginner",
+    "text": "My brother and ___ play chess every weekend.",
+    "choices": [
+      { "id": "a", "text": "me" },
+      { "id": "b", "text": "I" },
+      { "id": "c", "text": "my" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "The subject of the sentence needs the subject pronoun 'I': my brother and I play.",
+    "audio": "q05_4"
+  },
+  {
+    "id": "q06_1",
+    "levelId": 6,
+    "cefr": "A2",
+    "category": "grammar-past-simple",
+    "text": "We ___ pizza last night.",
+    "choices": [
+      { "id": "a", "text": "eat" },
+      { "id": "b", "text": "ate" },
+      { "id": "c", "text": "eaten" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Eat' is irregular: eat → ate → eaten. The past simple needed here is 'ate'.",
+    "audio": "q06_1"
+  },
+  {
+    "id": "q06_2",
+    "levelId": 6,
+    "cefr": "A2",
+    "category": "grammar-past-simple",
+    "text": "She ___ to the beach yesterday.",
+    "choices": [
+      { "id": "a", "text": "goed" },
+      { "id": "b", "text": "gone" },
+      { "id": "c", "text": "went" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "'Go' is irregular: go → went → gone. The past simple is 'went'; 'goed' does not exist.",
+    "audio": "q06_2"
+  },
+  {
+    "id": "q06_3",
+    "levelId": 6,
+    "cefr": "A2",
+    "category": "grammar-past-simple",
+    "text": "They ___ a film last weekend.",
+    "choices": [
+      { "id": "a", "text": "watched" },
+      { "id": "b", "text": "watch" },
+      { "id": "c", "text": "watching" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "'Last weekend' means past simple. 'Watch' is a regular verb, so we add -ed: watched.",
+    "audio": "q06_3"
+  },
+  {
+    "id": "q06_4",
+    "levelId": 6,
+    "cefr": "A2",
+    "category": "grammar-past-simple",
+    "text": "He ___ his keys this morning.",
+    "choices": [
+      { "id": "a", "text": "loses" },
+      { "id": "b", "text": "lost" },
+      { "id": "c", "text": "losed" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Lose' is irregular: lose → lost. 'Losed' is not an English word.",
+    "audio": "q06_4"
+  },
+  {
+    "id": "q07_1",
+    "levelId": 7,
+    "cefr": "A2",
+    "category": "sentence-completion",
+    "text": "After school, Maria usually ___ her homework before dinner.",
+    "choices": [
+      { "id": "a", "text": "makes" },
+      { "id": "b", "text": "does" },
+      { "id": "c", "text": "takes" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "In English we 'do our homework'. 'Make homework' is a common mistake in many languages, but it is not correct English.",
+    "audio": "q07_1"
+  },
+  {
+    "id": "q07_2",
+    "levelId": 7,
+    "cefr": "A2",
+    "category": "sentence-completion",
+    "text": "I wanted to call you last night, but my phone ___ any battery.",
+    "choices": [
+      { "id": "a", "text": "didn't had" },
+      { "id": "b", "text": "hasn't" },
+      { "id": "c", "text": "didn't have" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "After 'didn't' we use the base form: didn't have. 'Didn't had' mixes two past forms.",
+    "audio": "q07_2"
+  },
+  {
+    "id": "q07_3",
+    "levelId": 7,
+    "cefr": "A2",
+    "category": "sentence-completion",
+    "text": "When the movie ended, everybody ___ and clapped.",
+    "choices": [
+      { "id": "a", "text": "stood up" },
+      { "id": "b", "text": "standed up" },
+      { "id": "c", "text": "stand up" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "The past simple of 'stand' is irregular: stand → stood. 'Standed' does not exist.",
+    "audio": "q07_3"
+  },
+  {
+    "id": "q07_4",
+    "levelId": 7,
+    "cefr": "A2",
+    "category": "sentence-completion",
+    "text": "It was raining, so we ___ an umbrella with us.",
+    "choices": [
+      { "id": "a", "text": "take" },
+      { "id": "b", "text": "took" },
+      { "id": "c", "text": "taken" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'It was raining' sets the past, and the past simple of 'take' is 'took'.",
+    "audio": "q07_4"
+  },
+  {
+    "id": "q08_1",
+    "levelId": 8,
+    "cefr": "A2",
+    "category": "word-order",
+    "text": "Which sentence has the correct word order?",
+    "choices": [
+      { "id": "a", "text": "She always arrives early." },
+      { "id": "b", "text": "She arrives always early." },
+      { "id": "c", "text": "Always she arrives early." }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "Adverbs like 'always' go before the main verb: she always arrives.",
+    "audio": "q08_1"
+  },
+  {
+    "id": "q08_2",
+    "levelId": 8,
+    "cefr": "A2",
+    "category": "word-order",
+    "text": "Which sentence has the correct word order?",
+    "choices": [
+      { "id": "a", "text": "He plays usually football on Saturdays." },
+      { "id": "b", "text": "He usually plays football on Saturdays." },
+      { "id": "c", "text": "He plays football usually on Saturdays." }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Usually' comes between the subject and the main verb: he usually plays.",
+    "audio": "q08_2"
+  },
+  {
+    "id": "q08_3",
+    "levelId": 8,
+    "cefr": "A2",
+    "category": "word-order",
+    "text": "Which sentence has the correct word order?",
+    "choices": [
+      { "id": "a", "text": "They went yesterday to the cinema." },
+      { "id": "b", "text": "They to the cinema went yesterday." },
+      { "id": "c", "text": "They went to the cinema yesterday." }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "Time expressions like 'yesterday' normally come at the end of the sentence.",
+    "audio": "q08_3"
+  },
+  {
+    "id": "q08_4",
+    "levelId": 8,
+    "cefr": "A2",
+    "category": "word-order",
+    "text": "Which sentence has the correct word order?",
+    "choices": [
+      { "id": "a", "text": "I am never late for class." },
+      { "id": "b", "text": "I never am late for class." },
+      { "id": "c", "text": "I am late never for class." }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "With the verb 'to be', adverbs of frequency come after the verb: I am never late.",
+    "audio": "q08_4"
+  },
+  {
+    "id": "q09_1",
+    "levelId": 9,
+    "cefr": "A2",
+    "category": "prepositions",
+    "text": "We arrived ___ the airport at six o'clock.",
+    "choices": [
+      { "id": "a", "text": "at" },
+      { "id": "b", "text": "to" },
+      { "id": "c", "text": "in" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "We say 'arrive at' for places like stations and airports, and 'arrive in' for cities and countries.",
+    "audio": "q09_1"
+  },
+  {
+    "id": "q09_2",
+    "levelId": 9,
+    "cefr": "A2",
+    "category": "prepositions",
+    "text": "My sister is very good ___ math.",
+    "choices": [
+      { "id": "a", "text": "in" },
+      { "id": "b", "text": "on" },
+      { "id": "c", "text": "at" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "The fixed expression is 'good at' + skill or activity: good at math, good at swimming.",
+    "audio": "q09_2"
+  },
+  {
+    "id": "q09_3",
+    "levelId": 9,
+    "cefr": "A2",
+    "category": "prepositions",
+    "text": "I'm listening ___ the radio.",
+    "choices": [
+      { "id": "a", "text": "at" },
+      { "id": "b", "text": "to" },
+      { "id": "c", "text": "for" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Listen' is always followed by 'to': listen to music, listen to the radio.",
+    "audio": "q09_3"
+  },
+  {
+    "id": "q09_4",
+    "levelId": 9,
+    "cefr": "A2",
+    "category": "prepositions",
+    "text": "The bank is ___ the supermarket and the pharmacy.",
+    "choices": [
+      { "id": "a", "text": "next" },
+      { "id": "b", "text": "under" },
+      { "id": "c", "text": "between" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "'Between' is used for a position in the middle of two things, especially with 'and'.",
+    "audio": "q09_4"
+  },
+  {
+    "id": "q10_1",
+    "levelId": 10,
+    "cefr": "A2+",
+    "category": "mixed-grammar",
+    "text": "This book is ___ than the last one.",
+    "choices": [
+      { "id": "a", "text": "more interesting" },
+      { "id": "b", "text": "interesting" },
+      { "id": "c", "text": "most interesting" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "Longer adjectives form the comparative with 'more': more interesting than.",
+    "audio": "q10_1"
+  },
+  {
+    "id": "q10_2",
+    "levelId": 10,
+    "cefr": "A2+",
+    "category": "mixed-grammar",
+    "text": "You ___ smoke in here — this is a hospital!",
+    "choices": [
+      { "id": "a", "text": "don't have to" },
+      { "id": "b", "text": "can't" },
+      { "id": "c", "text": "should" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "For prohibition we use 'can't' (or 'mustn't'). 'Don't have to' means it is not necessary, which is a different idea.",
+    "audio": "q10_2"
+  },
+  {
+    "id": "q10_3",
+    "levelId": 10,
+    "cefr": "A2+",
+    "category": "mixed-grammar",
+    "text": "I've lived in this city ___ 2018.",
+    "choices": [
+      { "id": "a", "text": "for" },
+      { "id": "b", "text": "since" },
+      { "id": "c", "text": "from" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "Use 'since' with a point in time (since 2018) and 'for' with a period (for six years).",
+    "audio": "q10_3"
+  },
+  {
+    "id": "q10_4",
+    "levelId": 10,
+    "cefr": "A2+",
+    "category": "mixed-grammar",
+    "text": "She was reading a book when the phone ___.",
+    "choices": [
+      { "id": "a", "text": "rang" },
+      { "id": "b", "text": "rings" },
+      { "id": "c", "text": "rung" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "A past continuous action ('was reading') is interrupted by a past simple action: the phone rang. 'Rung' is the past participle, not the past simple.",
+    "audio": "q10_4"
+  },
+  {
+    "id": "q11_1",
+    "levelId": 11,
+    "cefr": "B1",
+    "category": "complex-sentences",
+    "text": "The woman ___ car was stolen called the police.",
+    "choices": [
+      { "id": "a", "text": "who" },
+      { "id": "b", "text": "whose" },
+      { "id": "c", "text": "which" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Whose' shows possession in a relative clause: the woman whose car was stolen.",
+    "audio": "q11_1"
+  },
+  {
+    "id": "q11_2",
+    "levelId": 11,
+    "cefr": "B1",
+    "category": "complex-sentences",
+    "text": "I'll call you as soon as I ___ at the hotel.",
+    "choices": [
+      { "id": "a", "text": "will arrive" },
+      { "id": "b", "text": "arrived" },
+      { "id": "c", "text": "arrive" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "After time conjunctions like 'as soon as', 'when' and 'until', we use the present simple for the future: as soon as I arrive.",
+    "audio": "q11_2"
+  },
+  {
+    "id": "q11_3",
+    "levelId": 11,
+    "cefr": "B1",
+    "category": "complex-sentences",
+    "text": "He failed the exam again, ___ upset his parents.",
+    "choices": [
+      { "id": "a", "text": "that" },
+      { "id": "b", "text": "which" },
+      { "id": "c", "text": "what" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Which' can refer back to a whole clause: he failed again, which upset his parents. 'That' cannot be used this way.",
+    "audio": "q11_3"
+  },
+  {
+    "id": "q11_4",
+    "levelId": 11,
+    "cefr": "B1",
+    "category": "complex-sentences",
+    "text": "Although she was exhausted, she ___ working until the report was finished.",
+    "choices": [
+      { "id": "a", "text": "kept" },
+      { "id": "b", "text": "keeps" },
+      { "id": "c", "text": "has kept" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "The story is in the past ('was exhausted'), so the past simple 'kept' matches the time frame.",
+    "audio": "q11_4"
+  },
+  {
+    "id": "q12_1",
+    "levelId": 12,
+    "cefr": "B1",
+    "category": "vocabulary-context",
+    "text": "\"Could you ___ me a favor and open the window?\"",
+    "choices": [
+      { "id": "a", "text": "make" },
+      { "id": "b", "text": "do" },
+      { "id": "c", "text": "give" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "The collocation is 'do someone a favor'. 'Make a favor' is a very common error.",
+    "audio": "q12_1"
+  },
+  {
+    "id": "q12_2",
+    "levelId": 12,
+    "cefr": "B1",
+    "category": "vocabulary-context",
+    "text": "\"His strange behavior caused a lot of ___ at the meeting.\"",
+    "choices": [
+      { "id": "a", "text": "confusion" },
+      { "id": "b", "text": "conclusion" },
+      { "id": "c", "text": "conversation" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "Strange behavior that people do not understand causes 'confusion'. A 'conclusion' is an ending decision, and a 'conversation' is a talk.",
+    "audio": "q12_2"
+  },
+  {
+    "id": "q12_3",
+    "levelId": 12,
+    "cefr": "B1",
+    "category": "vocabulary-context",
+    "text": "\"I'm trying to ___ money for a new bike.\"",
+    "choices": [
+      { "id": "a", "text": "charge" },
+      { "id": "b", "text": "cash" },
+      { "id": "c", "text": "save" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "To 'save money' means to keep it instead of spending it, so you can buy something later.",
+    "audio": "q12_3"
+  },
+  {
+    "id": "q12_4",
+    "levelId": 12,
+    "cefr": "B1",
+    "category": "vocabulary-context",
+    "text": "\"Please ___ attention to the safety instructions.\"",
+    "choices": [
+      { "id": "a", "text": "pay" },
+      { "id": "b", "text": "give" },
+      { "id": "c", "text": "take" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "The fixed expression is 'pay attention'. We do not 'give' or 'take' attention in English.",
+    "audio": "q12_4"
+  },
+  {
+    "id": "q13_1",
+    "levelId": 13,
+    "cefr": "B1",
+    "category": "reading-comprehension",
+    "text": "Read: \"Sarah moved to Lisbon last year to work as a nurse. She didn't know anyone at first, but now she has many close friends.\" Why did Sarah move to Lisbon?",
+    "choices": [
+      { "id": "a", "text": "To work as a nurse." },
+      { "id": "b", "text": "To study Portuguese." },
+      { "id": "c", "text": "To be closer to her parents." }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "The text says she moved 'to work as a nurse'. Studying and family are never mentioned.",
+    "audio": "q13_1"
+  },
+  {
+    "id": "q13_2",
+    "levelId": 13,
+    "cefr": "B1",
+    "category": "reading-comprehension",
+    "text": "Read: \"Tom forgot his umbrella, and by the time he got home, his jacket was completely wet.\" What probably happened?",
+    "choices": [
+      { "id": "a", "text": "He fell into a swimming pool." },
+      { "id": "b", "text": "It rained while he was walking." },
+      { "id": "c", "text": "He washed his jacket at work." }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "Forgetting an umbrella plus a wet jacket strongly implies rain. The other options are not supported by the text.",
+    "audio": "q13_2"
+  },
+  {
+    "id": "q13_3",
+    "levelId": 13,
+    "cefr": "B1",
+    "category": "reading-comprehension",
+    "text": "Read: \"The concert was supposed to start at eight, but the band did not appear until almost nine. Many people asked for their money back.\" How did the audience probably feel?",
+    "choices": [
+      { "id": "a", "text": "Excited and grateful." },
+      { "id": "b", "text": "Calm and relaxed." },
+      { "id": "c", "text": "Angry and disappointed." }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "Asking for money back after a long delay shows anger and disappointment.",
+    "audio": "q13_3"
+  },
+  {
+    "id": "q13_4",
+    "levelId": 13,
+    "cefr": "B1",
+    "category": "reading-comprehension",
+    "text": "Read: \"Maria offered to help Jake with the project, but he insisted on doing it alone.\" What did Jake decide?",
+    "choices": [
+      { "id": "a", "text": "To work by himself." },
+      { "id": "b", "text": "To accept Maria's help." },
+      { "id": "c", "text": "To stop doing the project." }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "'Insisted on doing it alone' means he wanted to work without help.",
+    "audio": "q13_4"
+  },
+  {
+    "id": "q14_1",
+    "levelId": 14,
+    "cefr": "B1+",
+    "category": "conditionals-modals",
+    "text": "If I ___ more free time, I would learn to play the guitar.",
+    "choices": [
+      { "id": "a", "text": "had" },
+      { "id": "b", "text": "have" },
+      { "id": "c", "text": "will have" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "This is a second conditional (unreal present): If + past simple, would + base verb.",
+    "audio": "q14_1"
+  },
+  {
+    "id": "q14_2",
+    "levelId": 14,
+    "cefr": "B1+",
+    "category": "conditionals-modals",
+    "text": "You ___ have told me it was her birthday — I didn't buy anything!",
+    "choices": [
+      { "id": "a", "text": "must" },
+      { "id": "b", "text": "should" },
+      { "id": "c", "text": "would" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "'Should have' + past participle criticizes a past action: it was a good idea, but you didn't do it.",
+    "audio": "q14_2"
+  },
+  {
+    "id": "q14_3",
+    "levelId": 14,
+    "cefr": "B1+",
+    "category": "conditionals-modals",
+    "text": "By the time we arrived at the cinema, the film ___.",
+    "choices": [
+      { "id": "a", "text": "has already started" },
+      { "id": "b", "text": "already started" },
+      { "id": "c", "text": "had already started" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "For an event that happened before another past event, we use the past perfect: had already started.",
+    "audio": "q14_3"
+  },
+  {
+    "id": "q14_4",
+    "levelId": 14,
+    "cefr": "B1+",
+    "category": "conditionals-modals",
+    "text": "If it rains tomorrow, we ___ the picnic.",
+    "choices": [
+      { "id": "a", "text": "will cancel" },
+      { "id": "b", "text": "would cancel" },
+      { "id": "c", "text": "cancelled" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "This is a first conditional (real future possibility): If + present simple, will + base verb.",
+    "audio": "q14_4"
+  },
+  {
+    "id": "q15_1",
+    "levelId": 15,
+    "cefr": "B1+",
+    "category": "advanced-mixed",
+    "text": "Not only ___ the exam, but she also got the highest score in the class.",
+    "choices": [
+      { "id": "a", "text": "she passed" },
+      { "id": "b", "text": "did she pass" },
+      { "id": "c", "text": "she did pass" }
+    ],
+    "correctAnswerId": "b",
+    "explanation": "When 'Not only' starts the sentence, the question form of the verb follows (inversion): Not only did she pass.",
+    "audio": "q15_1"
+  },
+  {
+    "id": "q15_2",
+    "levelId": 15,
+    "cefr": "B1+",
+    "category": "advanced-mixed",
+    "text": "I'd rather you ___ that decision until tomorrow.",
+    "choices": [
+      { "id": "a", "text": "didn't make" },
+      { "id": "b", "text": "don't make" },
+      { "id": "c", "text": "won't make" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "After 'I'd rather you', we use the past simple form for a present or future wish: I'd rather you didn't make.",
+    "audio": "q15_2"
+  },
+  {
+    "id": "q15_3",
+    "levelId": 15,
+    "cefr": "B1+",
+    "category": "advanced-mixed",
+    "text": "Hardly ___ sat down when the phone rang.",
+    "choices": [
+      { "id": "a", "text": "had he" },
+      { "id": "b", "text": "he had" },
+      { "id": "c", "text": "he was" }
+    ],
+    "correctAnswerId": "a",
+    "explanation": "After 'Hardly' at the start of a sentence, the auxiliary comes before the subject: Hardly had he sat down.",
+    "audio": "q15_3"
+  },
+  {
+    "id": "q15_4",
+    "levelId": 15,
+    "cefr": "B1+",
+    "category": "advanced-mixed",
+    "text": "The manager's instructions were so vague that nobody knew what she actually ___.",
+    "choices": [
+      { "id": "a", "text": "told" },
+      { "id": "b", "text": "spoke" },
+      { "id": "c", "text": "meant" }
+    ],
+    "correctAnswerId": "c",
+    "explanation": "'Mean' is what an idea or instruction expresses: what she meant. We 'tell' a person something and 'speak' to someone, so neither fits here.",
+    "audio": "q15_4"
+  }
+]
