@@ -10,6 +10,8 @@ import { QuestionManager } from '../systems/QuestionManager.js';
 import { LevelManager } from '../systems/LevelManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
 import { AudioManager } from '../systems/AudioManager.js';
+import { deviceInfo } from '../systems/Device.js';
+import { BackgroundManager } from '../systems/BackgroundManager.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
 
@@ -17,6 +19,15 @@ export class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
     this.state = STATES.BOOTING;
+  }
+
+  /**
+   * Detect the device once and queue only the background variant it needs.
+   */
+  preload() {
+    const info = deviceInfo();
+    this.registry.set('device', info);
+    BackgroundManager.preload(this, info.type);
   }
 
   create() {

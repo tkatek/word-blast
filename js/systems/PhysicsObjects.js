@@ -28,13 +28,16 @@ export class ObjectFactory {
 
   createGround() {
     const y = WORLD.GROUND_Y + WORLD.GROUND_THICKNESS / 2;
+    const w = WORLD.WIDTH + 800;
+    // NOTE: Phaser Matter bodies scale-sync with the game object, so bodies
+    // are created at texture size (64x64) and setDisplaySize scales BOTH
+    // body and visual to the final dimensions.
     const go = this.scene.matter.add.image(WORLD.WIDTH / 2, y, 'tex-ground', undefined, {
-      shape: { type: 'rectangle', width: WORLD.WIDTH + 800, height: WORLD.GROUND_THICKNESS },
       isStatic: true,
       friction: 0.9,
       label: 'ground'
     });
-    go.setDisplaySize(WORLD.WIDTH + 800, WORLD.GROUND_THICKNESS);
+    go.setDisplaySize(w, WORLD.GROUND_THICKNESS);
     go.wb = { kind: 'ground' };
     this.ground = go;
     return go;
@@ -56,7 +59,6 @@ export class ObjectFactory {
     const mat = MATERIALS[def.m];
     const texture = `tex-${def.m}`;
     const go = this.scene.matter.add.image(def.x, def.y, texture, undefined, {
-      shape: { type: 'rectangle', width: def.w, height: def.h },
       friction: mat.friction,
       restitution: mat.restitution,
       density: mat.density,
@@ -80,7 +82,6 @@ export class ObjectFactory {
   createMover(def) {
     const texture = `tex-${def.material || 'stone'}`;
     const go = this.scene.matter.add.image(def.x, def.y, texture, undefined, {
-      shape: { type: 'rectangle', width: def.w, height: def.h },
       isStatic: true,
       label: 'mover'
     });
@@ -106,7 +107,6 @@ export class ObjectFactory {
    */
   createTarget(def, meta) {
     const go = this.scene.matter.add.image(def.x, def.y, 'tex-target', undefined, {
-      shape: { type: 'rectangle', width: TARGETS.WIDTH, height: TARGETS.HEIGHT },
       isStatic: true,
       restitution: TARGETS.RESTITUTION,
       label: 'target'
@@ -136,8 +136,10 @@ export class ObjectFactory {
     const type = opts.child ? { ...PROJECTILE_TYPES[typeKey], radius: SPLIT_CHILD.radius, density: SPLIT_CHILD.density, restitution: SPLIT_CHILD.restitution, frictionAir: SPLIT_CHILD.frictionAir, ability: null } : PROJECTILE_TYPES[typeKey];
     const texture = opts.child ? 'proj-split-child' : `proj-${typeKey}`;
     const d = type.radius * 2;
+    // circle body created at the texture's own radius (20 for the 40x40
+    // texture); setDisplaySize then scales body + visual together.
     const go = this.scene.matter.add.image(x, y, texture, undefined, {
-      shape: { type: 'circle', radius: type.radius },
+      shape: { type: 'circle', radius: 20 },
       density: type.density,
       restitution: type.restitution,
       frictionAir: type.frictionAir,

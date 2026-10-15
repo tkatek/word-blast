@@ -4,6 +4,7 @@
  */
 import { WORLD } from '../config.js';
 import { clientToWorld } from '../systems/InputMapper.js';
+import { deviceInfo, setOrientationOverride } from '../systems/Device.js';
 
 export function installDebugAPI(game) {
   const api = {
@@ -92,6 +93,50 @@ export function installDebugAPI(game) {
       const s = api.scene();
       if (s) s.disableAutoPause = !enabled;
       return enabled;
+    },
+
+    /** Current device classification + background in use. */
+    device() {
+      const s = api.scene();
+      return { ...deviceInfo(), background: s && s.background ? s.background.type : null };
+    },
+
+    /** Force a background variant for visual verification. */
+    setBackground(type) {
+      const s = api.scene();
+      if (!s || !s.background) throw new Error('no active game scene');
+      return s.background.apply(type);
+    },
+
+    /** Test-only orientation override: 'portrait' | 'landscape' | null. */
+    setOrientationOverride(mode) {
+      setOrientationOverride(mode);
+      const s = api.scene();
+      if (s && s.updateOrientationState) s.updateOrientationState();
+      return mode;
+    },
+
+    /**
+     * Manually advance the game loop N frames. Used by automated tests when
+     * the host tab is occluded and requestAnimationFrame stops firing.
+     */
+    step(frames = 1) {
+      const loop = game.loop;
+      let ran = 0;
+      for (let i = 0; i < frames; i++) {
+        if (typeof loop.tick === 'function') {
+          loop.tick();
+          ran++;
+        } else {
+          break;
+        }
+      }
+      return ran;
+    },
+
+    /** True if the loop is currently advancing (for stall detection). */
+    isLoopRunning() {
+      return !game.loop.isStopped && document.visibilityState === 'visible';
     }
   };
 

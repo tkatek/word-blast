@@ -5,7 +5,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0b132b;
+  background: #8ecae6; /* matches the sky art so FIT letterboxing blends in */
   touch-action: none;           /* no accidental scrolling/zooming */
   -webkit-user-select: none;
   user-select: none;

@@ -13,6 +13,8 @@ import { ObjectFactory } from '../systems/PhysicsObjects.js';
 import { Slingshot } from '../systems/Slingshot.js';
 import { ScoringSystem } from '../systems/ScoringSystem.js';
 import { solveLaunch } from '../systems/Trajectory.js';
+import { BackgroundManager } from '../systems/BackgroundManager.js';
+import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -33,6 +35,8 @@ export class GameScene extends Phaser.Scene {
     this.factory = null;
     this.scoring = null;
     this.slingshot = null;
+    this.background = null;
+    this.device = null;
     this.prepared = null;
     this.currentShot = null;
     this.hudLevel = this.hudQuestion = this.hudShots = this.hudScore = this.hudState = null;
@@ -86,6 +90,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.setupLifecycle();
+    this.setupOrientation();
+    this.input.once('pointerdown', () => this.tryEnterLandscapeFullscreen());
 
     // go
     this.stateMachine.set(STATES.LEVEL_READY);
@@ -103,6 +109,10 @@ export class GameScene extends Phaser.Scene {
     // distant ground strip for visual grounding
     this.add.rectangle(WORLD.WIDTH / 2, WORLD.GROUND_Y + 40, WORLD.WIDTH, 80, 0x74a892).setDepth(1);
     this.factory.createGround();
+    // device background sits behind everything (depth -100)
+    this.device = this.registry.get('device') || deviceInfo();
+    this.background = new BackgroundManager(this);
+    this.background.apply(this.device.type);
   }
 
   buildHUD() {
@@ -207,6 +217,31 @@ export class GameScene extends Phaser.Scene {
     this.overlayButton(this.winOverlay, 'NEXT LEVEL ▶', 360, () => this.goNextLevel());
     this.overlayButton(this.winOverlay, 'REPLAY', 425, () => this.restartLevel());
     this.overlayButton(this.winOverlay, 'MENU', 490, () => this.exitToMenu());
+
+    // rotate-device overlay (phones in portrait — gameplay is frozen behind it)
+    this.rotateOverlay = this.add.container(WORLD.WIDTH / 2, WORLD.HEIGHT / 2).setDepth(200).setVisible(false);
+    const rotateShade = this.add.rectangle(0, 0, WORLD.WIDTH, WORLD.HEIGHT, 0x081c15, 0.96)
+      .setPosition(0, 0)
+      .setInteractive({ useHandCursor: false }); // swallows all input while shown
+    const rotateIcon = this.add.graphics();
+    rotateIcon.lineStyle(7, 0xffd60a, 1);
+    rotateIcon.strokeRoundedRect(-30, -78, 60, 116, 12); // phone body
+    rotateIcon.lineStyle(4, 0xffd60a, 1);
+    rotateIcon.strokeRoundedRect(-18, -66, 36, 60, 4);   // screen
+    rotateIcon.fillStyle(0xffd60a, 1);
+    rotateIcon.fillRoundedRect(-9, 20, 18, 4, 2);        // home button
+    rotateIcon.lineStyle(6, 0xffffff, 1);
+    rotateIcon.beginPath();
+    rotateIcon.arc(0, -12, 92, Phaser.Math.DegToRad(-35), Phaser.Math.DegToRad(195));
+    rotateIcon.strokePath();                              // rotation arc
+    rotateIcon.fillTriangle(72, -56, 96, -46, 70, -32);   // arrow head
+    const rotateTitle = this.add.text(0, 80, 'Rotate Your Phone', {
+      fontFamily: 'Arial', fontSize: '34px', fontStyle: 'bold', color: '#ffd60a'
+    }).setOrigin(0.5);
+    const rotateSub = this.add.text(0, 122, 'WORD BLAST is played in landscape.\nTurn your phone sideways to continue.', {
+      fontFamily: 'Arial', fontSize: '17px', color: '#ffffff', align: 'center'
+    }).setOrigin(0.5);
+    this.rotateOverlay.add([rotateShade, rotateIcon, rotateTitle, rotateSub]);
 
     // toast
     this.toastText = this.add.text(WORLD.WIDTH / 2, 560, '', {
@@ -394,6 +429,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.stateMachine.set(STATES.ANSWER_FEEDBACK);
       this.flashTarget(targetGo, COLORS.TARGET_WRONG_FLASH);
+      this.scoring.recordWrongHit();
       this.audio.emit('answer-wrong');
       const correct = this.prepared.targets.find((t) => t.choiceId === result.correctChoiceId);
       this.showFeedback(
@@ -596,6 +632,78 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* ------------------------------------------------------------------ */
+  /* Orientation (phones are landscape-only)                             */
+  /* ------------------------------------------------------------------ */
+
+  setupOrientation() {
+    this.rotationPaused = false;
+    this.pausedForRotation = false;
+    this.onOrientationChange = () => {
+      this.background?.refreshFromViewport();
+      this.updateOrientationState();
+    };
+    this.scale.on('resize', this.onOrientationChange);
+    this.scale.on('orientationchange', this.onOrientationChange);
+    if (window.matchMedia) {
+      this.portraitQuery = window.matchMedia('(orientation: portrait)');
+      this.portraitQuery.addEventListener?.('change', this.onOrientationChange);
+    }
+    this.events.once('shutdown', () => {
+      this.scale.off('resize', this.onOrientationChange);
+      this.scale.off('orientationchange', this.onOrientationChange);
+      this.portraitQuery?.removeEventListener?.('change', this.onOrientationChange);
+    });
+    this.updateOrientationState();
+  }
+
+  /**
+   * Portrait phone: freeze physics + timers, block input, keep all progress.
+   * Landscape: hide the overlay and resume exactly where the player was.
+   * Never restarts the level.
+   */
+  updateOrientationState() {
+    if (requiresLandscape()) {
+      if (this.rotationPaused) return;
+      this.rotationPaused = true;
+      this.rotateOverlay.setVisible(true);
+      this.slingshot?.cancelDrag();
+      this.slingshot?.setEnabled(false);
+      if (!this.stateMachine.isPaused()) {
+        this.pausedForRotation = true;
+        this.stateMachine.pause();   // freezes update(): movers, settle clocks
+        this.matter.world.pause();   // freezes the simulation itself
+      }
+    } else if (this.rotationPaused) {
+      this.rotationPaused = false;
+      this.rotateOverlay.setVisible(false);
+      if (this.pausedForRotation) {
+        this.pausedForRotation = false;
+        this.matter.world.resume();
+        this.stateMachine.resume();
+        if (this.stateMachine.is(STATES.AIMING)) this.slingshot.setEnabled(true);
+      }
+    }
+  }
+
+  /** One-time, mobile-only: try fullscreen + landscape lock on first tap. */
+  tryEnterLandscapeFullscreen() {
+    if (this.orientationLockTried) return;
+    this.orientationLockTried = true;
+    if (this.device.type !== DEVICE_TYPES.MOBILE) return;
+    const el = document.documentElement;
+    const request = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (typeof request !== 'function') return; // rotate overlay is the fallback
+    Promise.resolve(request.call(el))
+      .then(() => {
+        const orientation = screen.orientation;
+        if (orientation && typeof orientation.lock === 'function') {
+          return orientation.lock('landscape').catch(() => {});
+        }
+      })
+      .catch(() => { /* refused — overlay fallback handles guidance */ });
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Pause                                                               */
   /* ------------------------------------------------------------------ */
 
@@ -606,12 +714,11 @@ export class GameScene extends Phaser.Scene {
       this.stateMachine.resume();
       if (this.stateMachine.is(STATES.AIMING)) this.slingshot.setEnabled(true);
     } else {
-      this.autoPause();
+      this.doPause();
     }
   }
 
-  autoPause() {
-    if (this.disableAutoPause) return;
+  doPause() {
     const terminal = [STATES.LEVEL_COMPLETE, STATES.LEVEL_FAILED, STATES.GAME_COMPLETE];
     if (terminal.includes(this.stateMachine.current)) return;
     if (!this.stateMachine.pause()) return;
@@ -620,6 +727,12 @@ export class GameScene extends Phaser.Scene {
     this.slingshot.setEnabled(false);
     this.pauseOverlay.setVisible(true);
     this.refreshHUD();
+  }
+
+  /** Automatic pause (window blur / tab hidden) — disabled for test runs. */
+  autoPause() {
+    if (this.disableAutoPause) return;
+    this.doPause();
   }
 
   /* ------------------------------------------------------------------ */

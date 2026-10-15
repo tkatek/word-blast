@@ -29,6 +29,12 @@ export const game = new Phaser.Game({
       debug: false
     }
   },
+  fps: {
+    // setTimeout-based loop: keeps running when the canvas is occluded
+    // (rAF stops), which headless testing and some embedded webviews need.
+    forceSetTimeOut: true,
+    target: 60
+  },
   input: {
     activePointers: 3,   // multi-touch friendly
     touch: { capture: true }

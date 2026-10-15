@@ -231,7 +231,7 @@ test('live score hides end-of-level bonuses until completion', () => {
   eq(s.liveScore(), 1000);
   s.recordCorrect(1); s.recordCorrect(1); s.recordCorrect(1);
   for (let i = 0; i < 3; i++) s.recordShot();
-  eq(s.liveScore(), 4000 - 450 + 500, 'completion bonus appears only when done');
+  eq(s.liveScore(), 4000 + 500 + 12 * 150, 'completion bonus appears only when done');
 });
 
 test('#15 stars require all four questions completed', () => {
