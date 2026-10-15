@@ -30,7 +30,7 @@ export async function createHeadlessGame() {
   require.cache[srcPath] = { id: srcPath, filename: srcPath, loaded: true, exports: Phaser };
 
   const { WORLD, PHYSICS, COLORS } = await import('../../js/config.js');
-  const { solveLaunch } = await import('../../js/systems/Trajectory.js');
+  const { solveLaunch, predictPath } = await import('../../js/systems/Trajectory.js');
 
   const { BootScene } = await import('../../js/scenes/BootScene.js');
   const { MenuScene } = await import('../../js/scenes/MenuScene.js');
@@ -76,6 +76,11 @@ export async function createHeadlessGame() {
     solveLaunch: (tx, ty, opts) => {
       const a = slingAnchor();
       return solveLaunch(a.x, a.y, tx, ty, opts);
+    },
+    /** Predict an arc from the live anchor (same integrator as the game). */
+    predictPath: (vx, vy, opts) => {
+      const a = slingAnchor();
+      return predictPath(a.x, a.y, vx, vy, opts);
     },
 
     async gotoLevel(levelId) {
