@@ -439,7 +439,7 @@
     "levelId": 8,
     "cefr": "A2",
     "category": "word-order",
-    "text": "Which sentence has the correct word order?",
+    "text": "Which sentence puts the adverb in the right place?",
     "choices": [
       { "id": "a", "text": "He plays usually football on Saturdays." },
       { "id": "b", "text": "He usually plays football on Saturdays." },
@@ -454,7 +454,7 @@
     "levelId": 8,
     "cefr": "A2",
     "category": "word-order",
-    "text": "Which sentence has the correct word order?",
+    "text": "Which sentence follows natural English word order?",
     "choices": [
       { "id": "a", "text": "They went yesterday to the cinema." },
       { "id": "b", "text": "They to the cinema went yesterday." },
@@ -469,7 +469,7 @@
     "levelId": 8,
     "cefr": "A2",
     "category": "word-order",
-    "text": "Which sentence has the correct word order?",
+    "text": "Which sentence orders the words correctly?",
     "choices": [
       { "id": "a", "text": "I am never late for class." },
       { "id": "b", "text": "I never am late for class." },
