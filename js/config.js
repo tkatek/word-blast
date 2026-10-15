@@ -135,7 +135,7 @@ export const SLINGSHOT = {
   ANCHORS: {
     desktop: { x: 195, y: 335 },
     tablet: { x: 170, y: 400 },
-    mobile: { x: 80, y: 348 }
+    mobile: { x: 90, y: 348 }
   },
   BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact)
 };
