@@ -88,8 +88,10 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
         const target = h.correctTarget();
         if (ball && target) {
           const M = h.Phaser.Physics.Matter.Matter;
-          M.Body.setPosition(ball.body, { x: target.x + 95, y: 500 });
-          M.Body.setVelocity(ball.body, { x: -3.5, y: 1.5 });
+          // immediate contact zone: moving obstacles cannot intercept a
+          // two-step drop onto the target's shoulder
+          M.Body.setPosition(ball.body, { x: target.x + 30, y: target.y - 50 });
+          M.Body.setVelocity(ball.body, { x: 0.5, y: 2 });
         }
       }
     }
