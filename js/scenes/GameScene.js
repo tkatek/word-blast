@@ -742,6 +742,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
+   * A real device-class change (e.g. tablet → phone window) swaps the
+   * background art, whose cliff sits at a different height — re-stand the
+   * slingshot on that art's anchor. Never mid-drag (an aimed shot is never
+   * yanked away), and never for an in-flight projectile (its body was
+   * already spawned at launch and is independent of the anchor).
+   */
+  syncSlingshotDevice() {
+    if (!this.slingshot || this.slingshot.isDragging()) return;
+    const type = deviceInfo().type;
+    if (type !== this.slingshot.deviceType) this.slingshot.applyDeviceAnchor(type);
+  }
+
+  /**
    * Portrait phone: freeze physics + timers, block input, keep all progress.
    * Landscape: hide the overlay and resume exactly where the player was.
    * Never restarts the level.
