@@ -1,0 +1,217 @@
+/**
+ * WORD BLAST — central configuration.
+ * All gameplay tuning lives here (or in js/data/*.json).
+ * Nothing in this file imports Phaser, so it stays unit-testable in Node.
+ */
+
+export const WORLD = {
+  WIDTH: 1280,
+  HEIGHT: 720,
+  GROUND_Y: 640,          // top surface of the ground
+  GROUND_THICKNESS: 160,  // extends below the visible area
+  SLING_X: 175,
+  SLING_Y: 545,           // pouch rest position (anchor)
+  KILL_MARGIN: 260        // bodies this far outside the world get removed
+};
+
+export const PHYSICS = {
+  GRAVITY_Y: 1,
+  ENABLE_SLEEPING: true,
+  // Matter integrates gravity as:  dV per step = gravity.y * gravityScale * dt^2
+  // with gravityScale 0.001 and dt = 1000/60  ->  0.27778 px/step per step.
+  G_STEP: 0.27778,
+  SETTLE_SPEED: 0.25,      // bodies slower than this count as "at rest"
+  SETTLE_FRAMES: 45,       // must stay slow this many frames for physics to be "resolved"
+  SETTLE_TIMEOUT_MS: 6000, // never wait longer than this for physics to settle
+  SHOT_TIMEOUT_MS: 9000    // force-resolve a shot after this long (anti-stuck)
+};
+
+export const SLINGSHOT = {
+  MAX_DRAG: 140,
+  MIN_POWER_RATIO: 0.12,   // below this the shot is cancelled (dud prevention)
+  MAX_SPEED: 24,           // launch velocity magnitude, px/step
+  TRAJECTORY_STEPS: 60,
+  TRAJECTORY_STEP_MS: 1000 / 60
+};
+
+/** Destructible materials. hp = damage pool; density drives mass. */
+export const MATERIALS = {
+  wood: { label: 'wood', hp: 70, density: 0.0009, friction: 0.6, restitution: 0.05, damageScale: 1.0 },
+  glass: { label: 'glass', hp: 30, density: 0.0008, friction: 0.4, restitution: 0.1, damageScale: 1.0 },
+  stone: { label: 'stone', hp: 130, density: 0.0025, friction: 0.8, restitution: 0.02, damageScale: 1.0 },
+  boom: { label: 'boom', hp: 25, density: 0.001, friction: 0.5, restitution: 0.05, damageScale: 1.0, isExplosive: true }
+};
+
+export const DAMAGE = {
+  // dmg = relSpeed * clamp(otherMass, MIN_MASS, MAX_MASS) * FACTOR
+  FACTOR: 1.5,
+  MIN_MASS: 0.5,
+  MAX_MASS: 10,
+  MIN_REL_SPEED: 2.0
+};
+
+export const EXPLOSION = {
+  RADIUS: 150,
+  POWER: 0.09,        // force magnitude scale applied per body (times body mass)
+  DAMAGE: 160,        // damage at the blast center, linear falloff to 0 at RADIUS
+  ANSWER_TARGET_IMMUNE: true // answer targets are never damaged/validated by blasts
+};
+
+export const ICE = {
+  RADIUS: 130,
+  DURATION_MS: 6000,
+  DAMAGE_MULTIPLIER: 2.0
+};
+
+/** Projectile roster. Availability per level is defined in levels.json. */
+export const PROJECTILE_TYPES = {
+  basic: {
+    key: 'basic',
+    name: 'Basic',
+    radius: 16,
+    density: 0.0025,
+    restitution: 0.35,
+    frictionAir: 0.005,
+    ability: null,
+    abilityHint: ''
+  },
+  speed: {
+    key: 'speed',
+    name: 'Speed',
+    radius: 15,
+    density: 0.0025,
+    restitution: 0.3,
+    frictionAir: 0.005,
+    ability: 'boost',
+    abilityHint: 'Tap while flying: forward speed boost (once)'
+  },
+  ice: {
+    key: 'ice',
+    name: 'Ice',
+    radius: 15,
+    density: 0.0024,
+    restitution: 0.25,
+    frictionAir: 0.005,
+    ability: 'freeze',
+    abilityHint: 'Freezes and weakens blocks on first impact'
+  },
+  split: {
+    key: 'split',
+    name: 'Split',
+    radius: 17,
+    density: 0.0022,
+    restitution: 0.35,
+    frictionAir: 0.005,
+    ability: 'split',
+    abilityHint: 'Tap while flying: splits into three'
+  },
+  bomb: {
+    key: 'bomb',
+    name: 'Bomb',
+    radius: 17,
+    density: 0.0028,
+    restitution: 0.2,
+    frictionAir: 0.005,
+    ability: 'detonate',
+    abilityHint: 'Explodes on first impact'
+  }
+};
+
+export const SPLIT_CHILD = {
+  radius: 11,
+  density: 0.0022,
+  spreadAngleDeg: 11,
+  restitution: 0.35,
+  frictionAir: 0.005
+};
+
+export const BOOST = { MULTIPLIER: 1.6 };
+
+export const TARGETS = {
+  WIDTH: 118,
+  HEIGHT: 64,
+  RESTITUTION: 0.4,
+  CHOICE_LABELS: ['A', 'B', 'C']
+};
+
+export const SCORING = {
+  BASE_BY_ATTEMPT: [1000, 750, 500, 250], // points by which attempt answered the question
+  WRONG_HIT_PENALTY: 100,                 // per wrong answer target hit
+  UNUSED_SHOT_BONUS: 150,                 // per unused shot at level end
+  COMPLETION_BONUS: 500,                  // finishing all four questions
+  MIN_SCORE: 0
+};
+
+export const SAVE = {
+  KEY: 'wordblast.save',
+  VERSION: 1,
+  MAX_LEVELS: 15,
+  QUESTIONS_PER_LEVEL: 4,
+  CHOICES_PER_QUESTION: 3,
+  TOTAL_QUESTIONS: 60
+};
+
+/** CEFR ordering used by the difficulty-progression validator. */
+export const CEFR_ORDER = ['A1', 'A1+', 'A2', 'A2+', 'B1', 'B1+'];
+
+/** Game state machine definitions (see systems/GameStateMachine.js). */
+export const STATES = {
+  BOOTING: 'BOOTING',
+  LOADING: 'LOADING',
+  MENU: 'MENU',
+  LEVEL_READY: 'LEVEL_READY',
+  QUESTION_READY: 'QUESTION_READY',
+  AIMING: 'AIMING',
+  PROJECTILE_FLYING: 'PROJECTILE_FLYING',
+  PHYSICS_RESOLVING: 'PHYSICS_RESOLVING',
+  ANSWER_FEEDBACK: 'ANSWER_FEEDBACK',
+  NEXT_QUESTION: 'NEXT_QUESTION',
+  LEVEL_COMPLETE: 'LEVEL_COMPLETE',
+  LEVEL_FAILED: 'LEVEL_FAILED',
+  PAUSED: 'PAUSED',
+  GAME_COMPLETE: 'GAME_COMPLETE'
+};
+
+/** Allowed state transitions. Anything not listed is rejected. */
+export const STATE_TRANSITIONS = {
+  [STATES.BOOTING]: [STATES.LOADING, STATES.MENU],
+  [STATES.LOADING]: [STATES.MENU, STATES.LEVEL_READY],
+  [STATES.MENU]: [STATES.LEVEL_READY, STATES.GAME_COMPLETE],
+  [STATES.LEVEL_READY]: [STATES.QUESTION_READY, STATES.MENU],
+  [STATES.QUESTION_READY]: [STATES.AIMING, STATES.LEVEL_FAILED, STATES.MENU],
+  [STATES.AIMING]: [STATES.PROJECTILE_FLYING, STATES.LEVEL_FAILED, STATES.MENU],
+  [STATES.PROJECTILE_FLYING]: [STATES.PHYSICS_RESOLVING, STATES.ANSWER_FEEDBACK, STATES.LEVEL_FAILED],
+  [STATES.PHYSICS_RESOLVING]: [STATES.ANSWER_FEEDBACK, STATES.AIMING, STATES.NEXT_QUESTION, STATES.LEVEL_FAILED],
+  [STATES.ANSWER_FEEDBACK]: [STATES.PHYSICS_RESOLVING, STATES.NEXT_QUESTION, STATES.AIMING, STATES.LEVEL_FAILED],
+  [STATES.NEXT_QUESTION]: [STATES.QUESTION_READY, STATES.LEVEL_COMPLETE],
+  [STATES.LEVEL_COMPLETE]: [STATES.QUESTION_READY, STATES.MENU, STATES.GAME_COMPLETE, STATES.LEVEL_READY],
+  [STATES.LEVEL_FAILED]: [STATES.QUESTION_READY, STATES.LEVEL_READY, STATES.MENU],
+  [STATES.GAME_COMPLETE]: [STATES.MENU, STATES.LEVEL_READY]
+  // PAUSED handled separately by the machine (pausedFrom stack)
+};
+
+export const COLORS = {
+  SKY: 0x8ecae6,
+  GROUND: 0x588157,
+  WOOD: 0xb08968,
+  WOOD_DARK: 0x7f5539,
+  GLASS: 0xa8dadc,
+  GLASS_DARK: 0x61a5c2,
+  STONE: 0x8d99ae,
+  STONE_DARK: 0x6c7a92,
+  BOOM: 0xe76f51,
+  TARGET: 0xfff3b0,
+  TARGET_CORRECT_FLASH: 0x90be6d,
+  TARGET_WRONG_FLASH: 0xe63946,
+  PROJECTILES: {
+    basic: 0xd94801,
+    speed: 0xfdca40,
+    ice: 0x7bdff2,
+    split: 0x9d4edd,
+    bomb: 0x3a3a3a
+  },
+  TRAJECTORY: 0xffffff,
+  HUD_BACKGROUND: 0x1d3557,
+  HUD_TEXT: '#ffffff',
+  FROZEN_TINT: 0x88ccff
+};
