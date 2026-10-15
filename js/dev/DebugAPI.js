@@ -4,7 +4,8 @@
  */
 import { WORLD } from '../config.js';
 import { clientToWorld } from '../systems/InputMapper.js';
-import { deviceInfo, setOrientationOverride } from '../systems/Device.js';
+import { deviceInfo, setOrientationOverride, setTypeOverride } from '../systems/Device.js';
+import { DebugLog } from '../systems/DebugLog.js';
 
 export function installDebugAPI(game) {
   const api = {
@@ -114,6 +115,24 @@ export function installDebugAPI(game) {
       const s = api.scene();
       if (s && s.updateOrientationState) s.updateOrientationState();
       return mode;
+    },
+
+    /** Test-only device-type override: 'desktop' | 'tablet' | 'mobile' | null. */
+    setDeviceOverride(type) {
+      setTypeOverride(type);
+      const s = api.scene();
+      if (s && s.background) s.background.apply(type); // swap art for visuals
+      if (s && s.updateOrientationState) s.updateOrientationState();
+      return type;
+    },
+
+    /**
+     * Toggle development diagnostic logging (state transitions, shots,
+     * collisions, answers, physics resolution). Equivalent to ?debug=1.
+     */
+    setDebug(enabled) {
+      DebugLog.enabled = !!enabled;
+      return DebugLog.enabled;
     },
 
     /**

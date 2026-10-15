@@ -19,6 +19,7 @@ import { ScoringSystem } from '../js/systems/ScoringSystem.js';
 import { GameStateMachine } from '../js/systems/GameStateMachine.js';
 import { predictPath, solveLaunch } from '../js/systems/Trajectory.js';
 import { clientToWorld, worldToClient } from '../js/systems/InputMapper.js';
+import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../js/systems/Device.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const questionsData = JSON.parse(readFileSync(join(root, '../js/data/questions.json'), 'utf8'));
@@ -380,6 +381,38 @@ test('failure path: PHYSICS_RESOLVING -> LEVEL_FAILED -> retry question', () => 
   assert(sm.set(STATES.QUESTION_READY), 'retry question re-enters flow');
 });
 
+test('freeze fix: a late answer is legal from AIMING and still progresses', () => {
+  // A projectile of the current shot can touch the correct target after the
+  // shot already resolved and the slingshot re-armed (creeping ball, debris
+  // or a mover shoving it). The answer must be honored from AIMING.
+  const sm = new GameStateMachine();
+  sm.set(STATES.LOADING); sm.set(STATES.MENU); sm.set(STATES.LEVEL_READY);
+  sm.set(STATES.QUESTION_READY); sm.set(STATES.AIMING);
+  sm.set(STATES.PROJECTILE_FLYING); sm.set(STATES.PHYSICS_RESOLVING); sm.set(STATES.AIMING);
+  assert(sm.set(STATES.ANSWER_FEEDBACK), 'AIMING -> ANSWER_FEEDBACK must be legal (late answer)');
+  assert(sm.set(STATES.NEXT_QUESTION), 'feedback must be able to advance');
+  assert(sm.set(STATES.QUESTION_READY), 'next question must load');
+  // and a late WRONG answer settles back to AIMING to use remaining shots
+  const sm2 = new GameStateMachine();
+  sm2.set(STATES.LOADING); sm2.set(STATES.MENU); sm2.set(STATES.LEVEL_READY);
+  sm2.set(STATES.QUESTION_READY); sm2.set(STATES.AIMING);
+  assert(sm2.set(STATES.ANSWER_FEEDBACK), 'late wrong answer enters feedback');
+  assert(sm2.set(STATES.AIMING), 'late wrong answer re-arms');
+});
+
+test('stale projectiles cannot answer from non-shot states', () => {
+  // answers are unroutable once the question is loading / level is over
+  const sm = new GameStateMachine();
+  sm.set(STATES.LOADING); sm.set(STATES.MENU); sm.set(STATES.LEVEL_READY);
+  sm.set(STATES.QUESTION_READY); sm.set(STATES.AIMING); sm.set(STATES.PROJECTILE_FLYING);
+  sm.set(STATES.PHYSICS_RESOLVING); sm.set(STATES.ANSWER_FEEDBACK); sm.set(STATES.NEXT_QUESTION);
+  sm.set(STATES.QUESTION_READY);
+  assert(!sm.set(STATES.ANSWER_FEEDBACK), 'QUESTION_READY must not accept answer events');
+  sm.set(STATES.AIMING); sm.set(STATES.PROJECTILE_FLYING);
+  sm.set(STATES.PHYSICS_RESOLVING); sm.set(STATES.LEVEL_FAILED);
+  assert(!sm.set(STATES.ANSWER_FEEDBACK), 'LEVEL_FAILED must not accept answer events');
+});
+
 console.log('\n== trajectory ===============================================');
 
 test('prediction integrates gravity downward monotonically', () => {
@@ -429,6 +462,54 @@ test('#21b portrait phone canvas keeps aspect-correct mapping', () => {
   const w = clientToWorld(390, 419, rect);
   eq(Math.round(w.x), 1280);
   eq(Math.round(w.y), 720);
+});
+
+console.log('\n== device detection =========================================');
+
+test('desktop: no touch -> desktop regardless of window size', () => {
+  eq(deviceInfo({ viewport: { w: 1920, h: 1080 }, coarse: false, maxTouchPoints: 0 }).type, DEVICE_TYPES.DESKTOP);
+  // narrow desktop window must NOT be classified as a phone
+  eq(deviceInfo({ viewport: { w: 500, h: 400 }, coarse: false, maxTouchPoints: 0 }).type, DEVICE_TYPES.DESKTOP);
+  eq(deviceInfo({ viewport: { w: 900, h: 700 }, coarse: false, maxTouchPoints: 0 }).type, DEVICE_TYPES.DESKTOP);
+});
+
+test('tablet: large touch viewports classify as tablet', () => {
+  eq(deviceInfo({ viewport: { w: 1180, h: 820 }, coarse: true, maxTouchPoints: 5 }).type, DEVICE_TYPES.TABLET);
+  eq(deviceInfo({ viewport: { w: 1366, h: 1024 }, coarse: true, maxTouchPoints: 5 }).type, DEVICE_TYPES.TABLET);
+  // iPadOS Safari reports a Mac UA with touch points
+  eq(deviceInfo({
+    viewport: { w: 1024, h: 768 }, coarse: true, maxTouchPoints: 5,
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15'
+  }).type, DEVICE_TYPES.TABLET);
+  // Android tablet: Android UA without 'Mobile'
+  eq(deviceInfo({
+    viewport: { w: 1000, h: 700 }, coarse: true, maxTouchPoints: 5,
+    userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-X910) AppleWebKit/537.36'
+  }).type, DEVICE_TYPES.TABLET);
+});
+
+test('mobile: phone-sized touch viewports classify as mobile', () => {
+  eq(deviceInfo({ viewport: { w: 844, h: 390 }, coarse: true, maxTouchPoints: 5 }).type, DEVICE_TYPES.MOBILE);
+  eq(deviceInfo({
+    viewport: { w: 800, h: 360 }, coarse: true, maxTouchPoints: 5,
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; S) AppleWebKit/537.36 Mobile Safari'
+  }).type, DEVICE_TYPES.MOBILE);
+  // ambiguous band resolved by iPhone UA
+  eq(deviceInfo({
+    viewport: { w: 926, h: 428 }, coarse: true, maxTouchPoints: 5,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile'
+  }).type, DEVICE_TYPES.MOBILE);
+});
+
+test('landscape lock applies only to portrait phones', () => {
+  const phonePortrait = deviceInfo({ viewport: { w: 390, h: 844 }, coarse: true, maxTouchPoints: 5 });
+  assert(requiresLandscape(phonePortrait), 'portrait phone needs the overlay');
+  const phoneLandscape = deviceInfo({ viewport: { w: 844, h: 390 }, coarse: true, maxTouchPoints: 5 });
+  assert(!requiresLandscape(phoneLandscape), 'landscape phone plays');
+  const tabletPortrait = deviceInfo({ viewport: { w: 820, h: 1180 }, coarse: true, maxTouchPoints: 5 });
+  assert(!requiresLandscape(tabletPortrait), 'tablets are nudged, not forced');
+  const desktopTall = deviceInfo({ viewport: { w: 500, h: 900 }, coarse: false, maxTouchPoints: 0 });
+  assert(!requiresLandscape(desktopTall), 'narrow desktop window never triggers the overlay');
 });
 
 console.log('\n== summary ==================================================');

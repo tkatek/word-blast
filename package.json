@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/run-tests.mjs"
+    "test:unit": "node tests/run-tests.mjs",
+    "test:integration": "node tests/integration-tests.mjs",
+    "repro:freeze": "node tests/repro-freeze.mjs",
+    "test": "node tests/run-tests.mjs && node tests/integration-tests.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

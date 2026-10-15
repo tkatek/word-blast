@@ -16,8 +16,15 @@ export const DEVICE_TYPES = {
 /** Test-only orientation override ('portrait' | 'landscape' | null). */
 let orientationOverride = null;
 
+/** Test-only device-type override ('desktop' | 'tablet' | 'mobile' | null). */
+let typeOverride = null;
+
 export function setOrientationOverride(value) {
   orientationOverride = value;
+}
+
+export function setTypeOverride(value) {
+  typeOverride = value;
 }
 
 function readEnv(env) {
@@ -72,7 +79,7 @@ export function deviceInfo(env) {
     : orientationOverride === 'landscape' ? false
       : realPortrait;
 
-  return { type, hasTouch, portrait, viewport: { w, h }, aspect: +(max / min).toFixed(3) };
+  return { type: typeOverride || type, hasTouch, portrait, viewport: { w, h }, aspect: +(max / min).toFixed(3) };
 }
 
 /**

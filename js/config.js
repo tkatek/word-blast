@@ -7,11 +7,28 @@
 export const WORLD = {
   WIDTH: 1280,
   HEIGHT: 720,
-  GROUND_Y: 640,          // top surface of the ground
-  GROUND_THICKNESS: 160,  // extends below the visible area
-  SLING_X: 175,
-  SLING_Y: 545,           // pouch rest position (anchor)
+  GROUND_Y: 560,          // top surface of the MAIN gameplay terrace (towers)
+  GROUND_THICKNESS: 240,  // extends below the visible area
+  // Legacy aliases of SLINGSHOT.ANCHORS.desktop (kept for the test suite and
+  // headless helpers). Gameplay code reads the live anchor off the Slingshot.
+  SLING_X: 150,
+  SLING_Y: 334,
   KILL_MARGIN: 260        // bodies this far outside the world get removed
+};
+
+/**
+ * Canonical gameplay terrain (world px). Two flat surfaces:
+ *  - LEFT plateau (slingshot): top y=448, spans x -120..390
+ *  - MAIN terrace (towers):    top y=560, spans x 430..1400
+ * The 40px gap between them shows the painted water; anything falling into
+ * it leaves the playable area and is cleaned up. The foreground terrain
+ * layer is drawn FROM THESE NUMBERS, so visual ground == collision ground
+ * on every device — backgrounds can never shift live physics.
+ */
+export const TERRAIN = {
+  PLATEAU: { left: -120, right: 390, top: 448 },
+  TERRACE: { left: 430, right: 1400, top: 560 },
+  get WATER_GAP() { return [this.PLATEAU.right, this.TERRACE.left]; }
 };
 
 export const PHYSICS = {
@@ -23,7 +40,51 @@ export const PHYSICS = {
   SETTLE_SPEED: 0.25,      // bodies slower than this count as "at rest"
   SETTLE_FRAMES: 45,       // must stay slow this many frames for physics to be "resolved"
   SETTLE_TIMEOUT_MS: 6000, // never wait longer than this for physics to settle
-  SHOT_TIMEOUT_MS: 9000    // force-resolve a shot after this long (anti-stuck)
+  SHOT_TIMEOUT_MS: 9000,   // force-resolve a shot after this long (anti-stuck)
+  // Shot resolution (miss/wrong path): the shot only counts as over after
+  // EVERYTHING dynamic has stayed quiet this many consecutive frames —
+  // projectiles AND destructible blocks (movers never settle by design and
+  // are excluded). A single slow frame is not enough: a ball can dip below
+  // the speed threshold at a bounce apex or while creeping and still reach
+  // an answer target afterwards.
+  RESOLVE_STABLE_FRAMES: 18,
+  PROJECTILE_REST_SPEED: 0.35,
+  BLOCK_REST_SPEED: 0.6,
+  // Build-time stability: silent fixed steps run before the player can fire.
+  SETTLE_STEPS: 75,
+  SETTLE_MAX_DRIFT: 8,      // px a piece may move during the settling phase
+  // Post-shot grace: tower pieces may keep settling this long after the
+  // projectiles stop before the shot is declared resolved.
+  DEBRIS_GRACE_MS: 1200
+};
+
+/**
+ * Answer feedback pacing: minimum visible feedback and a hard cap on the
+ * active resolution window after a validated correct answer (spec §9).
+ */
+export const FEEDBACK = {
+  MIN_VISIBLE_MS: 1100,
+  MAX_RESOLVE_MS: 3200
+};
+
+/** Performance budgets — configuration from profiling, not constants of nature. */
+export const BUDGETS = {
+  MAX_PIECES: 40,        // destructible pieces per question layout
+  MAX_FRAGMENTS: 22,     // physical fragments alive at once
+  MAX_EMITTERS: 6,       // simultaneous particle emitters
+  MAX_SHAKE: 0.006       // camera shake magnitude cap
+};
+
+/**
+ * Tunneling guards. Matter.js has no continuous collision detection; the
+ * verified geometric mitigation is: every piece's smaller side >= 20px and
+ * every projectile slower than (10 + radius) px/step, so a fast ball can
+ * never jump clean across a piece in one 60 Hz step.
+ */
+export const TUNNELING = {
+  MIN_PIECE_DIM: 20,
+  BOOST_SPEED_CAP: 24,
+  SPLIT_CHILD_SPEED_CAP: 20
 };
 
 export const SLINGSHOT = {
@@ -31,23 +92,48 @@ export const SLINGSHOT = {
   MIN_POWER_RATIO: 0.12,   // below this the shot is cancelled (dud prevention)
   MAX_SPEED: 24,           // launch velocity magnitude, px/step
   TRAJECTORY_STEPS: 60,
-  TRAJECTORY_STEP_MS: 1000 / 60
+  TRAJECTORY_STEP_MS: 1000 / 60,
+  /**
+   * Pouch rest position per device background (world px = the fixed
+   * 1280×720 logical world). Each background art paints the elevated
+   * grassy cliff on the left at a slightly different height, so the
+   * anchor is measured per art (grass-top rows: desktop ≈385,
+   * tablet ≈424, mobile-landscape ≈403) and BASE_OFFSET_Y plants the
+   * wooden base a few pixels into that grass — never floating, never
+   * sunk into the rocks below. The playable world itself is identical
+   * on every device; only this visual anchor shifts.
+   */
+  ANCHORS: {
+    desktop: { x: 150, y: 334 },
+    tablet: { x: 155, y: 373 },
+    mobile: { x: 150, y: 351 }
+  },
+  BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact) distance
 };
+
+/** Slingshot pouch anchor for a device type (clone; safe to mutate). */
+export function slingshotAnchor(deviceType) {
+  const a = SLINGSHOT.ANCHORS[deviceType] || SLINGSHOT.ANCHORS.desktop;
+  return { x: a.x, y: a.y };
+}
 
 /** Destructible materials. hp = damage pool; density drives mass. */
 export const MATERIALS = {
   wood: { label: 'wood', hp: 70, density: 0.0009, friction: 0.6, restitution: 0.05, damageScale: 1.0 },
   glass: { label: 'glass', hp: 30, density: 0.0008, friction: 0.4, restitution: 0.1, damageScale: 1.0 },
   stone: { label: 'stone', hp: 130, density: 0.0025, friction: 0.8, restitution: 0.02, damageScale: 1.0 },
-  boom: { label: 'boom', hp: 25, density: 0.001, friction: 0.5, restitution: 0.05, damageScale: 1.0, isExplosive: true }
+  boom: { label: 'boom', hp: 25, density: 0.001, friction: 0.5, restitution: 0.05, damageScale: 1.0, isExplosive: true },
+  pig: { label: 'pig', hp: 45, density: 0.0008, friction: 0.5, restitution: 0.15, damageScale: 1.0 }
 };
 
 export const DAMAGE = {
-  // dmg = relSpeed * clamp(otherMass, MIN_MASS, MAX_MASS) * FACTOR
+  // dmg = closingSpeed * clamp(otherMass, MIN_MASS, MAX_MASS) * FACTOR
   FACTOR: 1.5,
   MIN_MASS: 0.5,
   MAX_MASS: 10,
-  MIN_REL_SPEED: 2.0
+  MIN_CLOSING_SPEED: 1.2,  // resting contact / micro-vibrations never damage
+  PAIR_COOLDOWN_MS: 120,   // dedupe repeated damage from sustained contact
+  STRONG_IMPACT: 40        // severity above which camera shake is allowed
 };
 
 export const EXPLOSION = {
@@ -128,10 +214,12 @@ export const SPLIT_CHILD = {
 export const BOOST = { MULTIPLIER: 1.6 };
 
 export const TARGETS = {
-  WIDTH: 118,
-  HEIGHT: 64,
-  RESTITUTION: 0.4,
-  CHOICE_LABELS: ['A', 'B', 'C']
+  WIDTH: 116,             // logical plaque size (sign_blank_wood art)
+  HEIGHT: 80,
+  COLLIDER_INSET: 5,      // collider slightly inside the visible board
+  RESTITUTION: 0.15,      // wooden plaques should not ping-pong
+  CHOICE_LABELS: ['A', 'B', 'C'],
+  RESPAWN_PUFF: true      // out-of-bounds plaque recovery shows a puff
 };
 
 export const SCORING = {
@@ -179,7 +267,12 @@ export const STATE_TRANSITIONS = {
   [STATES.MENU]: [STATES.LEVEL_READY, STATES.GAME_COMPLETE],
   [STATES.LEVEL_READY]: [STATES.QUESTION_READY, STATES.MENU],
   [STATES.QUESTION_READY]: [STATES.AIMING, STATES.LEVEL_FAILED, STATES.MENU],
-  [STATES.AIMING]: [STATES.PROJECTILE_FLYING, STATES.LEVEL_FAILED, STATES.MENU],
+  // AIMING -> ANSWER_FEEDBACK: a projectile of the current shot can touch an
+  // answer target AFTER the shot already resolved and the slingshot re-armed
+  // (ball creeps in below the speed threshold, or debris / a moving obstacle
+  // shoves the resting ball). A validated answer must still be honored from
+  // there, so the transition is legal.
+  [STATES.AIMING]: [STATES.PROJECTILE_FLYING, STATES.ANSWER_FEEDBACK, STATES.LEVEL_FAILED, STATES.MENU],
   [STATES.PROJECTILE_FLYING]: [STATES.PHYSICS_RESOLVING, STATES.ANSWER_FEEDBACK, STATES.LEVEL_FAILED],
   [STATES.PHYSICS_RESOLVING]: [STATES.ANSWER_FEEDBACK, STATES.AIMING, STATES.NEXT_QUESTION, STATES.LEVEL_FAILED],
   [STATES.ANSWER_FEEDBACK]: [STATES.PHYSICS_RESOLVING, STATES.NEXT_QUESTION, STATES.AIMING, STATES.LEVEL_FAILED],

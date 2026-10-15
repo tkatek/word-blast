@@ -5,7 +5,7 @@
  * Also owns damage, destruction, explosions, freezing and safe removal.
  */
 import Phaser from 'phaser';
-import { MATERIALS, DAMAGE, EXPLOSION, ICE, PROJECTILE_TYPES, SPLIT_CHILD, BOOST, TARGETS, WORLD, COLORS } from '../config.js';
+import { MATERIALS, DAMAGE, EXPLOSION, ICE, PROJECTILE_TYPES, SPLIT_CHILD, BOOST, TARGETS, WORLD, COLORS, PHYSICS } from '../config.js';
 
 const MatterLib = Phaser.Physics.Matter.Matter;
 
@@ -398,6 +398,23 @@ export class ObjectFactory {
       if (go.wb && go.wb.labels) go.wb.labels.forEach((l) => l.destroy());
       go.destroy();
     }
+  }
+
+  /**
+   * True when no destructible block is still moving. Moving obstacles are
+   * intentionally excluded — they never settle. Used by the shot-resolution
+   * watcher so a shot is not declared over while rubble is still falling
+   * (falling debris can still push a resting projectile into a target).
+   */
+  blocksQuiet() {
+    if (this.removalQueue.length || this.explosionQueue.length) return false;
+    for (const block of this.blocks) {
+      if (block.wb.removed) continue;
+      if (block.body.isSleeping) continue;
+      const v = block.body.velocity;
+      if (Math.hypot(v.x, v.y) > PHYSICS.BLOCK_REST_SPEED) return false;
+    }
+    return true;
   }
 
   /** True when every dynamic body has settled (for PHYSICS_RESOLVING). */

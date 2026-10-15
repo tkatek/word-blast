@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import {
-  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING
+  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, slingshotAnchor
 } from '../config.js';
 import { GameStateMachine } from '../systems/GameStateMachine.js';
 import { ObjectFactory } from '../systems/PhysicsObjects.js';
@@ -15,6 +15,7 @@ import { ScoringSystem } from '../systems/ScoringSystem.js';
 import { solveLaunch } from '../systems/Trajectory.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
+import { DebugLog } from '../systems/DebugLog.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -71,12 +72,18 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs = 0;          // pause-aware clock (movers)
     this.settleFrames = 0;
     this.settleStartedAt = 0;
+    this.slowFrames = 0;         // consecutive quiet frames for shot resolution
+    this.armPending = false;     // re-arm deferred by a pause lands on resume
 
     this.buildWorld();
     this.buildHUD();
     this.buildOverlays();
 
-    this.slingshot = new Slingshot(this, { onLaunch: (vx, vy, type) => this.launchProjectile(vx, vy, type) });
+    this.slingshot = new Slingshot(this, {
+      // origin = the pouch position at release, so the physics body spawns
+      // exactly where the player saw the projectile leave the slingshot
+      onLaunch: (vx, vy, type, origin) => this.launchProjectile(vx, vy, type, origin)
+    });
 
     this.matter.world.on('collisionstart', this.onCollisionStart, this);
     this.input.keyboard.on('keydown-P', () => this.togglePause());
@@ -249,9 +256,10 @@ export class GameScene extends Phaser.Scene {
       backgroundColor: '#14213dcc', padding: { x: 16, y: 8 }
     }).setOrigin(0.5).setDepth(DEPTH.OVERLAY).setAlpha(0);
 
-    // tutorial hint
+    // tutorial hint (next to the slingshot on its cliff)
     if (this.levelId === 1 && !this.save.data.tutorialDone) {
-      this.tutorialHint = this.add.text(WORLD.SLING_X + 40, WORLD.SLING_Y - 70,
+      const a = slingshotAnchor(this.device.type);
+      this.tutorialHint = this.add.text(a.x + 42, a.y - 66,
         'Drag the ball back and release\nto hit the correct answer!', {
           fontFamily: 'Arial', fontSize: '16px', color: '#1d3557', backgroundColor: '#ffffffcc', padding: { x: 8, y: 6 }
         }).setDepth(DEPTH.HUD);
@@ -290,12 +298,14 @@ export class GameScene extends Phaser.Scene {
   /* ------------------------------------------------------------------ */
 
   loadQuestion(index) {
+    DebugLog.info(`L${this.levelId} / Question ${index + 1} — cleaning question ${this.questionIndex + 1}`);
     this.questionIndex = index;
     this.factory.clearQuestionObjects();
     this.answerLock = false;
     this.currentShot = null;
     this.shotsLeft = this.level.shotsPerQuestion;
     this.settleFrames = 0;
+    this.slowFrames = 0;
 
     const entry = this.levels.getQuestionEntry(this.levelId, index);
     const question = this.questions.getQuestion(entry.questionId);
@@ -314,17 +324,35 @@ export class GameScene extends Phaser.Scene {
 
     this.stateMachine.set(STATES.QUESTION_READY);
     this.refreshHUD();
-    this.time.delayedCall(250, () => this.armAiming());
+    DebugLog.info(`L${this.levelId} / Question ${index + 1} — loaded "${question.text}"`);
+    // Question token: if the player restarts / the question changes before
+    // the arming delay fires, this callback is stale and must do nothing.
+    const qToken = index;
+    this.time.delayedCall(250, () => {
+      if (this.questionIndex !== qToken) {
+        DebugLog.warn(`arm callback dropped: stale question token ${qToken} (now ${this.questionIndex})`);
+        return;
+      }
+      this.armAiming();
+    });
   }
 
   armAiming() {
-    if (this.stateMachine.isPaused()) return;
+    if (this.stateMachine.isPaused()) {
+      // The delayed call is consumed while paused — remember it and arm on
+      // resume, otherwise the game would sit in QUESTION_READY forever.
+      this.armPending = true;
+      DebugLog.info('arming deferred: game paused');
+      return;
+    }
     if (!this.stateMachine.is(STATES.QUESTION_READY) && !this.stateMachine.is(STATES.PHYSICS_RESOLVING)
       && !this.stateMachine.is(STATES.ANSWER_FEEDBACK)) return;
+    this.armPending = false;
     this.stateMachine.set(STATES.AIMING);
     this.slingshot.load(this.selectedProjectile);
     this.slingshot.setEnabled(true);
     this.refreshHUD();
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY Question ${this.questionIndex + 1}/4 (AIMING, shots: ${this.shotsLeft})`);
   }
 
   /* ------------------------------------------------------------------ */
@@ -333,13 +361,14 @@ export class GameScene extends Phaser.Scene {
 
   launchProjectile(vx, vy, typeKey) {
     if (!this.stateMachine.is(STATES.AIMING)) return false;
-    if (!this.levels.isProjectileAvailable(this.levelId, typeKey)) return false;
     if (this.shotsLeft <= 0) return false;
+    if (!this.levels.isProjectileAvailable(this.levelId, typeKey)) return false;
 
     const shotId = (this.currentShot?.id || 0) + 1;
     this.currentShot = { id: shotId, launched: true, answered: false, resolvedHandled: false, startedAt: this.time.now };
     this.scoring.recordShot();
     this.shotsLeft--;
+    this.slowFrames = 0;
 
     const p = this.factory.createProjectile(typeKey, WORLD.SLING_X, WORLD.SLING_Y, shotId);
     p.setVelocity(vx, vy);
@@ -347,6 +376,7 @@ export class GameScene extends Phaser.Scene {
 
     this.stateMachine.set(STATES.PROJECTILE_FLYING);
     this.audio.emit('launch');
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — SHOT #${shotId} launched (${typeKey}, v ${vx.toFixed(1)}/${vy.toFixed(1)}), shots left: ${this.shotsLeft}`);
     if (this.tutorialHint && !this.save.data.tutorialDone) {
       this.save.setTutorialDone(true);
       this.tutorialHint.destroy();
@@ -400,34 +430,59 @@ export class GameScene extends Phaser.Scene {
     const targetGo = otherBody.gameObject;
     if (targetGo && targetGo.wb && targetGo.wb.kind === 'target'
       && targetGo.wb.questionIndex === this.questionIndex
-      && !targetGo.wb.hit && !this.answerLock) {
+      && !targetGo.wb.hit && !this.answerLock
+      && this.canAcceptAnswer()) {
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — COLLISION answer target ${targetGo.wb.choiceId}`);
       this.tryAnswer(go, targetGo);
     }
+  }
+
+  /**
+   * Answers are only routable from the live-shot states. AIMING is included:
+   * a projectile of the CURRENT shot may still touch a target after the shot
+   * resolved and the slingshot re-armed (creeping ball, debris or a moving
+   * obstacle shoving the resting ball). Any other state (a new question is
+   * loading, level over, …) must ignore the collision entirely.
+   */
+  canAcceptAnswer() {
+    const s = this.stateMachine.current;
+    return s === STATES.PROJECTILE_FLYING || s === STATES.PHYSICS_RESOLVING || s === STATES.AIMING;
   }
 
   /**
    * Strict answer validation: only eligible player projectiles of the
    * current shot directly touching the target count. Debris never lands
    * here (blocks have kind 'block'), and explosions never call this.
+   * The ANSWER_FEEDBACK transition is attempted FIRST and its result is
+   * honored: if the state machine refuses it, nothing is consumed, so an
+   * answer can never be "counted" into a state that has no watcher running
+   * for it (the historical freeze).
    */
   tryAnswer(projectile, targetGo) {
     targetGo.wb.hit = true;
     const result = this.questions.checkAnswer(this.prepared, targetGo.wb.choiceId);
     if (!result.valid) return;
 
+    if (!this.stateMachine.set(STATES.ANSWER_FEEDBACK)) {
+      // Cannot present feedback from this state — reject the event without
+      // consuming the question. (Unreachable in practice: routing already
+      // gates on canAcceptAnswer; kept as a hard guard.)
+      DebugLog.warn(`ANSWER dropped: transition ${this.stateMachine.current} -> ANSWER_FEEDBACK refused`);
+      return;
+    }
+
     this.currentShot.answered = true;
 
     if (result.correct) {
       this.answerLock = true; // lock until the next question
       this.scoring.recordCorrect(this.prepared.attempt);
-      this.stateMachine.set(STATES.ANSWER_FEEDBACK);
       this.flashTarget(targetGo, COLORS.TARGET_CORRECT_FLASH);
       this.audio.emit('answer-correct');
       const pts = SCORING.BASE_BY_ATTEMPT[Math.min(this.prepared.attempt, SCORING.BASE_BY_ATTEMPT.length) - 1];
       this.showFeedback('✔ CORRECT  +' + pts, result.explanation, '#90be6d');
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — ANSWER correct (attempt ${this.prepared.attempt}, +${pts} pts)`);
       this.settleStartedAt = this.time.now;
     } else {
-      this.stateMachine.set(STATES.ANSWER_FEEDBACK);
       this.flashTarget(targetGo, COLORS.TARGET_WRONG_FLASH);
       this.scoring.recordWrongHit();
       this.audio.emit('answer-wrong');
@@ -437,6 +492,7 @@ export class GameScene extends Phaser.Scene {
         `Correct answer: ${correct.label} — “${correct.text}”\n\n${result.explanation}`,
         '#e63946'
       );
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — ANSWER wrong (penalty, shots left: ${this.shotsLeft})`);
       this.settleStartedAt = this.time.now;
     }
     this.refreshHUD();
@@ -447,7 +503,12 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: targetGo, scaleX: 1.18, scaleY: 1.18, duration: 130, yoyo: true
     });
-    this.time.delayedCall(420, () => targetGo.clearTint());
+    const qToken = this.questionIndex;
+    this.time.delayedCall(420, () => {
+      // the target is destroyed when the question changes — never touch it then
+      if (this.questionIndex !== qToken || !targetGo.active) return;
+      targetGo.clearTint();
+    });
   }
 
   /* ------------------------------------------------------------------ */
@@ -475,7 +536,10 @@ export class GameScene extends Phaser.Scene {
 
     // first impact → PHYSICS_RESOLVING (state distinction per spec)
     if (this.stateMachine.is(STATES.PROJECTILE_FLYING) && live.every((p) => p.wb.firstImpactDone || p.wb.consumed)) {
-      if (live.some((p) => p.wb.firstImpactDone)) this.stateMachine.set(STATES.PHYSICS_RESOLVING);
+      if (live.some((p) => p.wb.firstImpactDone)) {
+        this.stateMachine.set(STATES.PHYSICS_RESOLVING);
+        DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS resolution start (shot #${shot.id})`);
+      }
     }
 
     const now = this.time.now;
@@ -484,10 +548,18 @@ export class GameScene extends Phaser.Scene {
       for (const p of live) this.factory.remove(p);
     }
 
-    const allResolved = live.every((p) => p.wb.consumed || p.body.isSleeping || this.speedOf(p) < 0.35);
+    // A shot is only over once EVERYTHING dynamic has stayed quiet for a
+    // stable interval — projectiles AND blocks. A single slow frame is not
+    // enough: a ball can dip below the threshold at a bounce apex and still
+    // roll into a target, and falling rubble can push a resting ball.
+    const quiet = live.every((p) => p.wb.consumed || p.body.isSleeping || this.speedOf(p) < PHYSICS.PROJECTILE_REST_SPEED)
+      && this.factory.blocksQuiet();
+    this.slowFrames = quiet ? this.slowFrames + 1 : 0;
+
     const minFlight = now - shot.startedAt > 350;
-    if ((allResolved && minFlight) || timedOut) {
+    if ((this.slowFrames >= PHYSICS.RESOLVE_STABLE_FRAMES && minFlight) || timedOut) {
       shot.resolvedHandled = true;
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS resolution completed (${timedOut ? 'shot timeout' : `${this.slowFrames} stable frames`})`);
       this.resolveShotOutcome();
     }
   }
@@ -518,6 +590,7 @@ export class GameScene extends Phaser.Scene {
     this.slingshot.load(this.selectedProjectile);
     this.slingshot.setEnabled(true);
     this.refreshHUD();
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY slingshot re-armed (AIMING, shots left: ${this.shotsLeft})`);
   }
 
   updateAnswerSettle() {
@@ -526,6 +599,7 @@ export class GameScene extends Phaser.Scene {
     const timedOut = this.time.now - this.settleStartedAt > PHYSICS.SETTLE_TIMEOUT_MS;
     if (this.settleFrames >= PHYSICS.SETTLE_FRAMES || timedOut) {
       this.settleFrames = 0;
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS feedback settle completed (${timedOut ? 'settle timeout' : 'settled'})`);
       this.advanceAfterFeedback();
     }
   }
@@ -533,6 +607,7 @@ export class GameScene extends Phaser.Scene {
   advanceAfterFeedback() {
     const wasCorrect = this.answerLock;
     this.hideFeedback();
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — FEEDBACK completed (${wasCorrect ? 'correct' : 'wrong'})`);
     if (wasCorrect) {
       this.stateMachine.set(STATES.NEXT_QUESTION);
       if (this.questionIndex + 1 >= 4) {
@@ -602,12 +677,13 @@ export class GameScene extends Phaser.Scene {
     this.stateMachine.set(STATES.LEVEL_FAILED);
     this.failOverlay.setVisible(true);
     this.audio.emit('level-failed');
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — LEVEL_FAILED (${reason})`);
     this.refreshHUD();
   }
 
   retryQuestion() {
     this.failOverlay.setVisible(false);
-    this.stateMachine.set(STATES.QUESTION_READY); // LEVEL_FAILED → QUESTION_READY
+    // LEVEL_FAILED → QUESTION_READY is performed by loadQuestion itself
     this.loadQuestion(this.questionIndex);
   }
 
@@ -769,6 +845,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   onStateChanged(next, prev) {
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — STATE ${prev} -> ${next}`);
+    // A deferred arming (delayed call fired while paused) lands here on resume.
+    if (prev === STATES.PAUSED && this.armPending && next !== STATES.PAUSED) {
+      this.armPending = false;
+      this.armAiming();
+    }
     this.refreshHUD();
     for (const h of this.stateChangeHandlers) {
       try { h(next, prev); } catch (e) { /* isolated */ }
