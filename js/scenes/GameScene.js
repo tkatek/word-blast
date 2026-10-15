@@ -359,7 +359,14 @@ export class GameScene extends Phaser.Scene {
   /* Shooting                                                            */
   /* ------------------------------------------------------------------ */
 
-  launchProjectile(vx, vy, typeKey) {
+  /**
+   * @param {number} vx      launch velocity (px/step, Matter convention)
+   * @param {number} vy
+   * @param {string} typeKey projectile type
+   * @param {{x:number,y:number}} [origin] pouch position at release — the
+   *        physics body spawns exactly there (defaults to the anchor)
+   */
+  launchProjectile(vx, vy, typeKey, origin) {
     if (!this.stateMachine.is(STATES.AIMING)) return false;
     if (this.shotsLeft <= 0) return false;
     if (!this.levels.isProjectileAvailable(this.levelId, typeKey)) return false;
@@ -370,7 +377,8 @@ export class GameScene extends Phaser.Scene {
     this.shotsLeft--;
     this.slowFrames = 0;
 
-    const p = this.factory.createProjectile(typeKey, WORLD.SLING_X, WORLD.SLING_Y, shotId);
+    const o = origin || this.slingshot.anchor;
+    const p = this.factory.createProjectile(typeKey, o.x, o.y, shotId);
     p.setVelocity(vx, vy);
     p.setAngularVelocity(0.08);
 
