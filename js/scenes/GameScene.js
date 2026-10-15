@@ -25,6 +25,21 @@ export class GameScene extends Phaser.Scene {
 
   init(data) {
     this.levelId = Math.max(1, Math.min(15, data.levelId || 1));
+    // Scene instances are reused across restarts: null out every per-run
+    // reference here so create() never touches destroyed objects from a
+    // previous lifetime (double-boot protection).
+    this.level = null;
+    this.stateMachine = null;
+    this.factory = null;
+    this.scoring = null;
+    this.slingshot = null;
+    this.prepared = null;
+    this.currentShot = null;
+    this.hudLevel = this.hudQuestion = this.hudShots = this.hudScore = this.hudState = null;
+    this.questionText = this.choicesText = null;
+    this.projectileButtons = [];
+    this.abilityHint = null;
+    this.tutorialHint = null;
   }
 
   create() {
