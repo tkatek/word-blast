@@ -724,6 +724,7 @@ export class GameScene extends Phaser.Scene {
     this.pausedForRotation = false;
     this.onOrientationChange = () => {
       this.background?.refreshFromViewport();
+      this.syncSlingshotDevice();
       this.updateOrientationState();
     };
     this.scale.on('resize', this.onOrientationChange);
@@ -922,7 +923,8 @@ export class GameScene extends Phaser.Scene {
     const wanted = choiceId || this.prepared.question.correctAnswerId;
     const target = this.factory.targets.find((t) => t.wb.choiceId === wanted);
     if (!target) return null;
-    const sol = solveLaunch(WORLD.SLING_X, WORLD.SLING_Y, target.x, target.y, { angleDeg: -14 });
+    const a = this.slingshot.anchor;
+    const sol = solveLaunch(a.x, a.y, target.x, target.y, { angleDeg: -14 });
     if (!sol) return null;
     this.debugLaunch(sol.vx, sol.vy, this.selectedProjectile);
     return sol;
