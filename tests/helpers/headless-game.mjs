@@ -32,18 +32,6 @@ export async function createHeadlessGame() {
   const { WORLD, PHYSICS, COLORS } = await import('../../js/config.js');
   const { solveLaunch } = await import('../../js/systems/Trajectory.js');
 
-  // World pin: the committed level data (targets resting at y=608, fences on
-  // the ground) was authored for GROUND_Y=640. A parallel terrain rework is
-  // mid-flight on disk (GROUND_Y raised to 560, data not yet migrated, TERRAIN
-  // not yet consumed) — the game is briefly unplayable for ground targets.
-  // The suite pins the coherent data↔ground pair so it tests real gameplay
-  // logic; delete this pin once the terrain migration lands.
-  if (WORLD.GROUND_Y !== 640) {
-    console.log(`[harness] pinning GROUND_Y ${WORLD.GROUND_Y} -> 640 to match the committed level data`);
-    WORLD.GROUND_Y = 640;
-    WORLD.GROUND_THICKNESS = 160;
-  }
-
   const { BootScene } = await import('../../js/scenes/BootScene.js');
   const { MenuScene } = await import('../../js/scenes/MenuScene.js');
   const { LevelSelectScene } = await import('../../js/scenes/LevelSelectScene.js');
