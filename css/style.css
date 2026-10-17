@@ -17,10 +17,15 @@ html, body {
 
 /* The canvas fills the whole available viewport. Safe-area insets (notches,
    home indicators) inset the play area so nothing interactive hides under
-   them; the ViewportController sizes the buffer to this box × DPR. */
+   them; the ViewportController sizes the buffer to this box × DPR (and
+   shrinks this shell to the visible viewport when mobile toolbars hide
+   part of the layout viewport). */
 #game {
   position: fixed;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;   /* pre-JS fallback; the controller overrides with the */
+  height: 100vh;  /* exact visible size (visualViewport-aware)           */
   box-sizing: border-box;
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
            env(safe-area-inset-bottom) env(safe-area-inset-left);

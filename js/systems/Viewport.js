@@ -183,9 +183,23 @@ export class ViewportController {
     const scale = this.game.scale;
     if (!scale || !this.game.canvas) return; // not booted yet ('ready' retries)
     const { w, h } = visibleCssSize();
+    // Shrink the fixed shell to the VISIBLE viewport when mobile toolbars
+    // hide part of the layout viewport (visualViewport < innerHeight), so
+    // the canvas CSS box always matches the buffer's CSS size — the bitmap
+    // is never CSS-stretched and input scaling stays exact.
+    const parent = scale.parent && scale.parent !== document.body ? scale.parent : null;
+    if (parent) {
+      parent.style.width = w + 'px';
+      parent.style.height = h + 'px';
+    }
+    // Authoritative source: the canvas's own CSS box (parent minus safe-area
+    // padding). Falls back to the raw viewport for degenerate rects.
+    const rect = this.game.canvas.getBoundingClientRect();
+    const cssW = Math.max(2, Math.round(rect.width || w));
+    const cssH = Math.max(2, Math.round(rect.height || h));
     const dpr = effectiveDPR();
-    const bw = Math.max(2, Math.round(w * dpr));
-    const bh = Math.max(2, Math.round(h * dpr));
+    const bw = Math.max(2, Math.round(cssW * dpr));
+    const bh = Math.max(2, Math.round(cssH * dpr));
     if (bw === this.lastW && bh === this.lastH) return;
     this.lastW = bw;
     this.lastH = bh;
