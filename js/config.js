@@ -38,8 +38,13 @@ export const TERRAIN_PROFILES = {
     LAYOUT: { dx: 0 }
   },
   tablet: {
-    PLATEAU: { left: -120, right: 273, top: 458 },
-    TERRACE: { left: 544, right: 1400, top: 502 },
+    // Measured from the current tablet artwork (1448×1086) under its
+    // BackgroundManager fit (scale 1.12, offsetX +66, offsetY +247):
+    // sling stands on the slope-top grass at world y≈400 (fx 17.5%, f 0.33),
+    // the broad tower terrace sits at f≈0.53. Waterfall + cliff edge stay
+    // visible at the left. See scripts/analyze-grass.mjs.
+    PLATEAU: { left: -120, right: 220, top: 400 },
+    TERRACE: { left: 515, right: 1400, top: 643 },
     LAYOUT: { dx: -16 }
   },
   mobile: {
@@ -134,7 +139,7 @@ export const SLINGSHOT = {
    */
   ANCHORS: {
     desktop: { x: 195, y: 335 },
-    tablet: { x: 170, y: 400 },
+    tablet: { x: 179, y: 342 },  // slope-top grass, current tablet art (plateau top 400)
     mobile: { x: 90, y: 348 }
   },
   BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact)

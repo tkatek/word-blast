@@ -16,6 +16,19 @@ const main = async () => {
   const from = onlyLevel || 1;
   const to = onlyLevel || 15;
 
+        // Movers legitimately gate firing lanes (timing is an intended
+        // difficulty axis): a real player watches them and fires while the
+        // lane is open. Wait for every mover to sit in the lower half of
+        // its sweep before releasing.
+        const waitForMoverWindow = async () => {
+          const s = h.scene();
+          if (!s.factory.movers.length) return;
+          const open = () => s.factory.movers.every((m) => m.go.y - m.baseY > 20);
+          const t0 = Date.now();
+          while (!open() && Date.now() - t0 < 4000) {
+            await new Promise((r) => setTimeout(r, 50));
+          }
+        };
   for (let levelId = from; levelId <= to; levelId++) {
     const row = { levelId, questions: [], outcome: null, error: null };
     try {
@@ -58,12 +71,18 @@ const main = async () => {
           const ranked = [];
           for (let i = 0; i < ANGLES.length; i++) {
             const angleDeg = ANGLES[(i + fired) % ANGLES.length];
-            const sol = h.solveLaunch(target.x, target.y, { angleDeg });
-            if (sol && sol.missDistance < 30) {
-              ranked.push({ sol, clear: arcClear(sol, target.x, target.y), angleDeg });
+            // aim points: plaque center AND its upper half (a graze still
+            // hits the 116x80 board — the generator validates both)
+            for (const ay of [target.y, target.y - 28]) {
+              const sol = h.solveLaunch(target.x, ay, { angleDeg, steps: 130 });
+              if (sol && sol.missDistance < 30) {
+                ranked.push({ sol, clear: arcClear(sol, target.x, target.y), angleDeg });
+                break; // first aim point that solves wins for this angle
+              }
             }
           }
           ranked.sort((a, b) => (b.clear ? 1 : 0) - (a.clear ? 1 : 0));
+          await waitForMoverWindow();
           for (const c of ranked) {
             if (h.fire(c.sol.vx, c.sol.vy, null)) { launched = true; break; }
           }

@@ -23,70 +23,63 @@
      "layout": {
       "targets": [
        {
-        "x": 665,
+        "x": 645,
         "y": 304
        },
        {
-        "x": 815,
-        "y": 235
+        "x": 825,
+        "y": 204
        },
        {
-        "x": 1166,
-        "y": 178
+        "x": 1080,
+        "y": 319
        }
       ],
       "pieces": [
        {
         "id": "L1Q0-p0",
-        "a": "wood_crate_panel",
-        "x": 851,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p1",
-        "a": "wood_crate_panel",
-        "x": 779,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 815,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p3",
         "a": "wood_beam_v",
-        "x": 1166,
+        "x": 887,
         "y": 361,
         "rot": 0
        },
        {
+        "id": "L1Q0-p1",
+        "a": "wood_beam_v",
+        "x": 763,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L1Q0-p2",
+        "a": "wood_beam_h",
+        "x": 825,
+        "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L1Q0-p3",
+        "a": "wood_crate_panel",
+        "x": 1080,
+        "y": 393.5,
+        "rot": 0
+       },
+       {
         "id": "L1Q0-p4",
-        "a": "wood_triangle",
-        "x": 1166,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p5",
         "a": "wood_crate_cross",
-        "x": 1036,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p6",
-        "a": "wood_crate_cross",
-        "x": 665,
+        "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L1Q0-g0",
+        "a": "pig_small",
+        "x": 825,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -95,42 +88,56 @@
      "layout": {
       "targets": [
        {
-        "x": 800,
-        "y": 278
+        "x": 635,
+        "y": 304
        },
        {
-        "x": 1020,
-        "y": 386
+        "x": 815,
+        "y": 204
        },
        {
-        "x": 1140,
+        "x": 1050,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L1Q1-p0",
-        "a": "wood_log",
-        "x": 770,
-        "y": 398,
+        "a": "wood_beam_v",
+        "x": 877,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L1Q1-p1",
-        "a": "wood_log",
-        "x": 830,
-        "y": 398,
+        "a": "wood_beam_v",
+        "x": 753,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L1Q1-p2",
         "a": "wood_beam_h",
-        "x": 800,
-        "y": 343,
+        "x": 815,
+        "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L1Q1-p3",
+        "a": "wood_crate_cross",
+        "x": 635,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L1Q1-g0",
+        "a": "pig_small",
+        "x": 815,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -139,51 +146,65 @@
      "layout": {
       "targets": [
        {
-        "x": 625,
+        "x": 655,
         "y": 304
        },
        {
-        "x": 746,
-        "y": 319
+        "x": 775,
+        "y": 178
        },
        {
-        "x": 989,
+        "x": 1131,
         "y": 235
        }
       ],
       "pieces": [
        {
         "id": "L1Q2-p0",
-        "a": "wood_crate_panel",
-        "x": 746,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 775,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L1Q2-p1",
-        "a": "wood_crate_panel",
-        "x": 953,
-        "y": 393.5,
+        "a": "wood_triangle",
+        "x": 775,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L1Q2-p2",
-        "a": "wood_crate_panel",
-        "x": 1025,
-        "y": 393.5,
+        "a": "wood_crate_cross",
+        "x": 905,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L1Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 989,
-        "y": 317,
+        "a": "wood_crate_panel",
+        "x": 1167,
+        "y": 393.5,
         "rot": 0
        },
        {
         "id": "L1Q2-p4",
+        "a": "wood_crate_panel",
+        "x": 1095,
+        "y": 393.5,
+        "rot": 0
+       },
+       {
+        "id": "L1Q2-p5",
         "a": "wood_crate_cross",
-        "x": 625,
+        "x": 1131,
+        "y": 317,
+        "rot": 0
+       },
+       {
+        "id": "L1Q2-p6",
+        "a": "wood_crate_cross",
+        "x": 655,
         "y": 386,
         "rot": 0
        }
@@ -201,45 +222,38 @@
         "y": 304
        },
        {
-        "x": 767,
-        "y": 319
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 1100,
-        "y": 178
+        "x": 1110,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L1Q3-p0",
-        "a": "wood_crate_panel",
-        "x": 767,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L1Q3-p1",
         "a": "wood_beam_v",
-        "x": 1100,
+        "x": 765,
         "y": 361,
         "rot": 0
        },
        {
-        "id": "L1Q3-p2",
+        "id": "L1Q3-p1",
         "a": "wood_triangle",
-        "x": 1100,
+        "x": 765,
         "y": 256,
         "rot": 0
        },
        {
-        "id": "L1Q3-p3",
+        "id": "L1Q3-p2",
         "a": "wood_crate_cross",
-        "x": 970,
+        "x": 895,
         "y": 386,
         "rot": 0
        },
        {
-        "id": "L1Q3-p4",
+        "id": "L1Q3-p3",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -270,38 +284,45 @@
      "layout": {
       "targets": [
        {
-        "x": 815,
-        "y": 235
+        "x": 655,
+        "y": 304
        },
        {
-        "x": 1030,
-        "y": 386
+        "x": 935,
+        "y": 178
        },
        {
-        "x": 1150,
+        "x": 1160,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L2Q0-p0",
-        "a": "wood_crate_panel",
-        "x": 779,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 935,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L2Q0-p1",
-        "a": "wood_crate_panel",
-        "x": 851,
-        "y": 393.5,
+        "a": "wood_triangle",
+        "x": 935,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L2Q0-p2",
         "a": "wood_crate_cross",
-        "x": 815,
-        "y": 317,
+        "x": 805,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L2Q0-p3",
+        "a": "wood_crate_cross",
+        "x": 655,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -322,8 +343,8 @@
         "y": 204
        },
        {
-        "x": 1108,
-        "y": 235
+        "x": 1160,
+        "y": 386
        }
       ],
       "pieces": [
@@ -350,27 +371,6 @@
        },
        {
         "id": "L2Q1-p3",
-        "a": "wood_crate_panel",
-        "x": 1072,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L2Q1-p4",
-        "a": "wood_crate_panel",
-        "x": 1144,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L2Q1-p5",
-        "a": "wood_crate_cross",
-        "x": 1108,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L2Q1-p6",
         "a": "wood_crate_cross",
         "x": 635,
         "y": 386,
@@ -393,37 +393,44 @@
      "layout": {
       "targets": [
        {
-        "x": 665,
+        "x": 645,
         "y": 304
        },
        {
-        "x": 784,
-        "y": 319
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 985,
-        "y": 304
+        "x": 1150,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L2Q2-p0",
-        "a": "wood_crate_panel",
-        "x": 784,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L2Q2-p1",
-        "a": "wood_crate_cross",
-        "x": 985,
-        "y": 386,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L2Q2-p2",
         "a": "wood_crate_cross",
-        "x": 665,
+        "x": 895,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L2Q2-p3",
+        "a": "wood_crate_cross",
+        "x": 645,
         "y": 386,
         "rot": 0
        }
@@ -441,11 +448,11 @@
         "y": 304
        },
        {
-        "x": 925,
+        "x": 926,
         "y": 178
        },
        {
-        "x": 1160,
+        "x": 1140,
         "y": 386
        }
       ],
@@ -453,21 +460,21 @@
        {
         "id": "L2Q3-p0",
         "a": "wood_beam_v",
-        "x": 925,
+        "x": 926,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L2Q3-p1",
         "a": "wood_triangle",
-        "x": 925,
+        "x": 926,
         "y": 256,
         "rot": 0
        },
        {
         "id": "L2Q3-p2",
         "a": "wood_crate_cross",
-        "x": 795,
+        "x": 796,
         "y": 386,
         "rot": 0
        },
@@ -507,66 +514,52 @@
         "y": 304
        },
        {
-        "x": 775,
-        "y": 178
+        "x": 830,
+        "y": 204
        },
        {
-        "x": 1131,
-        "y": 235
+        "x": 1130,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L3Q0-p0",
         "a": "wood_beam_v",
-        "x": 775,
+        "x": 768,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L3Q0-p1",
-        "a": "wood_triangle",
-        "x": 775,
-        "y": 256,
+        "a": "wood_beam_v",
+        "x": 892,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L3Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 905,
-        "y": 386,
+        "a": "wood_beam_h",
+        "x": 830,
+        "y": 269,
         "rot": 0
        },
        {
         "id": "L3Q0-p3",
-        "a": "wood_crate_panel",
-        "x": 1167,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L3Q0-p4",
-        "a": "wood_crate_panel",
-        "x": 1095,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L3Q0-p5",
-        "a": "wood_crate_cross",
-        "x": 1131,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L3Q0-p6",
         "a": "wood_crate_cross",
         "x": 655,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L3Q0-g0",
+        "a": "pig_small",
+        "x": 830,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -575,12 +568,12 @@
      "layout": {
       "targets": [
        {
-        "x": 774,
+        "x": 665,
         "y": 304
        },
        {
-        "x": 960,
-        "y": 386
+        "x": 841,
+        "y": 204
        },
        {
         "x": 1120,
@@ -590,13 +583,41 @@
       "pieces": [
        {
         "id": "L3Q1-p0",
+        "a": "wood_beam_v",
+        "x": 779,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L3Q1-p1",
+        "a": "wood_beam_v",
+        "x": 903,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L3Q1-p2",
+        "a": "wood_beam_h",
+        "x": 841,
+        "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L3Q1-p3",
         "a": "wood_crate_cross",
-        "x": 774,
+        "x": 665,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L3Q1-g0",
+        "a": "pig_small",
+        "x": 841,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -605,12 +626,12 @@
      "layout": {
       "targets": [
        {
-        "x": 762,
-        "y": 319
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 1010,
-        "y": 386
+        "x": 925,
+        "y": 178
        },
        {
         "x": 1140,
@@ -620,9 +641,30 @@
       "pieces": [
        {
         "id": "L3Q2-p0",
-        "a": "wood_crate_panel",
-        "x": 762,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 925,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L3Q2-p1",
+        "a": "wood_triangle",
+        "x": 925,
+        "y": 256,
+        "rot": 0
+       },
+       {
+        "id": "L3Q2-p2",
+        "a": "wood_crate_cross",
+        "x": 795,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L3Q2-p3",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -635,51 +677,44 @@
      "layout": {
       "targets": [
        {
-        "x": 645,
+        "x": 655,
         "y": 304
        },
        {
-        "x": 793,
-        "y": 235
+        "x": 772,
+        "y": 178
        },
        {
-        "x": 1007,
-        "y": 319
+        "x": 1130,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L3Q3-p0",
-        "a": "wood_crate_panel",
-        "x": 757,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 772,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L3Q3-p1",
-        "a": "wood_crate_panel",
-        "x": 829,
-        "y": 393.5,
+        "a": "wood_triangle",
+        "x": 772,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L3Q3-p2",
         "a": "wood_crate_cross",
-        "x": 793,
-        "y": 317,
+        "x": 902,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L3Q3-p3",
-        "a": "wood_crate_panel",
-        "x": 1007,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L3Q3-p4",
         "a": "wood_crate_cross",
-        "x": 645,
+        "x": 655,
         "y": 386,
         "rot": 0
        }
@@ -709,24 +744,52 @@
      "layout": {
       "targets": [
        {
-        "x": 782,
+        "x": 645,
+        "y": 304
+       },
+       {
+        "x": 765,
+        "y": 178
+       },
+       {
+        "x": 1136,
         "y": 319
-       },
-       {
-        "x": 990,
-        "y": 386
-       },
-       {
-        "x": 1160,
-        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L4Q0-p0",
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L4Q0-p1",
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
+        "rot": 0
+       },
+       {
+        "id": "L4Q0-p2",
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L4Q0-p3",
         "a": "wood_crate_panel",
-        "x": 782,
+        "x": 1136,
         "y": 393.5,
+        "rot": 0
+       },
+       {
+        "id": "L4Q0-p4",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -739,35 +802,77 @@
      "layout": {
       "targets": [
        {
-        "x": 645,
+        "x": 635,
         "y": 304
        },
        {
-        "x": 772,
-        "y": 304
+        "x": 816,
+        "y": 204
        },
        {
-        "x": 1060,
-        "y": 386
+        "x": 1100,
+        "y": 235
        }
       ],
       "pieces": [
        {
         "id": "L4Q1-p0",
-        "a": "wood_crate_cross",
-        "x": 772,
-        "y": 386,
+        "a": "wood_beam_v",
+        "x": 754,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L4Q1-p1",
+        "a": "wood_beam_v",
+        "x": 878,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L4Q1-p2",
+        "a": "wood_beam_h",
+        "x": 816,
+        "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L4Q1-p3",
+        "a": "wood_crate_panel",
+        "x": 1064,
+        "y": 393.5,
+        "rot": 0
+       },
+       {
+        "id": "L4Q1-p4",
+        "a": "wood_crate_panel",
+        "x": 1136,
+        "y": 393.5,
+        "rot": 0
+       },
+       {
+        "id": "L4Q1-p5",
         "a": "wood_crate_cross",
-        "x": 645,
+        "x": 1100,
+        "y": 317,
+        "rot": 0
+       },
+       {
+        "id": "L4Q1-p6",
+        "a": "wood_crate_cross",
+        "x": 635,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L4Q1-g0",
+        "a": "pig_small",
+        "x": 816,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -776,38 +881,52 @@
      "layout": {
       "targets": [
        {
-        "x": 798,
-        "y": 278
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 1020,
-        "y": 386
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 1140,
-        "y": 386
+        "x": 1120,
+        "y": 304
        }
       ],
       "pieces": [
        {
         "id": "L4Q2-p0",
-        "a": "wood_log",
-        "x": 828,
-        "y": 398,
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L4Q2-p1",
-        "a": "wood_log",
-        "x": 768,
-        "y": 398,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L4Q2-p2",
-        "a": "wood_beam_h",
-        "x": 798,
-        "y": 343,
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L4Q2-p3",
+        "a": "wood_crate_cross",
+        "x": 1120,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L4Q2-p4",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -824,45 +943,38 @@
         "y": 304
        },
        {
-        "x": 772,
+        "x": 765,
         "y": 178
        },
        {
-        "x": 1131,
-        "y": 319
+        "x": 1130,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L4Q3-p0",
         "a": "wood_beam_v",
-        "x": 772,
+        "x": 765,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L4Q3-p1",
         "a": "wood_triangle",
-        "x": 772,
+        "x": 765,
         "y": 256,
         "rot": 0
        },
        {
         "id": "L4Q3-p2",
         "a": "wood_crate_cross",
-        "x": 902,
+        "x": 895,
         "y": 386,
         "rot": 0
        },
        {
         "id": "L4Q3-p3",
-        "a": "wood_crate_panel",
-        "x": 1131,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L4Q3-p4",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -894,44 +1006,44 @@
      "layout": {
       "targets": [
        {
-        "x": 645,
+        "x": 655,
         "y": 304
        },
        {
-        "x": 803,
-        "y": 278
+        "x": 771,
+        "y": 178
        },
        {
-        "x": 1090,
+        "x": 1120,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L5Q0-p0",
-        "a": "wood_log",
-        "x": 773,
-        "y": 398,
+        "a": "wood_beam_v",
+        "x": 771,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L5Q0-p1",
-        "a": "wood_log",
-        "x": 833,
-        "y": 398,
+        "a": "wood_triangle",
+        "x": 771,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L5Q0-p2",
-        "a": "wood_beam_h",
-        "x": 803,
-        "y": 343,
+        "a": "wood_crate_cross",
+        "x": 901,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L5Q0-p3",
         "a": "wood_crate_cross",
-        "x": 645,
+        "x": 655,
         "y": 386,
         "rot": 0
        }
@@ -945,49 +1057,12 @@
      "layout": {
       "targets": [
        {
-        "x": 761,
+        "x": 635,
         "y": 304
        },
        {
-        "x": 981,
-        "y": 319
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L5Q1-p0",
-        "a": "wood_crate_cross",
-        "x": 761,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L5Q1-p1",
-        "a": "wood_crate_panel",
-        "x": 981,
-        "y": 393.5,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q05_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 775,
-        "y": 304
-       },
-       {
-        "x": 1000,
-        "y": 386
+        "x": 808,
+        "y": 204
        },
        {
         "x": 1120,
@@ -996,9 +1071,67 @@
       ],
       "pieces": [
        {
+        "id": "L5Q1-p0",
+        "a": "wood_beam_v",
+        "x": 746,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L5Q1-p1",
+        "a": "wood_beam_v",
+        "x": 870,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L5Q1-p2",
+        "a": "wood_beam_h",
+        "x": 808,
+        "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L5Q1-p3",
+        "a": "wood_crate_cross",
+        "x": 635,
+        "y": 386,
+        "rot": 0
+       }
+      ],
+      "pigs": [
+       {
+        "id": "L5Q1-g0",
+        "a": "pig_small",
+        "x": 808,
+        "y": 400
+       }
+      ],
+      "moving": []
+     }
+    },
+    {
+     "questionId": "q05_3",
+     "layout": {
+      "targets": [
+       {
+        "x": 625,
+        "y": 388
+       },
+       {
+        "x": 700,
+        "y": 304
+       },
+       {
+        "x": 1130,
+        "y": 388
+       }
+      ],
+      "pieces": [
+       {
         "id": "L5Q2-p0",
         "a": "wood_crate_cross",
-        "x": 775,
+        "x": 700,
         "y": 386,
         "rot": 0
        }
@@ -1012,56 +1145,56 @@
      "layout": {
       "targets": [
        {
-        "x": 655,
+        "x": 645,
         "y": 304
        },
        {
-        "x": 811,
-        "y": 235
+        "x": 821,
+        "y": 204
        },
        {
-        "x": 1076,
-        "y": 304
+        "x": 1080,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L5Q3-p0",
-        "a": "wood_crate_panel",
-        "x": 775,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 883,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L5Q3-p1",
-        "a": "wood_crate_panel",
-        "x": 847,
-        "y": 393.5,
+        "a": "wood_beam_v",
+        "x": 759,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L5Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 811,
-        "y": 317,
+        "a": "wood_beam_h",
+        "x": 821,
+        "y": 269,
         "rot": 0
        },
        {
         "id": "L5Q3-p3",
         "a": "wood_crate_cross",
-        "x": 1076,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L5Q3-p4",
-        "a": "wood_crate_cross",
-        "x": 655,
+        "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L5Q3-g0",
+        "a": "pig_small",
+        "x": 821,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     }
@@ -1090,73 +1223,45 @@
         "y": 304
        },
        {
-        "x": 925,
+        "x": 765,
         "y": 178
        },
        {
-        "x": 1106,
-        "y": 204
+        "x": 1110,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L6Q0-p0",
         "a": "wood_beam_v",
-        "x": 925,
+        "x": 765,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L6Q0-p1",
         "a": "wood_triangle",
-        "x": 925,
+        "x": 765,
         "y": 256,
         "rot": 0
        },
        {
         "id": "L6Q0-p2",
         "a": "wood_crate_cross",
-        "x": 795,
+        "x": 895,
         "y": 386,
         "rot": 0
        },
        {
         "id": "L6Q0-p3",
-        "a": "wood_beam_v",
-        "x": 1044,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p4",
-        "a": "wood_beam_v",
-        "x": 1168,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p5",
-        "a": "wood_beam_h",
-        "x": 1106,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p6",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L6Q0-g0",
-        "a": "pig_small",
-        "x": 1106,
-        "y": 400
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     },
@@ -1169,73 +1274,73 @@
         "y": 304
        },
        {
-        "x": 825,
-        "y": 172
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 1006,
-        "y": 178
+        "x": 1106,
+        "y": 204
        }
       ],
       "pieces": [
        {
         "id": "L6Q1-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L6Q1-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L6Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L6Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
+        "a": "wood_beam_v",
+        "x": 1044,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L6Q1-p4",
         "a": "wood_beam_v",
-        "x": 1006,
+        "x": 1168,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L6Q1-p5",
-        "a": "wood_triangle",
-        "x": 1006,
-        "y": 256,
+        "a": "wood_beam_h",
+        "x": 1106,
+        "y": 269,
         "rot": 0
        },
        {
         "id": "L6Q1-p6",
-        "a": "wood_crate_cross",
-        "x": 1136,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L6Q1-p7",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L6Q1-g0",
+        "a": "pig_small",
+        "x": 1106,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -1248,66 +1353,45 @@
         "y": 304
        },
        {
-        "x": 765,
-        "y": 178
+        "x": 825,
+        "y": 172
        },
        {
-        "x": 1106,
-        "y": 172
+        "x": 1140,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L6Q2-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L6Q2-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L6Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p3",
-        "a": "glass_column",
-        "x": 1030,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p4",
-        "a": "glass_column",
-        "x": 1182,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p5",
         "a": "glass_beam_h",
-        "x": 1106,
+        "x": 825,
         "y": 305,
         "rot": 0
        },
        {
-        "id": "L6Q2-p6",
+        "id": "L6Q2-p3",
         "a": "stone_block_s",
-        "x": 1106,
+        "x": 825,
         "y": 241,
         "rot": 0
        },
        {
-        "id": "L6Q2-p7",
+        "id": "L6Q2-p4",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -1327,66 +1411,38 @@
         "y": 304
        },
        {
-        "x": 825,
-        "y": 172
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 1098,
-        "y": 235
+        "x": 1150,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L6Q3-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L6Q3-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L6Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L6Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p4",
-        "a": "wood_crate_panel",
-        "x": 1134,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p5",
-        "a": "wood_crate_panel",
-        "x": 1062,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p6",
-        "a": "wood_crate_cross",
-        "x": 1098,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p7",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -1419,49 +1475,77 @@
      "layout": {
       "targets": [
        {
-        "x": 806,
-        "y": 388
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 990,
-        "y": 386
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 1110,
-        "y": 386
+        "x": 1106,
+        "y": 204
        }
       ],
       "pieces": [
        {
         "id": "L7Q0-p0",
-        "a": "stone_block_l",
-        "x": 626,
-        "y": 390,
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L7Q0-p1",
-        "a": "stone_block_l",
-        "x": 626,
-        "y": 314,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L7Q0-p2",
-        "a": "wood_crate_panel",
-        "x": 706,
-        "y": 393.5,
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L7Q0-p3",
-        "a": "wood_crate_panel",
-        "x": 706,
-        "y": 324.5,
+        "a": "wood_beam_v",
+        "x": 1044,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L7Q0-p4",
+        "a": "wood_beam_v",
+        "x": 1168,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L7Q0-p5",
+        "a": "wood_beam_h",
+        "x": 1106,
+        "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L7Q0-p6",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L7Q0-g0",
+        "a": "pig_small",
+        "x": 1106,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -1470,49 +1554,28 @@
      "layout": {
       "targets": [
        {
-        "x": 682,
-        "y": 230
+        "x": 625,
+        "y": 388
        },
        {
-        "x": 910,
-        "y": 386
+        "x": 700,
+        "y": 304
        },
        {
-        "x": 1070,
-        "y": 386
+        "x": 1130,
+        "y": 388
        }
       ],
       "pieces": [
        {
         "id": "L7Q1-p0",
-        "a": "glass_column",
-        "x": 742,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p1",
-        "a": "glass_column",
-        "x": 622,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p2",
-        "a": "glass_beam_h",
-        "x": 682,
-        "y": 305,
+        "a": "wood_crate_cross",
+        "x": 700,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L7Q1-g0",
-        "a": "pig_small",
-        "x": 682,
-        "y": 400
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     },
@@ -1525,45 +1588,38 @@
         "y": 304
        },
        {
-        "x": 825,
-        "y": 172
+        "x": 765,
+        "y": 178
        },
        {
-        "x": 1110,
+        "x": 1120,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L7Q2-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
+        "a": "wood_beam_v",
+        "x": 765,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L7Q2-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L7Q2-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
         "rot": 0
        },
        {
         "id": "L7Q2-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L7Q2-p4",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -1579,77 +1635,49 @@
      "layout": {
       "targets": [
        {
-        "x": 645,
-        "y": 304
+        "x": 706,
+        "y": 204
        },
        {
-        "x": 825,
-        "y": 172
+        "x": 940,
+        "y": 386
        },
        {
-        "x": 1166,
-        "y": 178
+        "x": 1160,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L7Q3-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p4",
         "a": "wood_beam_v",
-        "x": 1166,
+        "x": 644,
         "y": 361,
         "rot": 0
        },
        {
-        "id": "L7Q3-p5",
-        "a": "wood_triangle",
-        "x": 1166,
-        "y": 256,
+        "id": "L7Q3-p1",
+        "a": "wood_beam_v",
+        "x": 768,
+        "y": 361,
         "rot": 0
        },
        {
-        "id": "L7Q3-p6",
-        "a": "wood_crate_cross",
-        "x": 1036,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
+        "id": "L7Q3-p2",
+        "a": "wood_beam_h",
+        "x": 706,
+        "y": 269,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L7Q3-g0",
+        "a": "pig_small",
+        "x": 706,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     }
@@ -1675,38 +1703,66 @@
      "layout": {
       "targets": [
        {
-        "x": 715,
+        "x": 645,
+        "y": 304
+       },
+       {
+        "x": 765,
+        "y": 178
+       },
+       {
+        "x": 1106,
         "y": 204
-       },
-       {
-        "x": 970,
-        "y": 386
-       },
-       {
-        "x": 1120,
-        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L8Q0-p0",
         "a": "wood_beam_v",
-        "x": 653,
+        "x": 765,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L8Q0-p1",
-        "a": "wood_beam_v",
-        "x": 777,
-        "y": 361,
+        "a": "wood_triangle",
+        "x": 765,
+        "y": 256,
         "rot": 0
        },
        {
         "id": "L8Q0-p2",
+        "a": "wood_crate_cross",
+        "x": 895,
+        "y": 386,
+        "rot": 0
+       },
+       {
+        "id": "L8Q0-p3",
+        "a": "wood_beam_v",
+        "x": 1044,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L8Q0-p4",
+        "a": "wood_beam_v",
+        "x": 1168,
+        "y": 361,
+        "rot": 0
+       },
+       {
+        "id": "L8Q0-p5",
         "a": "wood_beam_h",
-        "x": 715,
+        "x": 1106,
         "y": 269,
+        "rot": 0
+       },
+       {
+        "id": "L8Q0-p6",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -1714,7 +1770,7 @@
        {
         "id": "L8Q0-g0",
         "a": "pig_small",
-        "x": 715,
+        "x": 1106,
         "y": 400
        }
       ],
@@ -1726,49 +1782,28 @@
      "layout": {
       "targets": [
        {
-        "x": 685,
-        "y": 204
+        "x": 625,
+        "y": 388
        },
        {
-        "x": 970,
-        "y": 386
+        "x": 700,
+        "y": 304
        },
        {
-        "x": 1100,
-        "y": 386
+        "x": 1130,
+        "y": 388
        }
       ],
       "pieces": [
        {
         "id": "L8Q1-p0",
-        "a": "wood_beam_v",
-        "x": 623,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p1",
-        "a": "wood_beam_v",
-        "x": 747,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p2",
-        "a": "wood_beam_h",
-        "x": 685,
-        "y": 269,
+        "a": "wood_crate_cross",
+        "x": 700,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L8Q1-g0",
-        "a": "pig_small",
-        "x": 685,
-        "y": 400
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     },
@@ -1781,45 +1816,80 @@
         "y": 304
        },
        {
-        "x": 765,
-        "y": 178
+        "x": 825,
+        "y": 172
        },
        {
-        "x": 1110,
-        "y": 386
+        "x": 1111,
+        "y": 230
        }
       ],
       "pieces": [
        {
         "id": "L8Q2-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L8Q2-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L8Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
+        "a": "glass_beam_h",
+        "x": 825,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L8Q2-p3",
+        "a": "stone_block_s",
+        "x": 825,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L8Q2-p4",
+        "a": "glass_column",
+        "x": 1051,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L8Q2-p5",
+        "a": "glass_column",
+        "x": 1171,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L8Q2-p6",
+        "a": "glass_beam_h",
+        "x": 1111,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L8Q2-p7",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L8Q2-g0",
+        "a": "pig_small",
+        "x": 1111,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -1872,14 +1942,14 @@
        {
         "id": "L8Q3-p4",
         "a": "wood_beam_v",
-        "x": 1168,
+        "x": 1044,
         "y": 361,
         "rot": 0
        },
        {
         "id": "L8Q3-p5",
         "a": "wood_beam_v",
-        "x": 1044,
+        "x": 1168,
         "y": 361,
         "rot": 0
        },
@@ -1935,8 +2005,8 @@
         "y": 304
        },
        {
-        "x": 925,
-        "y": 178
+        "x": 825,
+        "y": 172
        },
        {
         "x": 1150,
@@ -1946,27 +2016,34 @@
       "pieces": [
        {
         "id": "L9Q0-p0",
-        "a": "wood_beam_v",
-        "x": 925,
-        "y": 361,
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L9Q0-p1",
-        "a": "wood_triangle",
-        "x": 925,
-        "y": 256,
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L9Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 795,
-        "y": 386,
+        "a": "glass_beam_h",
+        "x": 825,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L9Q0-p3",
+        "a": "stone_block_s",
+        "x": 825,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L9Q0-p4",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -1990,8 +2067,8 @@
         "y": 178
        },
        {
-        "x": 1111,
-        "y": 230
+        "x": 1131,
+        "y": 235
        }
       ],
       "pieces": [
@@ -2018,23 +2095,23 @@
        },
        {
         "id": "L9Q1-p3",
-        "a": "glass_column",
-        "x": 1171,
-        "y": 384,
+        "a": "wood_crate_panel",
+        "x": 1095,
+        "y": 393.5,
         "rot": 0
        },
        {
         "id": "L9Q1-p4",
-        "a": "glass_column",
-        "x": 1051,
-        "y": 384,
+        "a": "wood_crate_panel",
+        "x": 1167,
+        "y": 393.5,
         "rot": 0
        },
        {
         "id": "L9Q1-p5",
-        "a": "glass_beam_h",
-        "x": 1111,
-        "y": 305,
+        "a": "wood_crate_cross",
+        "x": 1131,
+        "y": 317,
         "rot": 0
        },
        {
@@ -2045,25 +2122,18 @@
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L9Q1-g0",
-        "a": "pig_small",
-        "x": 1111,
-        "y": 400
-       }
-      ],
+      "pigs": [],
       "moving": [
        {
         "m": "stone",
-        "x": 600,
+        "x": 520,
         "y": 330,
         "w": 56,
         "h": 120,
         "axis": "y",
         "range": 70,
         "speed": 0.8,
-        "phase": 3.5031377683436022
+        "phase": 5.774067353950426
        }
       ]
      }
@@ -2073,44 +2143,23 @@
      "layout": {
       "targets": [
        {
-        "x": 645,
+        "x": 625,
+        "y": 388
+       },
+       {
+        "x": 700,
         "y": 304
        },
        {
-        "x": 765,
-        "y": 178
-       },
-       {
-        "x": 1160,
-        "y": 386
+        "x": 1130,
+        "y": 388
        }
       ],
       "pieces": [
        {
         "id": "L9Q2-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L9Q2-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L9Q2-p2",
         "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L9Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
+        "x": 700,
         "y": 386,
         "rot": 0
        }
@@ -2132,8 +2181,8 @@
         "y": 172
        },
        {
-        "x": 1006,
-        "y": 178
+        "x": 1060,
+        "y": 386
        }
       ],
       "pieces": [
@@ -2167,27 +2216,6 @@
        },
        {
         "id": "L9Q3-p4",
-        "a": "wood_beam_v",
-        "x": 1006,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L9Q3-p5",
-        "a": "wood_triangle",
-        "x": 1006,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L9Q3-p6",
-        "a": "wood_crate_cross",
-        "x": 1136,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L9Q3-p7",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -2221,77 +2249,49 @@
      "layout": {
       "targets": [
        {
-        "x": 645,
-        "y": 304
+        "x": 691,
+        "y": 204
        },
        {
-        "x": 825,
-        "y": 172
+        "x": 940,
+        "y": 386
        },
        {
-        "x": 1105,
-        "y": 235
+        "x": 1160,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L10Q0-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
+        "a": "wood_beam_v",
+        "x": 753,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L10Q0-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
+        "a": "wood_beam_v",
+        "x": 629,
+        "y": 361,
         "rot": 0
        },
        {
         "id": "L10Q0-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p4",
-        "a": "wood_crate_panel",
-        "x": 1069,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p5",
-        "a": "wood_crate_panel",
-        "x": 1141,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p6",
-        "a": "wood_crate_cross",
-        "x": 1105,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
+        "a": "wood_beam_h",
+        "x": 691,
+        "y": 269,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L10Q0-g0",
+        "a": "pig_small",
+        "x": 691,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     },
@@ -2308,8 +2308,8 @@
         "y": 178
        },
        {
-        "x": 1106,
-        "y": 204
+        "x": 1131,
+        "y": 235
        }
       ],
       "pieces": [
@@ -2336,23 +2336,23 @@
        },
        {
         "id": "L10Q1-p3",
-        "a": "wood_beam_v",
-        "x": 1168,
-        "y": 361,
+        "a": "wood_crate_panel",
+        "x": 1095,
+        "y": 393.5,
         "rot": 0
        },
        {
         "id": "L10Q1-p4",
-        "a": "wood_beam_v",
-        "x": 1044,
-        "y": 361,
+        "a": "wood_crate_panel",
+        "x": 1167,
+        "y": 393.5,
         "rot": 0
        },
        {
         "id": "L10Q1-p5",
-        "a": "wood_beam_h",
-        "x": 1106,
-        "y": 269,
+        "a": "wood_crate_cross",
+        "x": 1131,
+        "y": 317,
         "rot": 0
        },
        {
@@ -2363,14 +2363,7 @@
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L10Q1-g0",
-        "a": "pig_small",
-        "x": 1106,
-        "y": 400
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     },
@@ -2387,7 +2380,7 @@
         "y": 172
        },
        {
-        "x": 1160,
+        "x": 1070,
         "y": 386
        }
       ],
@@ -2395,14 +2388,14 @@
        {
         "id": "L10Q2-p0",
         "a": "glass_column",
-        "x": 901,
+        "x": 749,
         "y": 384,
         "rot": 0
        },
        {
         "id": "L10Q2-p1",
         "a": "glass_column",
-        "x": 749,
+        "x": 901,
         "y": 384,
         "rot": 0
        },
@@ -2445,8 +2438,8 @@
         "y": 172
        },
        {
-        "x": 1160,
-        "y": 386
+        "x": 1111,
+        "y": 230
        }
       ],
       "pieces": [
@@ -2480,13 +2473,41 @@
        },
        {
         "id": "L10Q3-p4",
+        "a": "glass_column",
+        "x": 1171,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L10Q3-p5",
+        "a": "glass_column",
+        "x": 1051,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L10Q3-p6",
+        "a": "glass_beam_h",
+        "x": 1111,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L10Q3-p7",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L10Q3-g0",
+        "a": "pig_small",
+        "x": 1111,
+        "y": 400
+       }
+      ],
       "moving": []
      }
     }
@@ -2517,11 +2538,11 @@
         "y": 304
        },
        {
-        "x": 825,
-        "y": 172
+        "x": 815,
+        "y": 102
        },
        {
-        "x": 1090,
+        "x": 1130,
         "y": 386
        }
       ],
@@ -2529,33 +2550,47 @@
        {
         "id": "L11Q0-p0",
         "a": "glass_column",
-        "x": 749,
+        "x": 761,
         "y": 384,
         "rot": 0
        },
        {
         "id": "L11Q0-p1",
         "a": "glass_column",
-        "x": 901,
+        "x": 869,
         "y": 384,
         "rot": 0
        },
        {
         "id": "L11Q0-p2",
         "a": "glass_beam_h",
-        "x": 825,
+        "x": 815,
         "y": 305,
         "rot": 0
        },
        {
         "id": "L11Q0-p3",
-        "a": "stone_block_s",
-        "x": 825,
+        "a": "glass_block_s",
+        "x": 783,
         "y": 241,
         "rot": 0
        },
        {
         "id": "L11Q0-p4",
+        "a": "glass_block_s",
+        "x": 847,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L11Q0-p5",
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 177,
+        "rot": 0
+       },
+       {
+        "id": "L11Q0-p6",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -2571,15 +2606,15 @@
      "layout": {
       "targets": [
        {
-        "x": 631,
-        "y": 254
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 711,
-        "y": 190
+        "x": 870,
+        "y": 144
        },
        {
-        "x": 1050,
+        "x": 1160,
         "y": 386
        }
       ],
@@ -2587,40 +2622,40 @@
        {
         "id": "L11Q1-p0",
         "a": "stone_block_l",
-        "x": 631,
+        "x": 870,
         "y": 390,
         "rot": 0
        },
        {
         "id": "L11Q1-p1",
-        "a": "stone_block_l",
-        "x": 791,
-        "y": 390,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 310,
         "rot": 0
        },
        {
         "id": "L11Q1-p2",
-        "a": "stone_block_s",
-        "x": 631,
-        "y": 323,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 226,
         "rot": 0
        },
        {
         "id": "L11Q1-p3",
-        "a": "stone_block_s",
-        "x": 791,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p4",
-        "a": "stone_beam_h",
-        "x": 711,
-        "y": 262,
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L11Q1-g0",
+        "a": "pig_angry",
+        "x": 980,
+        "y": 395
+       }
+      ],
       "moving": []
      }
     },
@@ -2629,52 +2664,66 @@
      "layout": {
       "targets": [
        {
-        "x": 647,
-        "y": 254
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 727,
-        "y": 190
+        "x": 815,
+        "y": 102
        },
        {
-        "x": 1080,
+        "x": 1110,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L11Q2-p0",
-        "a": "stone_block_l",
-        "x": 647,
-        "y": 390,
+        "a": "glass_column",
+        "x": 761,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L11Q2-p1",
-        "a": "stone_block_l",
-        "x": 807,
-        "y": 390,
+        "a": "glass_column",
+        "x": 869,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L11Q2-p2",
-        "a": "stone_block_s",
-        "x": 647,
-        "y": 323,
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L11Q2-p3",
-        "a": "stone_block_s",
-        "x": 807,
-        "y": 323,
+        "a": "glass_block_s",
+        "x": 783,
+        "y": 241,
         "rot": 0
        },
        {
         "id": "L11Q2-p4",
-        "a": "stone_beam_h",
-        "x": 727,
-        "y": 262,
+        "a": "glass_block_s",
+        "x": 847,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L11Q2-p5",
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 177,
+        "rot": 0
+       },
+       {
+        "id": "L11Q2-p6",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -2687,98 +2736,56 @@
      "layout": {
       "targets": [
        {
-        "x": 659,
-        "y": 254
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 739,
-        "y": 190
+        "x": 870,
+        "y": 144
        },
        {
-        "x": 1068,
-        "y": 102
+        "x": 1160,
+        "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L11Q3-p0",
         "a": "stone_block_l",
-        "x": 819,
+        "x": 870,
         "y": 390,
         "rot": 0
        },
        {
         "id": "L11Q3-p1",
-        "a": "stone_block_l",
-        "x": 659,
-        "y": 390,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 310,
         "rot": 0
        },
        {
         "id": "L11Q3-p2",
-        "a": "stone_block_s",
-        "x": 819,
-        "y": 323,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 226,
         "rot": 0
        },
        {
         "id": "L11Q3-p3",
-        "a": "stone_block_s",
-        "x": 659,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p4",
-        "a": "stone_beam_h",
-        "x": 739,
-        "y": 262,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p5",
-        "a": "glass_column",
-        "x": 1122,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p6",
-        "a": "glass_column",
-        "x": 1014,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p7",
-        "a": "glass_beam_h",
-        "x": 1068,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p8",
-        "a": "glass_block_s",
-        "x": 1100,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p9",
-        "a": "glass_block_s",
-        "x": 1036,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p10",
-        "a": "glass_beam_h",
-        "x": 1068,
-        "y": 177,
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L11Q3-g0",
+        "a": "pig_angry",
+        "x": 980,
+        "y": 395
+       }
+      ],
       "moving": []
      }
     }
@@ -2810,8 +2817,8 @@
         "y": 304
        },
        {
-        "x": 870,
-        "y": 144
+        "x": 825,
+        "y": 172
        },
        {
         "x": 1150,
@@ -2821,41 +2828,41 @@
       "pieces": [
        {
         "id": "L12Q0-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L12Q0-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L12Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
+        "a": "glass_beam_h",
+        "x": 825,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L12Q0-p3",
+        "a": "stone_block_s",
+        "x": 825,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L12Q0-p4",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L12Q0-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     },
@@ -2868,38 +2875,96 @@
         "y": 304
        },
        {
-        "x": 870,
-        "y": 144
+        "x": 825,
+        "y": 172
        },
        {
-        "x": 1160,
+        "x": 1130,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L12Q1-p0",
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L12Q1-p1",
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L12Q1-p2",
+        "a": "glass_beam_h",
+        "x": 825,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L12Q1-p3",
+        "a": "stone_block_s",
+        "x": 825,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L12Q1-p4",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
+        "rot": 0
+       }
+      ],
+      "pigs": [],
+      "moving": []
+     }
+    },
+    {
+     "questionId": "q12_3",
+     "layout": {
+      "targets": [
+       {
+        "x": 645,
+        "y": 304
+       },
+       {
+        "x": 870,
+        "y": 144
+       },
+       {
+        "x": 1150,
+        "y": 386
+       }
+      ],
+      "pieces": [
+       {
+        "id": "L12Q2-p0",
         "a": "stone_block_l",
         "x": 870,
         "y": 390,
         "rot": 0
        },
        {
-        "id": "L12Q1-p1",
+        "id": "L12Q2-p1",
         "a": "wood_crate_cross",
         "x": 870,
         "y": 310,
         "rot": 0
        },
        {
-        "id": "L12Q1-p2",
+        "id": "L12Q2-p2",
         "a": "wood_crate_cross",
         "x": 870,
         "y": 226,
         "rot": 0
        },
        {
-        "id": "L12Q1-p3",
+        "id": "L12Q2-p3",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -2908,7 +2973,7 @@
       ],
       "pigs": [
        {
-        "id": "L12Q1-g0",
+        "id": "L12Q2-g0",
         "a": "pig_angry",
         "x": 980,
         "y": 395
@@ -2918,114 +2983,98 @@
      }
     },
     {
-     "questionId": "q12_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 643,
-        "y": 254
-       },
-       {
-        "x": 723,
-        "y": 190
-       },
-       {
-        "x": 1110,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L12Q2-p0",
-        "a": "stone_block_l",
-        "x": 803,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p1",
-        "a": "stone_block_l",
-        "x": 643,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p2",
-        "a": "stone_block_s",
-        "x": 803,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p3",
-        "a": "stone_block_s",
-        "x": 643,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p4",
-        "a": "stone_beam_h",
-        "x": 723,
-        "y": 262,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
      "questionId": "q12_4",
      "layout": {
       "targets": [
        {
-        "x": 644,
-        "y": 254
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 724,
-        "y": 190
+        "x": 825,
+        "y": 172
        },
        {
-        "x": 1070,
-        "y": 386
+        "x": 1116,
+        "y": 102
        }
       ],
       "pieces": [
        {
         "id": "L12Q3-p0",
-        "a": "stone_block_l",
-        "x": 804,
-        "y": 390,
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L12Q3-p1",
-        "a": "stone_block_l",
-        "x": 644,
-        "y": 390,
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L12Q3-p2",
-        "a": "stone_block_s",
-        "x": 804,
-        "y": 323,
+        "a": "glass_beam_h",
+        "x": 825,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L12Q3-p3",
         "a": "stone_block_s",
-        "x": 644,
-        "y": 323,
+        "x": 825,
+        "y": 241,
         "rot": 0
        },
        {
         "id": "L12Q3-p4",
-        "a": "stone_beam_h",
-        "x": 724,
-        "y": 262,
+        "a": "glass_column",
+        "x": 1062,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L12Q3-p5",
+        "a": "glass_column",
+        "x": 1170,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L12Q3-p6",
+        "a": "glass_beam_h",
+        "x": 1116,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L12Q3-p7",
+        "a": "glass_block_s",
+        "x": 1084,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L12Q3-p8",
+        "a": "glass_block_s",
+        "x": 1148,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L12Q3-p9",
+        "a": "glass_beam_h",
+        "x": 1116,
+        "y": 177,
+        "rot": 0
+       },
+       {
+        "id": "L12Q3-p10",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -3061,63 +3110,105 @@
         "y": 304
        },
        {
-        "x": 870,
-        "y": 144
+        "x": 815,
+        "y": 102
        },
        {
-        "x": 1160,
-        "y": 386
+        "x": 1106,
+        "y": 172
        }
       ],
       "pieces": [
        {
         "id": "L13Q0-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
+        "a": "glass_column",
+        "x": 761,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q0-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
+        "a": "glass_column",
+        "x": 869,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L13Q0-p3",
+        "a": "glass_block_s",
+        "x": 783,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p4",
+        "a": "glass_block_s",
+        "x": 847,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p5",
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 177,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p6",
+        "a": "glass_column",
+        "x": 1182,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p7",
+        "a": "glass_column",
+        "x": 1030,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p8",
+        "a": "glass_beam_h",
+        "x": 1106,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p9",
+        "a": "stone_block_s",
+        "x": 1106,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L13Q0-p10",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L13Q0-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
+      "pigs": [],
       "moving": [
        {
         "m": "stone",
-        "x": 600,
+        "x": 520,
         "y": 330,
         "w": 56,
         "h": 120,
         "axis": "y",
         "range": 70,
         "speed": 0.8,
-        "phase": 1.2011531821999257
+        "phase": 4.620330023839633
        }
       ]
      }
@@ -3135,7 +3226,7 @@
         "y": 102
        },
        {
-        "x": 1120,
+        "x": 1110,
         "y": 386
        }
       ],
@@ -3143,14 +3234,14 @@
        {
         "id": "L13Q1-p0",
         "a": "glass_column",
-        "x": 761,
+        "x": 869,
         "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q1-p1",
         "a": "glass_column",
-        "x": 869,
+        "x": 761,
         "y": 384,
         "rot": 0
        },
@@ -3164,14 +3255,14 @@
        {
         "id": "L13Q1-p3",
         "a": "glass_block_s",
-        "x": 783,
+        "x": 847,
         "y": 241,
         "rot": 0
        },
        {
         "id": "L13Q1-p4",
         "a": "glass_block_s",
-        "x": 847,
+        "x": 783,
         "y": 241,
         "rot": 0
        },
@@ -3203,52 +3294,52 @@
         "y": 304
        },
        {
-        "x": 870,
-        "y": 144
+        "x": 825,
+        "y": 172
        },
        {
-        "x": 1150,
+        "x": 1080,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L13Q2-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
+        "a": "glass_column",
+        "x": 749,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q2-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
+        "a": "glass_column",
+        "x": 901,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
+        "a": "glass_beam_h",
+        "x": 825,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L13Q2-p3",
+        "a": "stone_block_s",
+        "x": 825,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L13Q2-p4",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L13Q2-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     },
@@ -3261,52 +3352,66 @@
         "y": 304
        },
        {
-        "x": 870,
-        "y": 144
+        "x": 815,
+        "y": 102
        },
        {
-        "x": 1150,
+        "x": 1140,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L13Q3-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
+        "a": "glass_column",
+        "x": 761,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q3-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
+        "a": "glass_column",
+        "x": 869,
+        "y": 384,
         "rot": 0
        },
        {
         "id": "L13Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 305,
         "rot": 0
        },
        {
         "id": "L13Q3-p3",
+        "a": "glass_block_s",
+        "x": 783,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L13Q3-p4",
+        "a": "glass_block_s",
+        "x": 847,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L13Q3-p5",
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 177,
+        "rot": 0
+       },
+       {
+        "id": "L13Q3-p6",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [
-       {
-        "id": "L13Q3-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
+      "pigs": [],
       "moving": []
      }
     }
@@ -3334,12 +3439,12 @@
      "layout": {
       "targets": [
        {
-        "x": 769,
-        "y": 238
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 1035,
-        "y": 304
+        "x": 870,
+        "y": 144
        },
        {
         "x": 1160,
@@ -3349,43 +3454,29 @@
       "pieces": [
        {
         "id": "L14Q0-p0",
-        "a": "stone_column",
-        "x": 689,
-        "y": 385,
+        "a": "stone_block_l",
+        "x": 870,
+        "y": 390,
         "rot": 0
        },
        {
         "id": "L14Q0-p1",
-        "a": "stone_column",
-        "x": 849,
-        "y": 385,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p2",
-        "a": "stone_beam_h",
-        "x": 769,
+        "a": "wood_crate_cross",
+        "x": 870,
         "y": 310,
         "rot": 0
        },
        {
-        "id": "L14Q0-p3",
-        "a": "barrel_wood",
-        "x": 624,
-        "y": 395,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p4",
-        "a": "barrel_wood",
-        "x": 914,
-        "y": 395,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p5",
+        "id": "L14Q0-p2",
         "a": "wood_crate_cross",
-        "x": 1035,
+        "x": 870,
+        "y": 226,
+        "rot": 0
+       },
+       {
+        "id": "L14Q0-p3",
+        "a": "wood_crate_cross",
+        "x": 645,
         "y": 386,
         "rot": 0
        }
@@ -3393,8 +3484,8 @@
       "pigs": [
        {
         "id": "L14Q0-g0",
-        "a": "pig_medium",
-        "x": 769,
+        "a": "pig_angry",
+        "x": 980,
         "y": 395
        }
       ],
@@ -3403,64 +3494,6 @@
     },
     {
      "questionId": "q14_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1090,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L14Q1-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q14_3",
      "layout": {
       "targets": [
        {
@@ -3478,28 +3511,28 @@
       ],
       "pieces": [
        {
-        "id": "L14Q2-p0",
+        "id": "L14Q1-p0",
         "a": "stone_block_l",
         "x": 870,
         "y": 390,
         "rot": 0
        },
        {
-        "id": "L14Q2-p1",
+        "id": "L14Q1-p1",
         "a": "wood_crate_cross",
         "x": 870,
         "y": 310,
         "rot": 0
        },
        {
-        "id": "L14Q2-p2",
+        "id": "L14Q1-p2",
         "a": "wood_crate_cross",
         "x": 870,
         "y": 226,
         "rot": 0
        },
        {
-        "id": "L14Q2-p3",
+        "id": "L14Q1-p3",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
@@ -3508,7 +3541,7 @@
       ],
       "pigs": [
        {
-        "id": "L14Q2-g0",
+        "id": "L14Q1-g0",
         "a": "pig_angry",
         "x": 980,
         "y": 395
@@ -3518,56 +3551,128 @@
      }
     },
     {
+     "questionId": "q14_3",
+     "layout": {
+      "targets": [
+       {
+        "x": 645,
+        "y": 304
+       },
+       {
+        "x": 815,
+        "y": 102
+       },
+       {
+        "x": 1101,
+        "y": 172
+       }
+      ],
+      "pieces": [
+       {
+        "id": "L14Q2-p0",
+        "a": "glass_column",
+        "x": 761,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p1",
+        "a": "glass_column",
+        "x": 869,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p2",
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p3",
+        "a": "glass_block_s",
+        "x": 783,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p4",
+        "a": "glass_block_s",
+        "x": 847,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p5",
+        "a": "glass_beam_h",
+        "x": 815,
+        "y": 177,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p6",
+        "a": "glass_column",
+        "x": 1177,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p7",
+        "a": "glass_column",
+        "x": 1025,
+        "y": 384,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p8",
+        "a": "glass_beam_h",
+        "x": 1101,
+        "y": 305,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p9",
+        "a": "stone_block_s",
+        "x": 1101,
+        "y": 241,
+        "rot": 0
+       },
+       {
+        "id": "L14Q2-p10",
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
+        "rot": 0
+       }
+      ],
+      "pigs": [],
+      "moving": []
+     }
+    },
+    {
      "questionId": "q14_4",
      "layout": {
       "targets": [
        {
-        "x": 632,
-        "y": 254
+        "x": 625,
+        "y": 388
        },
        {
-        "x": 712,
-        "y": 190
+        "x": 700,
+        "y": 304
        },
        {
-        "x": 980,
-        "y": 386
+        "x": 1130,
+        "y": 388
        }
       ],
       "pieces": [
        {
         "id": "L14Q3-p0",
-        "a": "stone_block_l",
-        "x": 632,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p1",
-        "a": "stone_block_l",
-        "x": 792,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p2",
-        "a": "stone_block_s",
-        "x": 632,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p3",
-        "a": "stone_block_s",
-        "x": 792,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p4",
-        "a": "stone_beam_h",
-        "x": 712,
-        "y": 262,
+        "a": "wood_crate_cross",
+        "x": 700,
+        "y": 386,
         "rot": 0
        }
       ],
@@ -3599,15 +3704,15 @@
      "layout": {
       "targets": [
        {
-        "x": 644,
-        "y": 254
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 724,
-        "y": 190
+        "x": 870,
+        "y": 144
        },
        {
-        "x": 1060,
+        "x": 1150,
         "y": 386
        }
       ],
@@ -3615,40 +3720,40 @@
        {
         "id": "L15Q0-p0",
         "a": "stone_block_l",
-        "x": 804,
+        "x": 870,
         "y": 390,
         "rot": 0
        },
        {
         "id": "L15Q0-p1",
-        "a": "stone_block_l",
-        "x": 644,
-        "y": 390,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 310,
         "rot": 0
        },
        {
         "id": "L15Q0-p2",
-        "a": "stone_block_s",
-        "x": 804,
-        "y": 323,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 226,
         "rot": 0
        },
        {
         "id": "L15Q0-p3",
-        "a": "stone_block_s",
-        "x": 644,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L15Q0-p4",
-        "a": "stone_beam_h",
-        "x": 724,
-        "y": 262,
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L15Q0-g0",
+        "a": "pig_angry",
+        "x": 980,
+        "y": 395
+       }
+      ],
       "moving": []
      }
     },
@@ -3657,15 +3762,15 @@
      "layout": {
       "targets": [
        {
-        "x": 640,
-        "y": 254
+        "x": 645,
+        "y": 304
        },
        {
-        "x": 720,
-        "y": 190
+        "x": 870,
+        "y": 144
        },
        {
-        "x": 1140,
+        "x": 1160,
         "y": 386
        }
       ],
@@ -3673,40 +3778,40 @@
        {
         "id": "L15Q1-p0",
         "a": "stone_block_l",
-        "x": 640,
+        "x": 870,
         "y": 390,
         "rot": 0
        },
        {
         "id": "L15Q1-p1",
-        "a": "stone_block_l",
-        "x": 800,
-        "y": 390,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 310,
         "rot": 0
        },
        {
         "id": "L15Q1-p2",
-        "a": "stone_block_s",
-        "x": 640,
-        "y": 323,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 226,
         "rot": 0
        },
        {
         "id": "L15Q1-p3",
-        "a": "stone_block_s",
-        "x": 800,
-        "y": 323,
-        "rot": 0
-       },
-       {
-        "id": "L15Q1-p4",
-        "a": "stone_beam_h",
-        "x": 720,
-        "y": 262,
+        "a": "wood_crate_cross",
+        "x": 645,
+        "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L15Q1-g0",
+        "a": "pig_angry",
+        "x": 980,
+        "y": 395
+       }
+      ],
       "moving": []
      }
     },
@@ -3723,7 +3828,7 @@
         "y": 172
        },
        {
-        "x": 1110,
+        "x": 1080,
         "y": 386
        }
       ],
@@ -3777,66 +3882,52 @@
         "y": 304
        },
        {
-        "x": 815,
-        "y": 102
+        "x": 870,
+        "y": 144
        },
        {
-        "x": 1110,
+        "x": 1160,
         "y": 386
        }
       ],
       "pieces": [
        {
         "id": "L15Q3-p0",
-        "a": "glass_column",
-        "x": 761,
-        "y": 384,
+        "a": "stone_block_l",
+        "x": 870,
+        "y": 390,
         "rot": 0
        },
        {
         "id": "L15Q3-p1",
-        "a": "glass_column",
-        "x": 869,
-        "y": 384,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 310,
         "rot": 0
        },
        {
         "id": "L15Q3-p2",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 305,
+        "a": "wood_crate_cross",
+        "x": 870,
+        "y": 226,
         "rot": 0
        },
        {
         "id": "L15Q3-p3",
-        "a": "glass_block_s",
-        "x": 783,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L15Q3-p4",
-        "a": "glass_block_s",
-        "x": 847,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L15Q3-p5",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 177,
-        "rot": 0
-       },
-       {
-        "id": "L15Q3-p6",
         "a": "wood_crate_cross",
         "x": 645,
         "y": 386,
         "rot": 0
        }
       ],
-      "pigs": [],
+      "pigs": [
+       {
+        "id": "L15Q3-g0",
+        "a": "pig_angry",
+        "x": 980,
+        "y": 395
+       }
+      ],
       "moving": []
      }
     }

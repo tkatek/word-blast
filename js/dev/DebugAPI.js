@@ -122,6 +122,7 @@ export function installDebugAPI(game) {
       setTypeOverride(type);
       const s = api.scene();
       if (s && s.background) s.background.apply(type); // swap art for visuals
+      if (s && s.syncSlingshotDevice) s.syncSlingshotDevice(); // re-anchor sling + rebuild terrain colliders
       if (s && s.updateOrientationState) s.updateOrientationState();
       return type;
     },

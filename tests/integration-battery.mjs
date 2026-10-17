@@ -7,6 +7,7 @@
  */
 import { createHeadlessGame } from './helpers/headless-game.mjs';
 import { solveLaunch } from '../js/systems/Trajectory.js';
+import { WORLD } from '../js/config.js';
 
 const PASS = [];
 const FAIL = [];
@@ -49,7 +50,7 @@ const main = async () => {
     const wrong = h2.info().targets.find((t) => !t.correct);
     const correct = h2.info().targets.find((t) => t.correct);
     // fire a shot that hits the wrong target
-    const solW = solveLaunch(175, 390, wrong.x, wrong.y, { angleDeg: -14 });
+    const solW = solveLaunch(WORLD.SLING_X, WORLD.SLING_Y, wrong.x, wrong.y, { angleDeg: -14 });
     h2.fire(solW.vx, solW.vy, null);
     await h2.waitForState('ANSWER_FEEDBACK', 12000);
     const wrongHits1 = h2.info().wrongHits;
@@ -103,7 +104,7 @@ const main = async () => {
     await h4.gotoLevel(2);
     await h4.waitForState('AIMING', 8000);
     const t = h4.correctTarget();
-    const sol = solveLaunch(175, 390, t.x, t.y, { angleDeg: -30 });
+    const sol = solveLaunch(WORLD.SLING_X, WORLD.SLING_Y, t.x, t.y, { angleDeg: -30 });
     h4.fire(sol.vx, sol.vy, null);
     await new Promise((r) => setTimeout(r, 150)); // mid-flight
     const s = h4.scene();

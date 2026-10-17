@@ -100,6 +100,12 @@ const PANEL_SAFE_X = 760;          // tall structures sit right of the question 
 const TALL_H = 300;
 const GROUND_MARGIN = 42;          // plaque half height: ground anchor y = TERRACE_TOP - 40
 
+
+  /** Plaques shadow each other: keep anchors apart horizontally unless they
+   *  sit at clearly different heights (lob lanes over/under are fine). */
+  const anchorsApart = (anchors, x, y) => anchors.every((s) =>
+    Math.abs(s.x - x) >= 210 || Math.abs(s.y - y) >= 80);
+
 function tryLayout(levelId, qIndex, rand) {
   const tier = levelId <= 5 ? 1 : levelId <= 10 ? 2 : 3;
   // Height cap: even the tallest template tops out at world y≈140 — below
@@ -156,6 +162,7 @@ function tryLayout(levelId, qIndex, rand) {
   const addInstance = (inst, keepSlots = true) => {
     for (const s of inst.slots) {
       if (!keepSlots) continue;
+      if (!anchorsApart(anchors, s.x, s.y)) continue;
       anchors.push({ x: s.x, y: s.y });
     }
     occupied.push([inst.baseX - inst.width / 2 - 66, inst.baseX + inst.width / 2 + 66]);
@@ -185,7 +192,7 @@ function tryLayout(levelId, qIndex, rand) {
   const clearGround = (x) => occupied.every(([a, b]) => x < a - 58 || x > b + 58);
   while (anchors.length < 3) {
     const candidates = groundXs.filter((x) => clearGround(x)
-      && !anchors.some((s) => Math.abs(s.x - x) < 118)
+      && anchorsApart(anchors, x, TERRACE_TOP - GROUND_MARGIN)
       && anchorReachable(x, TERRACE_TOP - GROUND_MARGIN, allPiecesNow, anchors));
     if (!candidates.length) break;
     const x = candidates[Math.floor(rand() * candidates.length)];
@@ -200,7 +207,7 @@ function tryLayout(levelId, qIndex, rand) {
     let placed = false;
     for (let x = 1165; x >= 625; x -= 10) {
       if (occupied.every(([a, b]) => x < a || x > b)
-        && !anchors.some((s) => Math.abs(s.x - x) < 118)
+        && anchorsApart(anchors, x, TERRACE_TOP - GROUND_MARGIN)
         && anchorReachable(x, TERRACE_TOP - GROUND_MARGIN + 124, allPiecesNow, anchors)) {
         const inst = instantiate('pedestal', Math.round(x), TERRACE_TOP, {});
         addInstance(inst);
@@ -227,12 +234,31 @@ function tryLayout(levelId, qIndex, rand) {
 
   const layout = { targets: anchors.map((a) => ({ x: a.x, y: a.y })), pieces, pigs, moving: [] };
 
-  // a couple of moving obstacles for mechanical variety (mid/late game)
+  // a couple of moving obstacles for mechanical variety (mid/late game).
+  // The mover SWEPT box (range included) must clear every piece and
+  // anchor: a static body intersecting a tower shoves it during settle.
   if ((levelId === 9 && qIndex === 1) || (levelId === 13 && qIndex === 0)) {
-    layout.moving.push({
-      m: 'stone', x: 600, y: 330, w: 56, h: 120,
-      axis: 'y', range: 70, speed: 0.8, phase: rand() * Math.PI * 2
-    });
+    const MV = { w: 56, h: 120, range: 70 };
+    const sweptClear = (mx) => {
+      const L = mx - MV.w / 2 - 16, R = mx + MV.w / 2 + 16;
+      const T = 330 - MV.range - MV.h / 2 - 16, B = 330 + MV.range + MV.h / 2 + 16;
+      for (const p of layout.pieces) {
+        const a = TOWER_ASSETS[p.a]; if (!a) continue;
+        if (L < p.x + a.size[0] / 2 + 10 && R > p.x - a.size[0] / 2 - 10
+          && T < p.y + a.size[1] / 2 + 10 && B > p.y - a.size[1] / 2 - 10) return false;
+      }
+      for (const t of layout.targets) {
+        if (L < t.x + 58 + 20 && R > t.x - 58 - 20 && B > t.y - 40 - 20) return false;
+      }
+      return true;
+    };
+    const mx = [520, 560, 600, 640, 1080, 1120, 1160, 980, 1020].find(sweptClear);
+    if (mx) {
+      layout.moving.push({
+        m: 'stone', x: mx, y: 330, w: MV.w, h: MV.h,
+        axis: 'y', range: MV.range, speed: 0.8, phase: rand() * Math.PI * 2
+      });
+    }
   }
   return layout;
 }

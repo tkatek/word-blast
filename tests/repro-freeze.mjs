@@ -34,7 +34,9 @@ const main = async () => {
   await h.waitForState('AIMING', 8000);
 
   // 1) soft lob landing far short of every target (x≈350) — cannot touch one
-  const sol = h.solveLanding(350);
+  // terrain-aware: solid ground well short of the structures, clear of the water gap
+  const landX = Math.max(530, h.correctTarget().x - 260);
+  const sol = h.solveLanding(landX);
   if (!sol) return exit(2, 'REPRO SETUP FAILED: no landing solution');
   h.fire(sol.vx, sol.vy);
 
@@ -56,8 +58,15 @@ const main = async () => {
   //    (approach from the right: fences only guard the left sides)
   const target = h.correctTarget();
   const M = h.Phaser.Physics.Matter.Matter;
-  M.Body.setPosition(ball.body, { x: target.x + 95, y: 500 });
-  M.Body.setVelocity(ball.body, { x: -3.5, y: 1.5 });
+  // dynamic plaques settle differently per run — retry the delivery
+  let delivered = false;
+  for (let tries = 0; tries < 3 && !delivered; tries++) {
+    const t = h.correctTarget();
+    M.Sleeping.set(ball.body, false);
+    M.Body.setPosition(ball.body, { x: t.x + 8, y: t.y - 30 });
+    M.Body.setVelocity(ball.body, { x: 0, y: 1 });
+    delivered = await h.waitFor(() => s.prepared.answered === true, 2500);
+  }
   console.log('repro: impulse applied — ball dropping toward correct target ' + target.x + ' while state=' + h.state());
 
   // 4) observe: does the correct answer register AND advance the question?

@@ -13,7 +13,7 @@ import { GameStateMachine } from '../systems/GameStateMachine.js';
 import { ObjectFactory } from '../systems/PhysicsObjects.js';
 import { Slingshot } from '../systems/Slingshot.js';
 import { ScoringSystem } from '../systems/ScoringSystem.js';
-import { solveLaunch } from '../systems/Trajectory.js';
+import { solveLaunch, predictPath } from '../systems/Trajectory.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { EffectsSystem } from '../systems/EffectsSystem.js';
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
@@ -123,7 +123,8 @@ export class GameScene extends Phaser.Scene {
     // Device background is the ONLY visible terrain (depth -100). The
     // gameplay surfaces are invisible static colliders measured from the
     // painted platforms of THIS device's art (TERRAIN_PROFILES in config).
-    this.device = this.registry.get('device') || deviceInfo();
+    // Live deviceInfo() (override-aware for tests) beats the boot snapshot.
+    this.device = deviceInfo();
     this.terrain = terrainFor(this.device.type);
     this.factory.createTerrain(this.terrain);
     this.background = new BackgroundManager(this);
@@ -458,10 +459,16 @@ export class GameScene extends Phaser.Scene {
     const go = projBody.gameObject;
     if (!go || !go.wb || go.wb.kind !== 'projectile' || go.wb.consumed) return;
     if (!this.currentShot || go.wb.shotId !== this.currentShot.id) return;
-    // At most ONE answer selection per launch (spec §8): once this shot has
-    // answered (or resolved and re-armed — an old projectile), contacts are
-    // ignored. Split children share the shot identity and this same guard.
-    if (this.currentShot.answered || this.currentShot.resolvedHandled) return;
+    // At most ONE answer selection per launch (spec §8). Split children share
+    // the shot identity and this same guard.
+    // NOTE: a shot that merely RESOLVED (miss → re-armed) must NOT be excluded
+    // here: its projectile can still physically reach an answer target a
+    // moment later (creeping ball, debris or a moving obstacle shoving the
+    // resting ball). Discarding that touch is exactly how the reported
+    // "hit the correct answer → game stuck" bug felt to players. Such late
+    // contacts stay routable — canAcceptAnswer() + the state machine now
+    // carry them safely into ANSWER_FEEDBACK instead of freezing.
+    if (this.currentShot.answered) return;
 
     this.factory.onProjectileFirstImpact(go, otherBody);
 
@@ -988,17 +995,45 @@ export class GameScene extends Phaser.Scene {
     const target = this.factory.targets.find((t) => t.wb.choiceId === wanted);
     if (!target) return null;
     const a = this.slingshot.anchor;
-    // sweep launch angles: solveLaunch optimizes power at ONE angle, and a
-    // single fixed angle cannot reach every plaque height (tall towers sit
-    // above the apex of a shallow arc)
-    let best = null;
-    for (const angleDeg of [-12, -18, -24, -30, -36, -42, -48, -54]) {
-      const sol = solveLaunch(a.x, a.y, target.x, target.y, { angleDeg });
-      if (sol && (!best || sol.missDistance < best.missDistance)) best = sol;
-      if (best && best.missDistance < 4) break;
+    // Sweep launch angles (solveLaunch optimizes power at ONE angle; a
+    // single fixed angle cannot reach every plaque height) and prefer a
+    // solution whose arc does not clip another plaque or a tower piece in
+    // front of the target — otherwise the shot legally answers a DIFFERENT
+    // (wrong) plaque on the way.
+    const blockers = [];
+    for (const t of this.factory.targets) {
+      if (t !== target && !t.wb.hit) blockers.push({ x: t.x, y: t.y, w: 116, h: 80 });
     }
-    if (!best) return null;
-    this.debugLaunch(best.vx, best.vy, this.selectedProjectile);
-    return best;
+    for (const b of this.factory.blocks) {
+      if (!b.wb.removed) blockers.push({ x: b.x, y: b.y, w: b.displayWidth, h: b.displayHeight });
+    }
+    const clearArc = (vx, vy) => {
+      const pts = predictPath(a.x, a.y, vx, vy, { steps: 160 });
+      for (const p of pts) {
+        if (p.x > target.x - 10) break;
+        for (const bl of blockers) {
+          if (p.x > bl.x - bl.w / 2 - 14 && p.x < bl.x + bl.w / 2 + 14
+            && p.y > bl.y - bl.h / 2 - 14 && p.y < bl.y + bl.h / 2 + 14) return false;
+        }
+      }
+      return true;
+    };
+    let best = null;
+    let bestClear = null;
+    for (const angleDeg of [-12, -18, -24, -30, -36, -42, -48, -54]) {
+      // steps: steep lobs to distant towers take >60 steps; the default
+      // path would truncate short of the target
+      const sol = solveLaunch(a.x, a.y, target.x, target.y, { angleDeg, steps: 160 });
+      if (!sol) continue;
+      if (!best || sol.missDistance < best.missDistance) best = sol;
+      if (sol.missDistance < 30 && clearArc(sol.vx, sol.vy)) {
+        if (!bestClear || sol.missDistance < bestClear.missDistance) bestClear = sol;
+      }
+      if (bestClear && bestClear.missDistance < 4) break;
+    }
+    const chosen = bestClear || best;
+    if (!chosen) return null;
+    this.debugLaunch(chosen.vx, chosen.vy, this.selectedProjectile);
+    return chosen;
   }
 }

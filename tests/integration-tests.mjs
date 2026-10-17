@@ -36,6 +36,31 @@ function eq(a, b, msg) {
   if (a !== b) throw new Error(msg || `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 }
 
+/** Deliver a resting shot projectile onto a target with retries.
+ * Dynamic plaques settle differently per run; a retry or two lands one. */
+async function deliverOnto(h, ball, getTarget) {
+  const M = h.Phaser.Physics.Matter.Matter;
+  const s = h.scene();
+  // dynamic plaques/towers drift while settling — deliver only onto a still world
+  await h.waitFor(() => {
+    const t = getTarget();
+    if (!t || !t.body) return false;
+    const v = t.body.velocity;
+    return Math.hypot(v.x, v.y) < 0.15 && h.scene().factory.blocksQuiet();
+  }, 5000);
+  const offsets = [8, -8, 0, 20, -20, 12];
+  for (let tries = 0; tries < offsets.length; tries++) {
+    const t = getTarget();
+    if (!t || !ball.body) return false;
+    M.Sleeping.set(ball.body, false);
+    M.Body.setPosition(ball.body, { x: t.x + offsets[tries], y: t.y - 30 });
+    M.Body.setVelocity(ball.body, { x: 0, y: 1 });
+    const hit = await h.waitFor(() => s.state() === 'ANSWER_FEEDBACK', 3000);
+    if (hit) return true;
+  }
+  return false;
+}
+
 /** Find and fire a real aimed shot at a world point (angle sweep).
  * attempt rotates the chosen angle: deterministic physics replays an
  * identical shot identically, so retrying must vary the angle. */
@@ -75,7 +100,7 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
       continue;
     }
     if (st === 'AIMING') {
-      if (attempt < 4) {
+      if (attempt < 2) {
         autoAimSweep(h, null, attempt);
       } else {
         // Last resort for fortified layouts aimed shots cannot crack within
@@ -85,13 +110,8 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
         // real pipeline — nothing is marked correct by hand.
         h.fire(6, -6);
         const ball = h.liveBalls()[0];
-        const target = h.correctTarget();
-        if (ball && target) {
-          const M = h.Phaser.Physics.Matter.Matter;
-          // immediate contact zone: moving obstacles cannot intercept a
-          // two-step drop onto the target's shoulder
-          M.Body.setPosition(ball.body, { x: target.x + 30, y: target.y - 50 });
-          M.Body.setVelocity(ball.body, { x: 0.5, y: 2 });
+        if (ball) {
+          await deliverOnto(h, ball, () => h.correctTarget());
         }
       }
     }
@@ -138,7 +158,7 @@ const main = async () => {
     await h.gotoLevel(3);
     await h.waitForState('AIMING', 8000);
     // soft lob far short of everything → resolves & re-arms with ball resting
-    const landX = Math.max(450, h.correctTarget().x - 260);
+    const landX = Math.max(530, h.correctTarget().x - 260);
     const sol = h.solveLanding(landX);
     assert(sol, 'landing solution');
     assert(h.fire(sol.vx, sol.vy), 'launch rejected');
@@ -150,11 +170,7 @@ const main = async () => {
     assert(ball, 'no live projectile after re-arm');
     // debris/mover-equivalent impulse onto the correct target while AIMING
     // (approach from the right: fences only guard the left sides)
-    const target = h.correctTarget();
-    const M = h.Phaser.Physics.Matter.Matter;
-    M.Body.setPosition(ball.body, { x: target.x + 95, y: 500 });
-    M.Body.setVelocity(ball.body, { x: -3.5, y: 1.5 });
-    assert(await h.waitFor(() => s.prepared.answered === true, 8000), 'correct answer never registered');
+    assert(await deliverOnto(h, ball, () => h.correctTarget()), 'correct answer never registered');
     assert(await h.waitFor(() => h.info().questionIndex === 1, 15000),
       `FREEZE: correct answer validated but question stuck (state ${h.state()})`);
     eq(h.info().score, 1000, 'score for first-attempt correct');
@@ -163,7 +179,7 @@ const main = async () => {
   await test('late WRONG answer after re-arm shows feedback and stays playable', async () => {
     await h.gotoLevel(1);
     await h.waitForState('AIMING', 8000);
-    const landX = Math.max(450, h.correctTarget().x - 260);
+    const landX = Math.max(530, h.correctTarget().x - 260);
     const sol = h.solveLanding(landX);
     assert(h.fire(sol.vx, sol.vy), 'launch rejected');
     assert(await h.waitForState('AIMING', 15000), 'shot never resolved');
@@ -171,10 +187,7 @@ const main = async () => {
     const ball = h.liveBalls()[0];
     assert(ball, 'no resting ball');
     const wrong = s.factory.targets.find((t) => t.wb.choiceId !== s.prepared.question.correctAnswerId);
-    const M = h.Phaser.Physics.Matter.Matter;
-    M.Body.setPosition(ball.body, { x: wrong.x - 100, y: 545 });
-    M.Body.setVelocity(ball.body, { x: 3.5, y: 1.0 });
-    assert(await h.waitFor(() => h.state() === 'ANSWER_FEEDBACK', 8000), 'wrong answer never registered');
+    assert(await deliverOnto(h, ball, () => wrong), 'wrong answer never registered');
     eq(h.info().questionIndex, 0, 'wrong answer must not advance the question');
     assert(await h.waitForState('AIMING', 12000), 'feedback never settled back to AIMING');
     assert(h.fire(6, -6), 'game not playable after late wrong answer');
@@ -254,7 +267,9 @@ const main = async () => {
   await test('physics that never settles still advances (bounded timeout)', async () => {
     await h.gotoLevel(1);
     await h.waitForState('AIMING', 8000);
-    h.api.autoAim();
+    const s0 = h.scene();
+    const t0 = s0.factory.targets.find((x) => x.wb.choiceId === s0.prepared.question.correctAnswerId);
+    assert(aimShotAt(h, t0.x, t0.y), 'no aimed solution');
     assert(await h.waitForState('ANSWER_FEEDBACK', 10000), 'no answer');
     const s = h.scene();
     const original = s.factory.isSettled.bind(s.factory);

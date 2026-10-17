@@ -750,6 +750,7 @@ export class ObjectFactory {
     if (this.removalQueue.length || this.explosionQueue.length) return false;
     for (const block of this.blocks) {
       if (block.wb.removed) continue;
+      if (!block.body) continue;            // already destroyed (e.g. popped pig)
       if (block.body.isSleeping) continue;
       const v = block.body.velocity;
       if (Math.hypot(v.x, v.y) > PHYSICS.BLOCK_REST_SPEED) return false;

@@ -20,14 +20,16 @@ const FILES = {
 };
 
 /**
- * Cover-fit tuning per device (world px). Positive Y shifts art down,
- * positive X shifts art right. Used to protect important art regions
- * from cover-cropping instead of stretching. Terrain alignment for each
- * art lives in TERRAIN_PROFILES (config.js), measured per background.
+ * Cover-fit tuning per device. Positive Y shifts art down, positive X
+ * shifts art right. `scale` optionally enforces a minimum zoom (>= cover)
+ * when the terrain profile needs slack to keep the painted platform under
+ * the gameplay anchor without opening borders. Terrain alignment for each
+ * art lives in TERRAIN_PROFILES (config.js), measured per background
+ * (scripts/analyze-grass.mjs).
  */
 const FIT_TUNING = {
   [DEVICE_TYPES.DESKTOP]: { offsetX: 0, offsetY: 0 },
-  [DEVICE_TYPES.TABLET]: { offsetX: 0, offsetY: 0 },
+  [DEVICE_TYPES.TABLET]: { offsetX: 66, offsetY: 247, scale: 1.12 },
   [DEVICE_TYPES.MOBILE]: { offsetX: -80, offsetY: 0 }    // cliff edge & platform map to TERRAIN_PROFILES.mobile
 };
 
@@ -73,7 +75,8 @@ export class BackgroundManager {
     if (!this.image) return;
     const src = this.image.texture.getSourceImage();
     const tune = FIT_TUNING[this.type] || { offsetX: 0, offsetY: 0 };
-    const scale = Math.max(WORLD.WIDTH / src.width, WORLD.HEIGHT / src.height);
+    const cover = Math.max(WORLD.WIDTH / src.width, WORLD.HEIGHT / src.height);
+    const scale = tune.scale ? Math.max(cover, tune.scale) : cover;
     this.image.setScale(scale);
     this.image.setPosition(
       WORLD.WIDTH / 2 + tune.offsetX,
