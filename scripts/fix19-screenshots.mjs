@@ -46,13 +46,27 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
 }
 
 async function gotoGameScene(page, levelId = 12) {
-  await page.goto(BASE, { waitUntil: 'networkidle2' });
-  await page.waitForFunction(() => window.__WB__ && window.__WB__.scene(), { timeout: 20000 });
-  await page.evaluate((id) => window.__WB__.gotoLevel(id), levelId);
+  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  // __WB__ exists once main.js ran, but the shared managers land in the
+  // registry only when BootScene.create() finished — wait for those first.
+  await page.waitForFunction(() => window.__WB__ && window.__WB__.scene()
+    && window.__WB__.save() !== null, { timeout: 45000 });
+  // scene.start() boots GameScene synchronously — if a concurrent rebuild
+  // left the registry briefly incomplete the evaluate throws; retry a few
+  // times before giving up (the wait below re-checks the real state).
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      await page.evaluate((id) => window.__WB__.gotoLevel(id), levelId);
+      break;
+    } catch (e) {
+      if (attempt === 3) throw e;
+      await sleep(1500);
+    }
+  }
   await page.waitForFunction(() => {
     const s = window.__WB__ && window.__WB__.scene();
     return s && s.prepared && s.stateMachine && s.stateMachine.current === 'AIMING';
-  }, { timeout: 30000 });
+  }, { timeout: 45000 });
   await page.evaluate(() => window.__WB__.setAutoPause(false));
   await sleep(700); // arming + entrance tweens settle
 }
@@ -98,7 +112,7 @@ const main = async () => {
   };
 
   /* 1 — the five-card selector, desktop */
-  await shot('selector-desktop.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('selector-desktop.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('basic'));
     await sleep(300);
   });
@@ -114,7 +128,7 @@ const main = async () => {
   });
 
   /* 4 — red bird selected (glowing card + red bird in the pouch) */
-  await shot('red-selected.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('red-selected.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('bomb')); // select another first…
     await sleep(250);
     await page.evaluate(() => window.__WB__.scene().selectProjectile('basic')); // …so the pop reads
@@ -122,7 +136,7 @@ const main = async () => {
   });
 
   /* 5 — blue bird accelerating (mid-boost trail) */
-  await shot('blue-boost.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('blue-boost.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('speed'));
     await sleep(250);
     await fire(page, 17, -7);
@@ -132,7 +146,7 @@ const main = async () => {
   });
 
   /* 6 — yellow bird splitting into five */
-  await shot('yellow-split-five.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('yellow-split-five.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('split'));
     await sleep(250);
     await fire(page, 17, -7);
@@ -142,7 +156,7 @@ const main = async () => {
   });
 
   /* 7 — black bird exploding over a tower */
-  await shot('black-explosion.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('black-explosion.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('bomb'));
     await sleep(250);
     await fire(page, 17, -5.5);
@@ -155,7 +169,7 @@ const main = async () => {
   });
 
   /* 8 — purple bird freezing blocks */
-  await shot('purple-freeze.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('purple-freeze.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('ice'));
     await sleep(250);
     await fire(page, 17, -5.5);
@@ -168,7 +182,7 @@ const main = async () => {
   });
 
   /* 9 — a bird type at zero ammunition (drain blue: 2 shots on L12) */
-  await shot('zero-ammo-card.png', { w: 1920, h: 1080 }, async (page) => {
+  await shot('zero-ammo-card.png', { w: 1536, h: 864 }, async (page) => {
     await page.evaluate(() => window.__WB__.scene().selectProjectile('speed'));
     await sleep(200);
     for (let i = 0; i < 2; i++) {

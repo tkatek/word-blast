@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>WORD BLAST — gameplay foundation</title>
+  <script type="module" crossorigin src="./assets/index-B4qn7cZr.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CcQXBoR2.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- Landscape-only gate: fullscreen on phones held in portrait (Fix #2).
+       Shown/hidden by js/systems/OrientationGate.js on every scene. -->
+  <div id="rotate-overlay" role="dialog" aria-label="Rotate your phone" aria-hidden="true">
+    <div class="rotate-card">
+      <svg class="rotate-icon" viewBox="0 0 140 120" width="140" height="120" aria-hidden="true">
+        <!-- rotating phone -->
+        <g class="rotate-phone">
+          <rect x="34" y="18" width="52" height="96" rx="10" fill="none" stroke="#ffd60a" stroke-width="6"/>
+          <rect x="42" y="30" width="36" height="60" rx="4" fill="none" stroke="#ffd60a" stroke-width="3"/>
+          <rect x="53" y="96" width="14" height="4" rx="2" fill="#ffd60a"/>
+        </g>
+        <!-- rotation arrow -->
+        <path d="M 112 62 A 54 54 0 0 0 96 26" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+        <polygon points="88,16 106,14 100,32" fill="#ffffff"/>
+      </svg>
+      <h2>Rotate Your Phone</h2>
+      <p>WORD BLAST is played in landscape.<br />Turn your phone sideways to continue.</p>
+    </div>
+  </div>
+
+</body>
+</html>

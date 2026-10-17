@@ -156,9 +156,14 @@ export class QuestionCard {
     /* the card itself — one container, re-presented per question */
     this.root = scene.add.container(QUESTION_CARD.CENTER.x, QUESTION_CARD.CENTER.y)
       .setDepth(this.depth).setVisible(false);
+    // The artwork (2082×484) is displayed at the card's base geometry —
+    // aspect preserved, never stretched. All child positions (text zone,
+    // speaker medallion, hit areas) are computed against this same base.
     this.shadow = scene.add.image(0, QUESTION_CARD.SHADOW.dy, QUESTION_CARD.TEXTURE)
+      .setDisplaySize(W, H)
       .setTint(0x120b04).setAlpha(QUESTION_CARD.SHADOW.alpha);
-    this.art = scene.add.image(0, 0, QUESTION_CARD.TEXTURE);
+    this.art = scene.add.image(0, 0, QUESTION_CARD.TEXTURE)
+      .setDisplaySize(W, H);
     this.kicker = scene.add.text(0, 0, '', {
       fontFamily: 'Arial, Helvetica, sans-serif', fontStyle: 'bold',
       fontSize: `${QUESTION_CARD.TYPE.KICKER.size}px`, color: QUESTION_CARD.TYPE.KICKER.color
@@ -569,6 +574,8 @@ export class QuestionCard {
       scale: +this.root.scaleX.toFixed(3),
       visible: this.root.visible,
       alpha: +this.root.alpha.toFixed(2),
+      artW: this.art ? Math.round(this.art.displayWidth) : null,
+      artH: this.art ? Math.round(this.art.displayHeight) : null,
       readRemainingMs: Math.round(this.readRemainingMs),
       readElapsedMs: Math.round(this.readElapsedMs),
       fittedFontSize: this.fittedSize,

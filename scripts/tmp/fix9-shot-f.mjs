@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer-core';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const OUT = join(ROOT, 'docs', 'screenshots', 'fix9');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

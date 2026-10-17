@@ -479,7 +479,7 @@ await test('retry/restart: question retry restores full ammunition consistently'
   await h.gotoLevel(12);
   await h.waitForState('AIMING');
   const s = h.scene();
-  assert(h.fire(12, -6), 'launch refused');
+  assert(h.fire(-6, -5), 'launch refused'); // guaranteed miss
   await h.waitFor(() => s.currentShot.resolvedHandled, 20000);
   await h.waitForState('AIMING', 15000);
   eq(s.birdInventory.count('basic'), 2, 'one basic consumed pre-retry');

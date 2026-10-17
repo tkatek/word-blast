@@ -74,6 +74,8 @@ const main = async () => {
     near(c.x, QUESTION_CARD.CENTER.x, 2, `centered x (${c.x})`);
     near(c.y, QUESTION_CARD.CENTER.y, 2, `centered y (${c.y})`);
     near(c.scale, 1, 0.02, 'center scale');
+    near(c.artW, QUESTION_CARD.CENTER.width, 2, 'art rendered at base width (aspect-true)');
+    near(c.artH, QUESTION_CARD.CENTER.width * QUESTION_CARD.ART.ASPECT, 3, 'art rendered at base height');
     assert(c.question && c.question.text === questionText(h, 1, 0), 'card shows Q1 text');
     assert(c.introActive, 'introActive during presentation');
     await h.waitForState('AIMING', 6000); // drain the presentation
