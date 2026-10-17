@@ -169,13 +169,13 @@ export class ViewportController {
     this.applyNow();
   }
 
-  scheduleApply() {
+  scheduleApply(delayMs) {
     if (this.pending) return;
     this.pending = true;
     setTimeout(() => {
       this.pending = false;
       this.applyNow();
-    }, this.debounceMs);
+    }, delayMs ?? this.debounceMs);
   }
 
   /** Resize the canvas buffer to the visible viewport × DPR (idempotent). */
@@ -192,6 +192,10 @@ export class ViewportController {
     // Emits 'resize' → cameras/renderer follow, scenes re-frame themselves.
     scale.resize(bw, bh);
     if (this.onChange) this.onChange();
+    // Mobile viewport sources (visualViewport vs innerWidth) can disagree
+    // while toolbars animate or the window settles: one cheap follow-up
+    // check heals any missed change. No-op when stable.
+    this.scheduleApply(300);
   }
 
   /** Test/debug hook: force a re-read of the viewport. */

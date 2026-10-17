@@ -107,6 +107,13 @@ export function installDebugAPI(game) {
       return { ...deviceInfo(), background: s && s.background ? s.background.type : null };
     },
 
+    /** Force a viewport re-read + re-frame (responsive-system tests). */
+    refreshViewport() {
+      const vp = game.registry.get('viewport');
+      if (vp) vp.refresh();
+      return true;
+    },
+
     /** Test-only orientation override: 'portrait' | 'landscape' | null. */
     setOrientationOverride(mode) {
       setOrientationOverride(mode);

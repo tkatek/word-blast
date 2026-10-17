@@ -51,6 +51,7 @@ export const game = new Phaser.Game({
 
 // Fix #2 — full-bleed responsive viewport + landscape-only gate for phones.
 export const viewport = new ViewportController(game, { onChange: refreshOrientationGate });
+game.registry.set('viewport', viewport); // debug/test access
 installOrientationGate();
 
 installDebugAPI(game);

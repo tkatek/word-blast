@@ -258,9 +258,13 @@ export class ObjectFactory {
     // setDisplaySize(display) then scales body + visual together — the
     // collider lands on EXACTLY type.radius world px either way, so mass,
     // bounce and collisions are identical to the pre-bird circles.
+    // maxSides pins the polygon side count to what the legacy 40px/20r
+    // circle textures produced (Matter derives sides from the UNSCALED
+    // radius, so without this the larger bird textures would approximate
+    // the circle with more sides and a ~0.7% heavier body).
     const visual = projectileVisual(typeKey, this.scene.textures, type.radius, child);
     const go = this.scene.matter.add.image(x, y, visual.texture, undefined, {
-      shape: { type: 'circle', radius: visual.shapeRadius },
+      shape: { type: 'circle', radius: visual.shapeRadius, maxSides: 20 },
       density: type.density,
       restitution: type.restitution,
       frictionAir: type.frictionAir,

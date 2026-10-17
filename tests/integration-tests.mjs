@@ -36,6 +36,20 @@ function eq(a, b, msg) {
   if (a !== b) throw new Error(msg || `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 }
 
+/** Landing X for the "far short of everything" soft lob: open grass well
+ *  left of the first structure/plaque of the CURRENT question, so the ball
+ *  can never graze a wrong answer target on its descent (one answer per
+ *  launch — a mid-flight wrong contact would consume the shot and legally
+ *  block the late delivery this suite verifies). */
+function shortLobLandX(h) {
+  const s = h.scene();
+  const structLeft = Math.min(
+    ...s.factory.targets.map((t) => t.x - 70),
+    ...(s.factory.blocks.length ? s.factory.blocks.map((b) => b.x - b.displayWidth / 2) : [Infinity])
+  );
+  return Math.max(320, Math.min(500, structLeft - 120));
+}
+
 /** Deliver a resting shot projectile onto a target with retries.
  * Dynamic plaques settle differently per run; a retry or two lands one. */
 async function deliverOnto(h, ball, getTarget, didLand) {
@@ -196,7 +210,7 @@ const main = async () => {
     await h.gotoLevel(3);
     await h.waitForState('AIMING', 8000);
     // soft lob far short of everything → resolves & re-arms with ball resting
-    const landX = Math.max(530, h.correctTarget().x - 260);
+    const landX = shortLobLandX(h);
     const sol = h.solveLanding(landX);
     assert(sol, 'landing solution');
     assert(h.fire(sol.vx, sol.vy), 'launch rejected');
@@ -217,7 +231,7 @@ const main = async () => {
   await test('late WRONG answer after re-arm shows feedback and stays playable', async () => {
     await h.gotoLevel(1);
     await h.waitForState('AIMING', 8000);
-    const landX = Math.max(530, h.correctTarget().x - 260);
+    const landX = shortLobLandX(h);
     const sol = h.solveLanding(landX);
     assert(h.fire(sol.vx, sol.vy), 'launch rejected');
     assert(await h.waitForState('AIMING', 15000), 'shot never resolved');
