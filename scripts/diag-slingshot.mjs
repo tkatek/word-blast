@@ -1,7 +1,7 @@
 /**
- * Diagnose the slingshot rendering: load level 1, screenshot the idle
- * slingshot region, dump the renderer's live object state (positions,
- * scales, depths, visibility) and the texture dimensions.
+ * Diagnose/verify the slingshot rendering: load level 1, dump the
+ * renderer's live object state (frame size, positions, scales, depths)
+ * and screenshot the slingshot region.
  */
 import puppeteer from 'puppeteer-core';
 import { dirname, join } from 'node:path';
@@ -35,29 +35,24 @@ try {
     const r = s.slingshot.renderer;
     const g = window.__WB__.game;
     const tex = g.textures.get('slingshot-wood');
-    const src = tex.getSourceImage();
     const obj = (o) => o ? {
       x: +o.x.toFixed(1), y: +o.y.toFixed(1), sx: +o.scaleX.toFixed(3), sy: +o.scaleY.toFixed(3),
-      d: o.depth, vis: o.visible, alpha: o.alpha, w: o.width, h: o.height, origin: [o.originX, o.originY]
+      d: o.depth, vis: o.visible, alpha: o.alpha, w: o.width, h: o.height, frame: o.frame.name, origin: [o.originX, o.originY]
     } : null;
     return {
-      texSize: [src.width, src.height],
-      frameCount: tex.get().length,
-      woodBack: obj(r.woodBack),
-      woodFront: obj(r.woodFront),
+      texSize: [tex.getSourceImage().width, tex.getSourceImage().height],
+      defaultFrame: tex.firstFrame,
+      wood: obj(r.wood),
       scale: r.scale,
-      rearTip: r.rearTip, frontTip: r.frontTip, base: r.base, tipsMid: r.tipsMid,
+      rearTip: r.rearTip, frontTip: r.frontTip, base: r.base,
       anchor: r.anchor,
-      groundY: 471,
-      preview: s.slingshot.preview ? { x: s.slingshot.preview.x, y: s.slingshot.preview.y, tex: s.slingshot.preview.texture.key } : null,
-      childrenDepths: s.children.list.slice(0, 40).map((c) => ({ type: c.type, d: c.depth, vis: c.visible }))
+      preview: s.slingshot.preview ? { x: s.slingshot.preview.x, y: s.slingshot.preview.y, tex: s.slingshot.preview.texture.key } : null
     };
   });
   console.log(JSON.stringify(dump, null, 1));
 
-  await page.screenshot({ path: join(OUT, 'diag-idle-full.png') });
-  await page.screenshot({ path: join(OUT, 'diag-idle-slingshot.png'), clip: { x: 0, y: 0, width: 420, height: 720 } });
-  console.log('screens saved');
+  await page.screenshot({ path: join(OUT, 'diag-fixed-idle-slingshot.png'), clip: { x: 0, y: 0, width: 460, height: 720 } });
+  console.log('screen saved');
 } finally {
   await browser.close();
 }

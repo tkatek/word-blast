@@ -133,11 +133,9 @@ export const SLINGSHOT = {
    *   POUCH      pouch rest / launch origin, centered in the fork gap
    *                                                  (682, 78)
    *   BASE       handle bottom planted into the grass (732, 1205)
-   *   FRONT_CROP texture rect of the near fork (700, 0, 300, 610) —
-   *              re-drawn OVER the bird and front band as its own sprite
-   *              so the projectile reads as seated BETWEEN the forks.
-   * Measured from the artwork's alpha silhouette; tune freely — the
-   * mechanics all derive from these values.
+   * Measured from the artwork's alpha silhouette (scripts/measure-slingshot-art.mjs);
+   * tune freely — the mechanics all derive from these values. The artwork
+   * is rendered as ONE complete static sprite (never cropped or split).
    */
   ART: {
     KEY: 'slingshot-wood',
@@ -146,7 +144,6 @@ export const SLINGSHOT = {
     FRONT_TIP: { x: 0.688995, y: 0.070175 },
     POUCH: { x: 0.543860, y: 0.062200 },
     BASE: { x: 0.583732, y: 0.960925 },
-    FRONT_CROP: { x: 0.558217, y: 0, w: 0.239234, h: 0.486443 },
     GRASS_EMBED: 8        // px the handle bottom sinks below GROUND_Y
   }
 };

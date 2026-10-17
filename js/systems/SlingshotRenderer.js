@@ -90,7 +90,7 @@ function quadPt(p0, p1, cp, t) {
  * preloaded by BootScene; if it could not be fetched (headless test
  * environment, missing file), a procedural wooden Y is generated at the
  * SAME texture size using the SAME normalized anchors — every downstream
- * geometry (fork tips, pouch rest, base, overlay crop) stays valid.
+ * geometry (fork tips, pouch rest, base) stays valid.
  */
 export function ensureSlingshotTexture(scene) {
   const KEY = SLINGSHOT.ART.KEY;
@@ -147,27 +147,18 @@ export class SlingshotRenderer {
     this.texW = src.width;
     this.texH = src.height;
 
-    // Front-fork overlay frame: a sub-rectangle of the SAME texture, added
-    // once per texture (survives scene restarts — Phaser caches textures).
-    const FR = SLINGSHOT.ART.FRONT_CROP;
-    this.cropPx = {
-      x: Math.round(FR.x * this.texW),
-      y: Math.round(FR.y * this.texH),
-      w: Math.round(FR.w * this.texW),
-      h: Math.round(FR.h * this.texH)
-    };
-    if (!tex.has(FRONT_FRAME)) {
-      tex.add(FRONT_FRAME, 0, this.cropPx.x, this.cropPx.y, this.cropPx.w, this.cropPx.h);
-    }
-
-    // display objects, created back-to-front
+    // display objects, created back-to-front. The wood is ONE complete,
+    // static sprite; its frame is the texture's '__BASE' (the full PNG).
+    // It MUST be requested explicitly: Phaser promotes the first frame
+    // added via Texture.add() to the texture default, and an implicit
+    // lookup previously resolved to a cropped prong — the root cause of
+    // the invisible trunk / disconnected arms bug. No frames are ever
+    // added to this texture any more, and the explicit '__BASE' pins the
+    // full artwork even if some other code adds one.
     this.shadow = scene.add.graphics().setDepth(RENDER_DEPTH.SHADOW);
-    this.woodBack = scene.add.image(0, 0, KEY)
+    this.wood = scene.add.image(0, 0, KEY, '__BASE')
       .setOrigin(0, 0)
-      .setDepth(RENDER_DEPTH.WOOD_BACK);
-    this.woodFront = scene.add.image(0, 0, KEY, FRONT_FRAME)
-      .setOrigin(0, 0)
-      .setDepth(RENDER_DEPTH.WOOD_FRONT);
+      .setDepth(RENDER_DEPTH.WOOD);
     this.bandBack = scene.add.graphics().setDepth(RENDER_DEPTH.BAND_BACK);
     this.pouchG = scene.add.graphics().setDepth(RENDER_DEPTH.POUCH);
     this.bandFront = scene.add.graphics().setDepth(RENDER_DEPTH.BAND_FRONT);
@@ -209,14 +200,9 @@ export class SlingshotRenderer {
     const span = baseT.y - pouchT.y;
     this.scale = Math.max(0.05, Math.min(0.35, want / span));
 
-    // texture top-left in world space (origin 0,0 on both wood sprites)
+    // texture top-left in world space (origin 0,0; ONE complete sprite)
     const topLeft = v(anchor.x - pouchT.x * this.scale, anchor.y - pouchT.y * this.scale);
-    this.woodBack.setPosition(topLeft.x, topLeft.y).setScale(this.scale);
-    // the overlay shows only the cropped prong; its frame origin maps to
-    // the same texture point, so it sits pixel-perfectly over the rear copy
-    this.woodFront
-      .setPosition(topLeft.x + this.cropPx.x * this.scale, topLeft.y + this.cropPx.y * this.scale)
-      .setScale(this.scale);
+    this.wood.setPosition(topLeft.x, topLeft.y).setScale(this.scale);
 
     // world-space attachment points (used by the bands every frame)
     const toWorld = (t) => v(topLeft.x + t.x * this.scale, topLeft.y + t.y * this.scale);
@@ -444,7 +430,7 @@ export class SlingshotRenderer {
   }
 
   destroy() {
-    for (const obj of [this.shadow, this.woodBack, this.bandBack, this.pouchG,
+    for (const obj of [this.shadow, this.wood, this.bandBack, this.pouchG,
       this.bandFront, this.tipWrap, this.trajectory]) {
       obj.destroy();
     }
