@@ -7,67 +7,49 @@
 export const WORLD = {
   WIDTH: 1280,
   HEIGHT: 720,
-  GROUND_Y: 428,          // top surface of the MAIN gameplay terrace (towers, desktop art)
-  GROUND_THICKNESS: 240,  // extends below the visible area
-  // Canonical slingshot anchor (aliases SLINGSHOT.ANCHORS.desktop — kept
-  // for the test suite and headless helpers; gameplay code reads the live
+  /**
+   * THE gameplay ground — one flat, continuous surface across the whole
+   * world. Everything stands on it: slingshot on the left, answer towers
+   * center-right. It is the ONLY ground constant in the codebase:
+   *   - the invisible static Matter.js collider top is exactly GROUND_Y
+   *     (PhysicsObjects.createTerrain)
+   *   - the background art is placed so its painted grass line lands on
+   *     GROUND_Y (BackgroundManager.computeBackgroundFit)
+   *   - the slingshot base rests on it (SLINGSHOT.ANCHOR.y + BASE_OFFSET_Y)
+   *   - baked level layouts are translated onto it at runtime
+   *     (LevelManager, via LAYOUT_BAKED_GROUND_Y)
+   * Change it here and the whole game follows — never anywhere else.
+   */
+  GROUND_Y: 471,
+  // Canonical slingshot pouch anchor (aliases SLINGSHOT.ANCHOR — kept for
+  // the test suite and headless helpers; gameplay code reads the live
   // anchor off the Slingshot).
   SLING_X: 195,
-  SLING_Y: 335,
+  SLING_Y: 413,
   KILL_MARGIN: 260        // bodies this far outside the world get removed
 };
 
 /**
- * Gameplay terrain, measured FROM the painted backgrounds (world px under
- * each device's cover-fit; see scripts/measure-terrain.mjs). The background
- * art is the ONLY visible terrain — these are invisible static colliders
- * that match the painted grassy surfaces:
- *  - LEFT plateau (slingshot cliff): top = painted grass line
- *  - MAIN terrace (towers):           top = painted grass line
- * The painted water gap between them has NO collider: anything falling in
- * drops out of the world and is cleaned up / recovered.
- *
- * LAYOUT.dx rigidly translates the canonical (desktop) baked layouts so
- * every structure stands on THIS device's painted terrace. Translations
- * only — never scaled — so tower stacking geometry is preserved exactly.
+ * The official gameplay background — ONE flat-grass landscape for every
+ * device (desktop, laptop, tablet, phone landscape). GRASS_LINE_Y is the
+ * painted top edge of the flat grassy foreground, measured across the full
+ * art width (scripts/analyze-grass.mjs). The BackgroundManager aligns that
+ * line onto WORLD.GROUND_Y, so the visible grass and the invisible collider
+ * can never drift apart.
  */
-export const TERRAIN_PROFILES = {
-  desktop: {
-    PLATEAU: { left: -120, right: 299, top: 393 },
-    TERRACE: { left: 459, right: 1400, top: 428 },
-    LAYOUT: { dx: 0 }
-  },
-  tablet: {
-    // Measured from the current tablet artwork (1448×1086) under its
-    // BackgroundManager fit (scale 1.12, offsetX +66, offsetY +247):
-    // sling stands on the slope-top grass at world y≈400 (fx 17.5%, f 0.33),
-    // the broad tower terrace sits at f≈0.53. Waterfall + cliff edge stay
-    // visible at the left. See scripts/analyze-grass.mjs.
-    PLATEAU: { left: -120, right: 220, top: 400 },
-    TERRACE: { left: 515, right: 1400, top: 643 },
-    LAYOUT: { dx: -16 }
-  },
-  mobile: {
-    PLATEAU: { left: -120, right: 146, top: 406 },
-    TERRACE: { left: 610, right: 1400, top: 463 },
-    LAYOUT: { dx: 50 }
-  }
+export const BACKGROUND = {
+  FILE: 'gameplay.webp',
+  GRASS_LINE_Y: 615       // px from the top of the 1672×941 source art
 };
 
-/** Resolve a device's terrain profile (unknown types fall back to desktop). */
-export function terrainFor(deviceType) {
-  const p = TERRAIN_PROFILES[deviceType] || TERRAIN_PROFILES.desktop;
-  return {
-    device: TERRAIN_PROFILES[deviceType] ? deviceType : 'desktop',
-    PLATEAU: p.PLATEAU,
-    TERRACE: p.TERRACE,
-    LAYOUT: p.LAYOUT,
-    get WATER_GAP() { return [this.PLATEAU.right, this.TERRACE.left]; }
-  };
-}
-
-/** Canonical profile (desktop art) — reference for baked level layouts. */
-export const TERRAIN = terrainFor('desktop');
+/**
+ * Level layouts in levels.json are baked against this ground line
+ * (structures' base pieces sit on it). LevelManager rigidly translates
+ * them onto the live WORLD.GROUND_Y at runtime — translation only, never
+ * scaled, so tower stacking geometry is preserved exactly. If the ground
+ * ever moves, the layouts follow automatically.
+ */
+export const LAYOUT_BAKED_GROUND_Y = 428;
 
 export const PHYSICS = {
   GRAVITY_Y: 1,
@@ -132,23 +114,21 @@ export const SLINGSHOT = {
   TRAJECTORY_STEPS: 60,
   TRAJECTORY_STEP_MS: 1000 / 60,
   /**
-   * Pouch rest position (world px in the fixed 1280×720 logical world),
-   * measured per device so the wooden base stands exactly on the PAINTED
-   * grassy cliff of that device's background (TERRAIN_PROFILES.*.PLATEAU):
-   * y = plateau top - BASE_OFFSET_Y, x sits comfortably inside the cliff.
+   * Pouch rest position (world px in the fixed 1280×720 logical world).
+   * The wooden base stands exactly on the flat gameplay ground:
+   * ANCHOR.y + BASE_OFFSET_Y === WORLD.GROUND_Y (asserted by the tests).
    */
-  ANCHORS: {
-    desktop: { x: 195, y: 335 },
-    tablet: { x: 179, y: 342 },  // slope-top grass, current tablet art (plateau top 400)
-    mobile: { x: 90, y: 348 }
-  },
+  ANCHOR: { x: 195, y: 413 },
   BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact)
 };
 
-/** Slingshot pouch anchor for a device type (clone; safe to mutate). */
-export function slingshotAnchor(deviceType) {
-  const a = SLINGSHOT.ANCHORS[deviceType] || SLINGSHOT.ANCHORS.desktop;
-  return { x: a.x, y: a.y };
+/**
+ * Slingshot pouch anchor (clone; safe to mutate). The ground is identical
+ * on every device, so the anchor is too — the legacy deviceType argument is
+ * accepted and ignored for call-site compatibility.
+ */
+export function slingshotAnchor() {
+  return { x: SLINGSHOT.ANCHOR.x, y: SLINGSHOT.ANCHOR.y };
 }
 
 /** Destructible materials. hp = damage pool; density drives mass. */
@@ -319,7 +299,6 @@ export const STATE_TRANSITIONS = {
 
 export const COLORS = {
   SKY: 0x8ecae6,
-  GROUND: 0x588157,
   WOOD: 0xb08968,
   WOOD_DARK: 0x7f5539,
   GLASS: 0xa8dadc,
