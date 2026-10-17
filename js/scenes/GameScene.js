@@ -741,8 +741,9 @@ export class GameScene extends Phaser.Scene {
     const correctChoice = this.prepared.question.correctAnswerId;
     const target = this.factory.targets.find((t) => t.wb.choiceId === correctChoice);
     if (!target) return;
-    const halfW = TARGETS.WIDTH / 2 + 6;
-    const halfH = TARGETS.HEIGHT / 2 + 6;
+    // live display size — parchment panels vary in width (S/M/L variants)
+    const halfW = target.displayWidth / 2 + 6;
+    const halfH = target.displayHeight / 2 + 6;
     for (const block of [...this.factory.blocks]) {
       if (block.wb.removed) continue;
       if (Math.abs(block.x - target.x) < halfW && Math.abs(block.y - target.y) < halfH) {
@@ -1140,7 +1141,7 @@ export class GameScene extends Phaser.Scene {
     // (wrong) plaque on the way.
     const blockers = [];
     for (const t of this.factory.targets) {
-      if (t !== target && !t.wb.hit) blockers.push({ x: t.x, y: t.y, w: 116, h: 80 });
+      if (t !== target && !t.wb.hit) blockers.push({ x: t.x, y: t.y, w: t.displayWidth, h: t.displayHeight });
     }
     for (const b of this.factory.blocks) {
       if (!b.wb.removed) blockers.push({ x: b.x, y: b.y, w: b.displayWidth, h: b.displayHeight });

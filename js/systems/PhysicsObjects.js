@@ -20,7 +20,7 @@ import {
   MATERIALS, DAMAGE, EXPLOSION, ICE, PROJECTILE_TYPES, SPLIT_CHILD, BOOST,
   TARGETS, WORLD, TUNNELING, BUDGETS, COLORS, PHYSICS
 } from '../config.js';
-import { TOWER_ASSETS } from '../data/tower-assets.js';
+import { TOWER_ASSETS, displaySizeFor } from '../data/tower-assets.js';
 import { projectileVisual } from '../data/birds.js';
 import { BirdSprite } from './BirdSprite.js';
 
@@ -36,6 +36,13 @@ const MatterLib = Phaser.Physics.Matter.Matter;
  */
 const DESPAWN_REST_MS = 250;   // upright rest before the fade starts
 const DESPAWN_FADE_MS = 300;   // fade-out length
+
+/** Parchment panel variant that fits an answer word (short/medium/long). */
+function panelVariantFor(text) {
+  const n = (text || '').length;
+  return TARGETS.VARIANTS.find((v) => n <= v.maxChars)
+    || TARGETS.VARIANTS[TARGETS.VARIANTS.length - 1];
+}
 
 export class ObjectFactory {
   constructor(scene) {
@@ -153,7 +160,10 @@ export class ObjectFactory {
     } else {
       go = this.scene.matter.add.image(def.x, def.y, texKey, undefined, opts);
     }
-    go.setDisplaySize(w, h);
+    // grounding guard: display size maps the asset's VISIBLE CONTENT onto
+    // its logical `size`, so the painted edge meets the collider edge and
+    // resting faces touch the surface below with zero gap
+    go.setDisplaySize(...displaySizeFor(def.a, fw, fh));
     go.setDepth(asset.material === 'pig' ? 6 : 5);
     if (def.rot) go.setAngle(def.rot);
     go.wb = {
@@ -200,21 +210,27 @@ export class ObjectFactory {
   /* ------------------------------------------------------------------ */
 
   /**
-   * Dynamic answer plaque on sign_blank_wood: a real body resting on the
-   * structure, indestructible, validated only by direct projectile
-   * contact. Labels follow the body (position + rotation) via a container,
-   * so the text rides the board like paint when the tower tumbles.
+   * Dynamic answer plaque on the parchment-and-wood panel: a real body
+   * resting on the structure, indestructible, validated only by direct
+   * projectile contact. Panel width adapts to the answer length (S/M/L
+   * variants of one design), the letter badge marks the choice, and the
+   * word is inked large enough to read at gameplay distance. Labels follow
+   * the body (position + rotation) via a container, so the text rides the
+   * board like paint when the tower tumbles.
    */
   createTarget(def, meta) {
-    const [w, h] = TOWER_ASSETS.sign_blank.size;
-    const go = this.scene.matter.add.image(def.x, def.y, 'tw-sign_blank', undefined, {
+    const variant = panelVariantFor(meta.text);
+    const texKey = `tw-${variant.key}`;
+    const [w, h] = TOWER_ASSETS[variant.key].size;
+    const go = this.scene.matter.add.image(def.x, def.y, texKey, undefined, {
       friction: 0.6,
       restitution: TARGETS.RESTITUTION,
       density: 0.0012,
       frictionAir: 0.004,
       label: 'target'
     });
-    go.setDisplaySize(w, h);
+    const frame = this.scene.textures.getFrame(texKey);
+    go.setDisplaySize(...displaySizeFor(variant.key, frame ? frame.realWidth : w, frame ? frame.realHeight : h));
     go.setDepth(7);
     go.wb = {
       kind: 'target',
@@ -228,16 +244,34 @@ export class ObjectFactory {
       labels: []
     };
 
-    const label = this.scene.add.text(0, -h * 0.26, meta.label, {
-      fontFamily: 'Arial', fontSize: '22px', fontStyle: 'bold', color: '#3c2a15'
+    // parchment typography (config TARGETS.TEXT): badge = choice letter,
+    // word/sentence = wrap + shrink-to-fit inside the parchment area
+    // (answers can be full sentences — the L panel wraps them to 2-3 lines
+    // instead of the old 13-char clip)
+    const T = TARGETS.TEXT;
+    const badge = this.scene.add.circle(
+      -w / 2 + T.BADGE_RADIUS + 4, -h / 2 + T.BADGE_RADIUS + 4,
+      T.BADGE_RADIUS, T.BADGE_FILL
+    ).setStrokeStyle(2.5, 0x5d3a17);
+    const badgeText = this.scene.add.text(badge.x, badge.y, meta.label, {
+      fontFamily: T.FONT, fontSize: '17px', fontStyle: 'bold', color: T.BADGE_TEXT
     }).setOrigin(0.5);
-    const clip = meta.text.length > 13 ? meta.text.slice(0, 12) + '…' : meta.text;
-    const bodyText = this.scene.add.text(0, h * 0.15, clip, {
-      fontFamily: 'Arial', fontSize: '13px', color: '#3c2a15'
+    const maxW = w - T.PADDING_X * 2;
+    const maxH = h - 22;
+    const wordText = this.scene.add.text(0, 2, meta.text, {
+      fontFamily: T.FONT, fontSize: `${T.MAX_SIZE}px`, fontStyle: 'bold', color: T.COLOR,
+      align: 'center', wordWrap: { width: maxW }
     }).setOrigin(0.5);
-    const holder = this.scene.add.container(def.x, def.y, [label, bodyText]).setDepth(8);
+    let size = T.MAX_SIZE;
+    while (size > T.MIN_SIZE && (wordText.width > maxW || wordText.height > maxH)) {
+      size -= 1;
+      wordText.setFontSize(size);
+    }
+    if (wordText.width > maxW) wordText.setScale(maxW / wordText.width); // unbreakable token fallback
+
+    const holder = this.scene.add.container(def.x, def.y, [badge, badgeText, wordText]).setDepth(8);
     go.wb.labelHolder = holder;
-    go.wb.labels = [label, bodyText];
+    go.wb.labels = [badge, badgeText, wordText];
 
     this.targets.push(go);
     return go;
@@ -508,7 +542,7 @@ export class ObjectFactory {
     const swap = (key) => {
       const r = block.rotation;
       block.setTexture(`tw-${key}`);
-      block.setDisplaySize(...TOWER_ASSETS[key].size);
+      block.setDisplaySize(...displaySizeFor(key));
       block.setRotation(r);
       block.wb.asset = key;
     };

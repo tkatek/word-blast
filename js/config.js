@@ -254,12 +254,36 @@ export const SPLIT_CHILD = {
 export const BOOST = { MULTIPLIER: 1.6 };
 
 export const TARGETS = {
-  WIDTH: 116,             // logical plaque size (sign_blank_wood art)
-  HEIGHT: 80,
+  WIDTH: 116,             // canonical plaque size (small variant — audits
+  HEIGHT: 80,             // and generators use WIDTH/HEIGHT as the minimum)
   COLLIDER_INSET: 5,      // collider slightly inside the visible board
   RESTITUTION: 0.15,      // wooden plaques should not ping-pong
   CHOICE_LABELS: ['A', 'B', 'C'],
-  RESPAWN_PUFF: true      // out-of-bounds plaque recovery shows a puff
+  RESPAWN_PUFF: true,     // out-of-bounds plaque recovery shows a puff
+  /**
+   * Parchment answer panels (one design, three widths — the frame and its
+   * corner ornaments are identical, only the parchment middle grows, so
+   * every answer renders at the same font size). Variant is chosen by
+   * answer length; layout maths that must hold for ANY plaque use the
+   * widest (L) width defensively.
+   */
+  VARIANTS: [
+    { key: 'answer_panel_s', width: 116, maxChars: 7 },
+    { key: 'answer_panel_m', width: 142, maxChars: 11 },
+    { key: 'answer_panel_l', width: 170, maxChars: 99 }
+  ],
+  MAX_WIDTH: 170,
+  /** Parchment typography: dark ink on cream, sized to fit the panel. */
+  TEXT: {
+    FONT: 'Arial',
+    MAX_SIZE: 24,          // px — shrink-to-fit never enlarges past this
+    MIN_SIZE: 14,          // px — floor; beyond it the L panel is used
+    PADDING_X: 16,         // inner padding each side (inside the frame)
+    COLOR: '#3d2814',
+    BADGE_RADIUS: 12,      // circular letter badge at the panel's top-left
+    BADGE_FILL: 0x8a5a2b,
+    BADGE_TEXT: '#ffefd8'
+  }
 };
 
 export const SCORING = {
