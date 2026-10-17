@@ -90,7 +90,7 @@ function aimShotAt(h, x, y, attempt = 0) {
     }
     return true;
   };
-  let pool = [];
+  let fallbackPool = null;
   for (const aimY of [y, y - 28]) {
     const viable = [];
     for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6, -42, -48, -54]) {
@@ -101,11 +101,14 @@ function aimShotAt(h, x, y, attempt = 0) {
     // Prefer arcs that do not clip another plaque or a tower piece in
     // front of the aim point — those legally answer a DIFFERENT plaque.
     const clearing = viable.filter((sol) => clearArc(sol.vx, sol.vy));
-    pool = clearing.length ? clearing : viable;
-    if (pool.length) break; // center aim with a clear arc wins
+    if (clearing.length) {
+      const sol = clearing[attempt % clearing.length];
+      return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
+    }
+    if (!fallbackPool && viable.length) fallbackPool = viable;
   }
-  if (!pool.length) return false;
-  const sol = pool[attempt % pool.length];
+  if (!fallbackPool) return false;
+  const sol = fallbackPool[attempt % fallbackPool.length];
   return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
 }
 
@@ -407,7 +410,13 @@ const main = async () => {
         const ok = await answerCorrect(h, { timeoutMs: 90000 });
         assert(ok, `L${levelId} Q${q + 1} did not advance (state ${h.state()})`);
       }
-      assert(await h.waitForState('LEVEL_COMPLETE', 10000), `L${levelId} never completed (${h.state()})`);
+      // level 15 transitions LEVEL_COMPLETE -> GAME_COMPLETE immediately
+      // once every level is done; either terminal state satisfies this
+      const done = await h.waitFor(
+        () => h.state() === 'LEVEL_COMPLETE' || h.state() === 'GAME_COMPLETE',
+        10000
+      );
+      assert(done, `L${levelId} never completed (${h.state()})`);
       const save = h.game.registry.get('save');
       assert(save.getLevelEntry(levelId).completed, `L${levelId} not saved as completed`);
       if (levelId < 15) assert(save.isLevelUnlocked(levelId + 1), `L${levelId + 1} not unlocked`);
