@@ -2,7 +2,7 @@
  * Debug / automated-test API exposed on window.__WB__.
  * Used by the browser integration tests; harmless in normal play.
  */
-import { WORLD } from '../config.js';
+import { WORLD, QUESTION_CARD } from '../config.js';
 import { clientToWorld } from '../systems/InputMapper.js';
 import { deviceInfo, setOrientationOverride, setTypeOverride } from '../systems/Device.js';
 import { currentView } from '../systems/Viewport.js';
@@ -178,6 +178,23 @@ export function installDebugAPI(game) {
         }
       }
       return ran;
+    },
+
+    /**
+     * Fix #9 — shorten the question-card presentation phases for automated
+     * runs (module-level timings, survives scene restarts). Omitted fields
+     * keep their current value; production uses the config defaults.
+     */
+    setCardTimings(patch = {}) {
+      Object.assign(QUESTION_CARD.TIMINGS, patch);
+      return { ...QUESTION_CARD.TIMINGS };
+    },
+
+    /** Fix #9 — live question-card snapshot (phase, geometry, audio state). */
+    cardInfo() {
+      const s = api.scene();
+      if (!s || !s.card) return null;
+      return s.card.info();
     },
 
     /** True if the loop is currently advancing (for stall detection). */

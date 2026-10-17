@@ -162,26 +162,26 @@ export class EffectsSystem {
   }
 
   /**
-   * Blue bird split activation: a quick white flash ring + a puff of
-   * feather-light blue sparks at the split point (bird-projectile VFX,
-   * Fix #6 — purely visual, no physics involvement).
+   * Yellow bird split activation (Fix #19): a quick white flash ring + a
+   * puff of feather-light golden sparks at the split point (bird-projectile
+   * VFX — purely visual, no physics involvement).
    */
   splitPop(x, y) {
-    const ring = this.scene.add.circle(x, y, 8).setStrokeStyle(4, 0xbde0fe, 0.95).setDepth(18);
+    const ring = this.scene.add.circle(x, y, 8).setStrokeStyle(4, 0xfdca40, 0.95).setDepth(18);
     this.scene.tweens.add({
-      targets: ring, radius: 46, alpha: 0, duration: 300, ease: 'Cubic.out',
+      targets: ring, radius: 56, alpha: 0, duration: 300, ease: 'Cubic.out',
       onComplete: () => ring.destroy()
     });
     if (this.reducedMotion) return;
     const emitter = this.makeEmitter('p-puff', {
-      speed: { min: 50, max: 130 },
+      speed: { min: 50, max: 140 },
       lifespan: { min: 260, max: 520 },
       scale: { start: 0.7, end: 1.3 },
       alpha: { start: 0.9, end: 0 },
-      tint: [0x9d4edd, 0xbde0fe, 0xffffff],
+      tint: [0xfdca40, 0xffe066, 0xffffff],
       emitting: false
     });
-    emitter?.explode(9, x, y);
+    emitter?.explode(11, x, y);
   }
 
   /**

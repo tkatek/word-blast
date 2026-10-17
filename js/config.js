@@ -377,9 +377,9 @@ export const COLORS = {
   TARGET_WRONG_FLASH: 0xe63946,
   PROJECTILES: {
     basic: 0xd94801,
-    speed: 0xfdca40,
+    speed: 0x48cae4,   // Fix #19: speed bird is the BLUE bird
     ice: 0x7bdff2,
-    split: 0x9d4edd,
+    split: 0xfdca40,   // Fix #19: split bird is the YELLOW bird
     bomb: 0x3a3a3a
   },
   TRAJECTORY: 0xffffff,

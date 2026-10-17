@@ -58,6 +58,11 @@ export async function createHeadlessGame() {
   installDebugAPI(game);
   const api = globalThis.window.__WB__;
 
+  // Fix #9 — fast question-card phases so the gameplay suites keep their
+  // runtime. The REAL presentation timings (4s reading window etc.) are
+  // verified by tests/question-card-tests.mjs against the same code paths.
+  api.setCardTimings({ enterMs: 40, readingMs: 150, moveMs: 60, exitMs: 50, peekMs: 60 });
+
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /** Live slingshot pouch anchor of the running scene (desktop fallback). */

@@ -5,7 +5,7 @@
  * visible error instead of loading broken levels.
  */
 import Phaser from 'phaser';
-import { STATES, COLORS, WORLD, SLINGSHOT, PROJECTILE_TYPES } from '../config.js';
+import { STATES, COLORS, WORLD, SLINGSHOT, PROJECTILE_TYPES, QUESTION_CARD } from '../config.js';
 import { QuestionManager } from '../systems/QuestionManager.js';
 import { LevelManager } from '../systems/LevelManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
@@ -13,6 +13,7 @@ import { AudioManager } from '../systems/AudioManager.js';
 import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
+import { ensureQuestionCardTexture } from '../systems/QuestionCard.js';
 import { preloadList } from '../data/tower-assets.js';
 import { birdPreloadList } from '../data/birds.js';
 import questionsData from '../data/questions.json';
@@ -54,12 +55,26 @@ export class BootScene extends Phaser.Scene {
       this.load.image(key, BIRDBASE + file);
     }
 
+    // Fix #9 — the wooden parchment question card (supplied artwork,
+    // transparency preserved). If unreachable (headless test env), the
+    // QuestionCard system draws a procedural parchment banner under the
+    // same key with identical layout ratios, so gameplay never breaks.
+    this.load.image(
+      QUESTION_CARD.TEXTURE,
+      (import.meta.env.BASE_URL || '/') + 'assets/images/ui/question-card.png'
+    );
+
     this.load.on('loaderror', (file) => {
       if (file.key === SLINGSHOT.ART.KEY) {
         // artwork unreachable (e.g. headless test env): draw a wooden Y with
         // identical anchor geometry so the slingshot still works
         console.warn(`[Boot] slingshot artwork missing — procedural fallback`);
         ensureSlingshotTexture(this);
+        return;
+      }
+      if (file.key === QUESTION_CARD.TEXTURE) {
+        console.warn(`[Boot] question-card artwork missing — procedural fallback`);
+        ensureQuestionCardTexture(this);
         return;
       }
       if (file.key.startsWith('bird-')) {

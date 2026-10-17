@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import {
   STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK, HUD,
-  slingshotAnchor
+  QUESTION_CARD, slingshotAnchor
 } from '../config.js';
 import { GameStateMachine } from '../systems/GameStateMachine.js';
 import { ObjectFactory } from '../systems/PhysicsObjects.js';
@@ -22,6 +22,7 @@ import { DebugLog } from '../systems/DebugLog.js';
 import { GameHUD, woodPanel, woodButton, chunkyText } from '../systems/GameHUD.js';
 import { LevelTimer } from '../systems/LevelTimer.js';
 import { HeartsSystem } from '../systems/HeartsSystem.js';
+import { QuestionCard } from '../systems/QuestionCard.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -30,6 +31,21 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
     this.stateChangeHandlers = []; // must exist before the state machine first fires
     this.disableAutoPause = false; // set via debug API for automated runs; survives restarts
+    // Fix #9 — the card's peek (enlarged reading) view must never let a
+    // slingshot drag start behind it. Registered once per scene instance;
+    // the handler re-reads the live slingshot on every call.
+    this.events.on('wb-card-peek', (open) => this.onCardPeek(open));
+  }
+
+  /** Slingshot availability follows the question card's peek state (Fix #9). */
+  onCardPeek(open) {
+    if (!this.slingshot) return;
+    if (open) {
+      this.slingshot.cancelDrag();
+      this.slingshot.setEnabled(false);
+    } else if (this.stateMachine && this.stateMachine.is(STATES.AIMING) && !this.stateMachine.isPaused()) {
+      this.slingshot.setEnabled(true);
+    }
   }
 
   init(data) {
@@ -49,10 +65,13 @@ export class GameScene extends Phaser.Scene {
     this.hud = null;              // GameHUD (Fix #17); built in create()
     this.levelTimer = null;       // authoritative countdown (LevelTimer)
     this.hearts = null;           // level-life rules (HeartsSystem)
+    this.birdInventory = null;    // bird ammunition (Fix #19)
+    this.birdSelector = null;     // bird-selection card row (Fix #19)
+    this.abilityButton = null;    // mid-flight ability button (Fix #19)
+    this.card = null;             // animated question card (Fix #9)
+    this.cardExitPending = null;  // queued next-question hand-off during the card exit (Fix #9)
     this.leavingLevel = false;    // one-shot guard for restart / exit clicks
     this.uiPointerConsumed = false; // a UI button ate this pointerdown
-    this.questionText = this.choicesText = null;
-    this.projectileButtons = [];
     this.questionIndex = 0; // known before create() for logging
     this.abilityHint = null;
     this.tutorialHint = null;
@@ -80,6 +99,19 @@ export class GameScene extends Phaser.Scene {
     this.selectedProjectile = 'basic';
     this.currentShot = null;
     this.answerLock = false;
+    // Fix #19 — bird ammunition: counts come from levels.json "birdAmmo"
+    // (data-driven, never hardcoded in the UI) and re-initialize at the
+    // start of every question (BIRD_AMMO.MODE 'per-question').
+    if (!this.level.projectiles.includes(this.selectedProjectile)) {
+      this.selectedProjectile = this.level.projectiles[0];
+    }
+    this.birdInventory = new BirdInventory(
+      this.level.projectiles,
+      this.levels.getBirdAmmo(this.levelId)
+    );
+    if (!this.birdInventory.canSelect(this.selectedProjectile)) {
+      this.selectedProjectile = this.birdInventory.firstAvailable() || this.selectedProjectile;
+    }
     this.elapsedMs = 0;          // pause-aware clock (movers)
     this.settleFrames = 0;
     this.settleStartedAt = 0;
@@ -111,13 +143,17 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-P', () => this.togglePause());
     this.input.keyboard.on('keydown-R', () => this.restartLevel());
     this.input.keyboard.on('keydown-M', () => this.exitToMenu());
+    // Fix #19 — Space activates the flying bird's ability (desktop). The
+    // same state gates as tap-activation apply (flight only, never paused).
+    this.input.keyboard.on('keydown-SPACE', () => this.tryActivateAbilities());
     for (let i = 1; i <= 5; i++) {
       this.input.keyboard.on(`keydown-${i}`, () => this.selectProjectileByIndex(i - 1));
     }
     this.input.on('pointerdown', () => {
       // UI buttons flag their own pointerdown (Phaser emits GameObject
-      // events before scene-level ones), so a tap on the pause button or a
-      // menu entry can never accidentally trigger the loaded bird's ability.
+      // events before scene-level ones), so a tap on the pause button, a
+      // bird card or a menu entry can never accidentally trigger the
+      // loaded bird's ability.
       const uiTap = this.uiPointerConsumed;
       this.uiPointerConsumed = false;
       if (uiTap) return;
@@ -170,38 +206,38 @@ export class GameScene extends Phaser.Scene {
     });
     this.hud.setTimer(HUD.TIME_LIMIT_MS);
 
-    // question panel — deliberately separate from the HUD (the question
-    // card gets its own redesign later; the HUD reserves the band above it)
-    this.questionPanel = this.add.container(0, 0).setDepth(DEPTH.PANEL);
-    this.questionText = this.add.text(24, 84, '', {
-      fontFamily: 'Arial', fontSize: '17px', color: '#1d3557', backgroundColor: '#ffffffcc',
-      padding: { x: 12, y: 8 }, wordWrap: { width: 620 }
-    });
-    this.choicesText = this.add.text(24, 0, '', {
-      fontFamily: 'Arial', fontSize: '14px', color: '#1d3557', backgroundColor: '#ffffffaa',
-      padding: { x: 12, y: 6 }
-    });
-    this.questionPanel.add([this.questionText, this.choicesText]);
-
-    // projectile selector
-    this.projectileButtons = [];
-    this.level.projectiles.forEach((key, i) => {
-      const type = PROJECTILE_TYPES[key];
-      const btn = this.add.text(24, WORLD.HEIGHT - 34, `${i + 1} ${type.name}`, {
-        fontFamily: 'Arial', fontSize: '15px', color: '#ffffff', backgroundColor: '#457b9d',
-        padding: { x: 10, y: 5 }
-      }).setDepth(DEPTH.HUD).setInteractive({ useHandCursor: true });
-      btn.on('pointerdown', () => {
-        this.uiPointerConsumed = true;
-        this.selectProjectile(key);
-      });
-      this.projectileButtons.push({ key, btn });
-      this.time.delayedCall(0, () => btn.x = 24 + this.projectileButtons.reduce((acc, b) => acc + (b.btn === btn ? 0 : b.btn.width + 10), 0));
+    // Fix #9 — the animated wooden parchment question card (replaces the
+    // old plain-text question/choices strips). It presents each question
+    // center-screen for a mandatory reading window, then glides to its top
+    // resting spot and arms gameplay. The card owns no gameplay state.
+    this.card = new QuestionCard(this, {
+      markUi: () => { this.uiPointerConsumed = true; },
+      reducedMotion: () => !!(this.save && this.save.data.settings.reducedMotion),
+      depth: DEPTH.PANEL,
+      scrimDepth: DEPTH.HUD - 1 // peek scrim dims gameplay but not the HUD
     });
 
-    this.abilityHint = this.add.text(24, WORLD.HEIGHT - 66, '', {
-      fontFamily: 'Arial', fontSize: '13px', color: '#ffee99'
-    }).setDepth(DEPTH.HUD);
+    // Fix #19 — bird-selection card row (replaces the old text buttons):
+    // real bird artwork + quantity badges bottom-left; the selector owns no
+    // state, it renders what refreshHUD() pushes and clicks route back
+    // through selectProjectile() with the same availability gates.
+    this.birdSelector = new BirdSelector(this, {
+      onSelect: (key) => this.selectProjectile(key),
+      markUi: () => { this.uiPointerConsumed = true; },
+      audio: this.audio
+    });
+
+    // small unobtrusive ability hint for the selected bird (above the cards)
+    this.abilityHint = this.add.text(38, 566, '', {
+      fontFamily: 'Arial', fontSize: '13px', color: '#fff6e5'
+    }).setDepth(DEPTH.HUD).setShadow(0, 2, 'rgba(35,22,8,0.7)', 2, false, true);
+
+    // mid-flight ability button (mobile + desktop), bottom-right — far
+    // from the cards and outside the slingshot aiming zone
+    this.abilityButton = new AbilityButton(this, {
+      onActivate: () => this.tryActivateAbilities(),
+      markUi: () => { this.uiPointerConsumed = true; }
+    });
 
     this.refreshHUD();
   }
@@ -329,6 +365,10 @@ export class GameScene extends Phaser.Scene {
     this.answerLock = false;
     this.currentShot = null;
     this.shotsLeft = this.level.shotsPerQuestion;
+    // Fix #19 — fresh bird ammunition for every question attempt (the
+    // enabled 'per-question' mode; retry/restart therefore also re-arms a
+    // full inventory — consistent ammunition across pause/retry/restart).
+    this.birdInventory.resetForQuestion();
     this.settleFrames = 0;
     this.slowFrames = 0;
     this.hearts?.clearCharge(); // a fresh attempt may be charged again on failure
@@ -355,23 +395,21 @@ export class GameScene extends Phaser.Scene {
       DebugLog.warn(`L${this.levelId}/Q${index + 1} settle drift ${settle.drift.toFixed(1)}px, lost ${settle.lost}`);
     }
 
-    this.questionText.setText(`Q${index + 1}/4 [${question.cefr}] ${question.text}`);
-    this.choicesText.setText(this.prepared.targets.map((t) => `${t.label}: ${t.text}`).join('    '));
-    this.choicesText.y = 84 + this.questionText.height + 8;
-
+    // Fix #9 — the parchment card now presents the question: ENTERING →
+    // READING (4s mandatory, timer frozen) → MOVING_TO_TOP → onArmed fires
+    // armAiming exactly when the card reaches its resting spot. Any queued
+    // NEXT_QUESTION hand-off is invalidated by this fresh load.
+    this.cardExitPending = null;
     this.stateMachine.set(STATES.QUESTION_READY);
     this.refreshHUD();
+    this.slingshot.setEnabled(false); // no aiming during the introduction
+    this.card.present({
+      index,
+      total: this.level.questions.length,
+      cefr: question.cefr,
+      text: question.text
+    }, () => this.armAiming());
     DebugLog.info(`L${this.levelId} / Question ${index + 1} — loaded "${question.text}"`);
-    // Question token: if the player restarts / the question changes before
-    // the arming delay fires, this callback is stale and must do nothing.
-    const qToken = index;
-    this.time.delayedCall(250, () => {
-      if (this.questionIndex !== qToken) {
-        DebugLog.warn(`arm callback dropped: stale question token ${qToken} (now ${this.questionIndex})`);
-        return;
-      }
-      this.armAiming();
-    });
   }
 
   armAiming() {
@@ -385,11 +423,35 @@ export class GameScene extends Phaser.Scene {
     if (!this.stateMachine.is(STATES.QUESTION_READY) && !this.stateMachine.is(STATES.PHYSICS_RESOLVING)
       && !this.stateMachine.is(STATES.ANSWER_FEEDBACK)) return;
     this.armPending = false;
+    // Fix #19 — the next valid loading opportunity: keep the selection if
+    // it still has ammunition, otherwise auto-select the next available
+    // bird; with no birds left the existing failure/retry rules apply.
+    if (!this.ensureBirdReady()) return;
     this.stateMachine.set(STATES.AIMING);
     this.slingshot.load(this.selectedProjectile);
     this.slingshot.setEnabled(true);
     this.refreshHUD();
-    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY Question ${this.questionIndex + 1}/4 (AIMING, shots: ${this.shotsLeft})`);
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY Question ${this.questionIndex + 1}/4 (AIMING, shots: ${this.shotsLeft}, bird: ${this.selectedProjectile} ×${this.birdInventory.count(this.selectedProjectile)})`);
+  }
+
+  /**
+   * Fix #19 — selection/ammo reconciliation at load time. Returns false
+   * when no bird can be loaded (the failure flow already ran).
+   */
+  ensureBirdReady() {
+    if (this.birdInventory.canSelect(this.selectedProjectile)) return true;
+    const next = this.birdInventory.firstAvailable();
+    if (next) {
+      DebugLog.info(`L${this.levelId} — bird ${this.selectedProjectile} out of ammo; auto-selecting ${next}`);
+      this.selectedProjectile = next;
+      return true;
+    }
+    // No ammunition at all while shots remain → the existing failure and
+    // retry rules (heart charged, retry re-arms a full inventory).
+    if (this.shotsLeft > 0) {
+      this.failQuestionAttempt('No birds left');
+    }
+    return false;
   }
 
   /* ------------------------------------------------------------------ */
@@ -407,6 +469,13 @@ export class GameScene extends Phaser.Scene {
     if (!this.stateMachine.is(STATES.AIMING)) return false;
     if (this.shotsLeft <= 0) return false;
     if (!this.levels.isProjectileAvailable(this.levelId, typeKey)) return false;
+    // Fix #19 — firing consumes EXACTLY one ammunition unit (selection and
+    // abilities never do). A rejected consume (empty type) refuses the
+    // launch before any shot state exists — inventory can never go negative.
+    if (!this.birdInventory.consume(typeKey)) {
+      DebugLog.warn(`L${this.levelId} — launch of ${typeKey} refused: no ammunition left`);
+      return false;
+    }
 
     // Lifecycle (Fix #6B): the previous shot's late-answer window closes
     // the moment this new shot exists (the shotId guard in
@@ -415,7 +484,10 @@ export class GameScene extends Phaser.Scene {
     this.factory.sweepProjectiles();
 
     const shotId = (this.currentShot?.id || 0) + 1;
-    this.currentShot = { id: shotId, launched: true, answered: false, resolvedHandled: false, startedAt: this.time.now };
+    this.currentShot = {
+      id: shotId, launched: true, answered: false, resolvedHandled: false,
+      startedAt: this.time.now, typeKey
+    };
     this.scoring.recordShot();
     this.shotsLeft--;
     this.slowFrames = 0;
@@ -427,7 +499,7 @@ export class GameScene extends Phaser.Scene {
 
     this.stateMachine.set(STATES.PROJECTILE_FLYING);
     this.audio.emit('launch');
-    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — SHOT #${shotId} launched (${typeKey}, v ${vx.toFixed(1)}/${vy.toFixed(1)}), shots left: ${this.shotsLeft}`);
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — SHOT #${shotId} launched (${typeKey}, v ${vx.toFixed(1)}/${vy.toFixed(1)}), shots left: ${this.shotsLeft}, ${typeKey} ammo left: ${this.birdInventory.count(typeKey)}`);
     if (this.tutorialHint && !this.save.data.tutorialDone) {
       this.save.setTutorialDone(true);
       this.tutorialHint.destroy();
@@ -437,18 +509,38 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
+  /**
+   * Fix #19 — one funnel for every ability trigger (screen tap, SPACE key,
+   * on-screen TAP button). Activation is only legal for the active
+   * projectile in a valid flight state: never before launch, never after
+   * the shot resolves, never while paused or during feedback. The factory's
+   * abilityUsed/consumed guards make double activation impossible.
+   */
   tryActivateAbilities() {
     if (!this.currentShot) return;
+    if (this.stateMachine.isPaused()) return;
+    if (!this.stateMachine.is(STATES.PROJECTILE_FLYING)) return;
     for (const p of this.factory.projectilesOfShot(this.currentShot.id)) {
       if (this.factory.tryActivateAbility(p)) break;
     }
   }
 
+  /**
+   * Fix #19 — card/keyboard selection. Selecting is FREE (no ammunition is
+   * consumed) but only legal for a bird with remaining ammunition, and
+   * never while a shot is in flight or resolving (the next valid loading
+   * opportunity is the re-arm).
+   */
   selectProjectile(key) {
-    if (!this.levels.isProjectileAvailable(this.levelId, key)) return;
+    if (!this.levels.isProjectileAvailable(this.levelId, key)) return false;
+    if (!this.birdInventory.canSelect(key)) return false;
+    const s = this.stateMachine.current;
+    if (s !== STATES.AIMING && s !== STATES.QUESTION_READY) return false;
+    if (this.selectedProjectile === key) return true;
     this.selectedProjectile = key;
     if (this.stateMachine.is(STATES.AIMING)) this.slingshot.load(key);
     this.refreshHUD();
+    return true;
   }
 
   selectProjectileByIndex(i) {
@@ -579,6 +671,7 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.stateMachine.isPaused()) return;
     this.elapsedMs += delta;
+    this.card?.tick(delta); // Fix #9 — question-card reading countdown (pause-gated here)
     this.updateLevelTimer(delta);
     this.factory.update(time, delta, this.elapsedMs);
 
@@ -603,8 +696,12 @@ export class GameScene extends Phaser.Scene {
   updateLevelTimer(delta) {
     if (!this.levelTimer) return;
     const s = this.stateMachine.current;
-    if (s === STATES.QUESTION_READY || s === STATES.AIMING
-      || s === STATES.PROJECTILE_FLYING || s === STATES.PHYSICS_RESOLVING) {
+    // Fix #9 — the mandatory question introduction is presentation time,
+    // not playing time: the countdown must not advance while the card is
+    // entering / being read / moving to its resting spot.
+    const intro = this.card ? this.card.introActive : false;
+    if (!intro && (s === STATES.QUESTION_READY || s === STATES.AIMING
+      || s === STATES.PROJECTILE_FLYING || s === STATES.PHYSICS_RESOLVING)) {
       this.levelTimer.tick(delta);
       if (this.levelTimer.expired) this.timeUp();
     }
@@ -683,10 +780,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   armAfterShot() {
+    // Fix #19 — re-arm is the "next valid loading opportunity": the just-
+    // launched bird may have hit zero ammunition, so reconcile the
+    // selection (auto-select the next available bird) before loading.
+    if (!this.ensureBirdReady()) return;
     this.slingshot.load(this.selectedProjectile);
     this.slingshot.setEnabled(true);
     this.refreshHUD();
-    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY slingshot re-armed (AIMING, shots left: ${this.shotsLeft})`);
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — READY slingshot re-armed (AIMING, shots left: ${this.shotsLeft}, bird: ${this.selectedProjectile} ×${this.birdInventory.count(this.selectedProjectile)})`);
   }
 
   /**
@@ -717,11 +818,15 @@ export class GameScene extends Phaser.Scene {
       if (this.questionIndex + 1 >= 4) {
         this.levelComplete();
       } else {
-        this.loadQuestion(this.questionIndex + 1);
+        // Fix #9 — let the completed question's card play its brief exit
+        // animation BEFORE the next question loads its own centered card
+        // (never two cards, never an instant swap).
+        this.queueNextQuestion();
       }
     } else {
       // wrong answer resolved: same reliable cleanup as a miss before the
-      // slingshot may arm again (Fix #6B)
+      // slingshot may arm again (Fix #6B). The question card stays put —
+      // no introduction replay for retries.
       this.factory.despawnShotVisuals(this.currentShot.id);
       if (this.shotsLeft > 0) {
         this.stateMachine.set(STATES.AIMING);
@@ -730,6 +835,31 @@ export class GameScene extends Phaser.Scene {
         this.failQuestionAttempt('No shots left');
       }
     }
+  }
+
+  /**
+   * Fix #9 — one queued hand-off from a completed question to its
+   * successor. loadQuestion() invalidates it (a restart/retry must never
+   * double-advance), a pause defers it to resume, and the question token
+   * guards against stale firings.
+   */
+  queueNextQuestion() {
+    this.card?.dismiss();
+    this.cardExitPending = { token: this.questionIndex };
+    this.time.delayedCall(QUESTION_CARD.TIMINGS.exitMs + 40, () => this.runQueuedNextQuestion());
+  }
+
+  runQueuedNextQuestion() {
+    const pending = this.cardExitPending;
+    if (!pending) return;
+    if (this.questionIndex !== pending.token) {
+      // the question changed under us (restart / retry) — do nothing
+      this.cardExitPending = null;
+      return;
+    }
+    if (this.stateMachine.isPaused()) return; // retried on resume
+    this.cardExitPending = null;
+    this.loadQuestion(this.questionIndex + 1);
   }
 
   /**
@@ -767,6 +897,8 @@ export class GameScene extends Phaser.Scene {
     // overlay, not to loadQuestion — sweep the last shot here so no bird
     // lingers under the victory panel (question changes sweep already).
     this.factory.sweepProjectiles();
+    this.cardExitPending = null;
+    this.card?.dismiss(); // Fix #9 — the last card exits; no new one follows
     const score = this.scoring.computeScore();
     const stars = this.scoring.computeStars(this.level.starThresholds);
     this.save.recordLevelResult(this.levelId, score, stars);
@@ -1039,11 +1171,23 @@ export class GameScene extends Phaser.Scene {
       state: this.stateMachine.current,
       soundOn: this.save.data.settings.sound
     });
-    for (const { key, btn } of this.projectileButtons) {
-      btn.setBackgroundColor(key === this.selectedProjectile ? '#e76f51' : '#457b9d');
-    }
+    // Fix #19 — card row: roster + live ammunition + selection. Cards stay
+    // interactive through the aiming cycle and dim behind terminal states.
+    const terminal = [STATES.LEVEL_COMPLETE, STATES.LEVEL_FAILED, STATES.GAME_COMPLETE]
+      .includes(this.stateMachine.current);
+    this.birdSelector?.sync({
+      roster: this.level.projectiles,
+      ammo: this.birdInventory.snapshot(),
+      selected: this.selectedProjectile,
+      enabled: !terminal && !this.stateMachine.isPaused()
+    });
     const type = PROJECTILE_TYPES[this.selectedProjectile];
-    this.abilityHint.setText(type.abilityHint ? `▸ ${type.abilityHint}` : '');
+    this.abilityHint?.setText(type && type.abilityHint ? `▸ ${type.abilityHint}` : '');
+    // the TAP button is visible only while the flying bird has an ability
+    const flyingAbility = this.stateMachine.is(STATES.PROJECTILE_FLYING)
+      && this.currentShot && PROJECTILE_TYPES[this.currentShot.typeKey]
+      && !!PROJECTILE_TYPES[this.currentShot.typeKey].ability;
+    this.abilityButton?.sync({ visible: !!flyingAbility });
   }
 
   showFeedback(title, body, color) {
@@ -1063,10 +1207,21 @@ export class GameScene extends Phaser.Scene {
 
   onStateChanged(next, prev) {
     DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — STATE ${prev} -> ${next}`);
-    // A deferred arming (delayed call fired while paused) lands here on resume.
-    if (prev === STATES.PAUSED && this.armPending && next !== STATES.PAUSED) {
-      this.armPending = false;
-      this.armAiming();
+    // Fix #9 — every pause source (menu, portrait rotation, hidden tab)
+    // funnels through here: freeze the card's visual timeline on entry and
+    // thaw it on resume (the reading countdown is already update()-gated).
+    if (next === STATES.PAUSED) {
+      this.card?.pause();
+    }
+    if (prev === STATES.PAUSED && next !== STATES.PAUSED) {
+      this.card?.resume();
+      // A deferred arming (delayed call fired while paused) lands here on resume.
+      if (this.armPending) {
+        this.armPending = false;
+        this.armAiming();
+      }
+      // A deferred NEXT_QUESTION hand-off (card exit ran into a pause).
+      if (this.cardExitPending) this.runQueuedNextQuestion();
     }
     this.refreshHUD();
     for (const h of this.stateChangeHandlers) {
@@ -1103,6 +1258,7 @@ export class GameScene extends Phaser.Scene {
       levelId: this.levelId,
       questionIndex: this.questionIndex,
       state: this.stateMachine.current,
+      cardPhase: this.card ? this.card.phase : null, // Fix #9 (tests/verification)
       shotsLeft: this.shotsLeft,
       score: this.scoring.liveScore(),
       shotsUsed: this.scoring.shotsUsed,
@@ -1112,6 +1268,7 @@ export class GameScene extends Phaser.Scene {
       timeLeftMs: this.levelTimer ? this.levelTimer.remainingMs : null,
       selectedProjectile: this.selectedProjectile,
       availableProjectiles: this.level.projectiles,
+      birdAmmo: this.birdInventory ? this.birdInventory.snapshot() : {},
       targets: this.factory.targets.map((t) => ({
         choiceId: t.wb.choiceId, x: t.x, y: t.y,
         correct: t.wb.choiceId === this.prepared?.question.correctAnswerId

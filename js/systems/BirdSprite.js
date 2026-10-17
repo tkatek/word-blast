@@ -206,13 +206,14 @@ export class BirdSprite {
   /** Bounded spark trail behind the bird while the boost plays out. */
   startTrail(now) {
     if (!this.fx || this.fx.reducedMotion) return;
+    // Fix #19: the speed bird is the BLUE bird — icy blue streaks
     const emitter = this.fx.makeEmitter('p-spark', {
       lifespan: { min: 220, max: 380 },
       speed: { min: 12, max: 46 },
       gravityY: 90,
       scale: { start: 0.55, end: 0.05 },
       alpha: { start: 0.9, end: 0 },
-      tint: [0xffd60a, 0xfff3b0, 0xfdca40],
+      tint: [0x4fc3f7, 0x90caf9, 0xbde0fe],
       frequency: 26,
       quantity: 1
     });

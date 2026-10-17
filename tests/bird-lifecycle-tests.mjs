@@ -16,7 +16,7 @@
  *     victory overlay)
  *   - no ghosts after question advance or scene restart
  *   - pause/resume during flight → no duplicates, shot still resolves
- *   - split → exactly 3 projectiles of one shot, second tap adds nothing
+ *   - split → exactly 5 child projectiles of one shot, second tap adds nothing
  *   - stale projectiles of an older shot can never answer
  *   - sprite/body alignment at spawn (center + display size + collider)
  *   - grab-offset drag: pointer down off-center does not jump the bird
@@ -190,7 +190,7 @@ await test('correct answer: launch sweeps the wrong-answer leftovers; question a
   assert(s.factory.birdSkins.length === 0, 'skins leaked across the question change');
 });
 
-await test('split: exactly 3 projectiles of one shot; second tap adds nothing', async () => {
+await test('split: exactly 5 child projectiles of one shot; second tap adds nothing', async () => {
   await h.gotoLevel(10);
   await h.waitForState('AIMING');
   const s = h.scene();
@@ -201,9 +201,16 @@ await test('split: exactly 3 projectiles of one shot; second tap adds nothing', 
   s.tryActivateAbilities();
   s.tryActivateAbilities(); // duplicate tap — must not split again
   const live = s.factory.projectiles.filter((p) => !p.wb.consumed);
-  assert(live.length === 3, `expected parent + 2 children, got ${live.length}`);
+  assert(live.length === 5, `expected 5 children (parent replaced), got ${live.length}`);
   assert(live.every((p) => p.wb.shotId === s.currentShot.id), 'split children carry a different shot id');
-  assert(live.filter((p) => p.wb.typeKey === 'split-child').length === 2, 'child type keys wrong');
+  assert(live.every((p) => p.wb.typeKey === 'split-child'), 'child type keys wrong');
+  // children spawn apart — no overlapping bodies at the split point
+  for (let i = 0; i < live.length; i++) {
+    for (let j = i + 1; j < live.length; j++) {
+      const d = Math.hypot(live[i].x - live[j].x, live[i].y - live[j].y);
+      assert(d >= 20, `split children ${i}/${j} spawned overlapping (${d.toFixed(1)}px apart)`);
+    }
+  }
 });
 
 await test('restart mid-flight: no ghost projectiles after reboot', async () => {
