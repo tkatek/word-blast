@@ -23,6 +23,7 @@
  */
 import puppeteer from 'puppeteer-core';
 import { existsSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 const BASE = process.env.BASE
@@ -35,7 +36,7 @@ const BASE = process.env.BASE
     };
     return (await probe(5199)) || (await probe(5173)) || 'http://localhost:5173/';
   })());
-const OUT = new URL('../fix7-screens/', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
+const OUT = fileURLToPath(new URL('../fix7-screens/', import.meta.url));
 mkdirSync(OUT, { recursive: true });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -107,18 +108,30 @@ const refDots = (page) => wb(page, `(() => {
 })()`);
 
 /**
- * Pixel-verify dots in a screenshot: for each world dot, map to client
- * (= screenshot pixel in the fixed viewport), sample the max "whiteness"
- * (min RGB channel) in a 5×5 box at the dot and in a background box 9px
- * below; visible when (dot − background) ≥ delta.
+ * Pixel-verify dots in a screenshot. World dots are mapped to client
+ * (CSS) px in-page, then scaled by the viewport DPR to screenshot pixels.
+ *  - bright (alpha 0.85): visible when the dot's min RGB channel ≥ 200
+ *    (0.85 white over ANY background keeps min-channel ≈ 220+)
+ *  - faded (alpha 0.32): visible when the dot is ≥ 10 whiter than the
+ *    background sampled 10px PERPENDICULAR to the arc (the arc curves, so
+ *    a fixed below-sample can land on sky clouds or the next dot)
  */
-async function countVisibleDots(page, shotPath, worldDots, { delta = 18, box = 2 } = {}) {
+async function countVisibleDots(page, shotPath, worldDots, { faded = false, box = 2 } = {}) {
+  const dpr = page.viewport().deviceScaleFactor || 1;
   const client = await page.evaluate((dots) => dots.map((p) => window.__map.toClient(p.x, p.y)), worldDots);
+  // perpendicular background offsets computed from the arc's local direction
+  const bgPts = worldDots.map((p, i) => {
+    const q = worldDots[Math.min(i + 1, worldDots.length - 1)];
+    const dx = q.x - p.x, dy = q.y - p.y;
+    const l = Math.hypot(dx, dy) || 1;
+    return { x: p.x + (-dy / l) * 10, y: p.y + (dx / l) * 10 };
+  });
+  const bgClient = await page.evaluate((pts) => pts.map((p) => window.__map.toClient(p.x, p.y)), bgPts);
   const { data, info } = await sharp(shotPath).raw().toBuffer({ resolveWithObject: true });
   const whiteness = (cx, cy) => {
     let best = 0;
-    for (let y = Math.max(0, Math.round(cy) - box); y <= Math.min(info.height - 1, Math.round(cy) + box); y++) {
-      for (let x = Math.max(0, Math.round(cx) - box); x <= Math.min(info.width - 1, Math.round(cx) + box); x++) {
+    for (let y = Math.max(0, Math.round(cy * dpr) - box); y <= Math.min(info.height - 1, Math.round(cy * dpr) + box); y++) {
+      for (let x = Math.max(0, Math.round(cx * dpr) - box); x <= Math.min(info.width - 1, Math.round(cx * dpr) + box); x++) {
         const i = (y * info.width + x) * info.channels;
         best = Math.max(best, Math.min(data[i], data[i + 1], data[i + 2]));
       }
@@ -126,11 +139,12 @@ async function countVisibleDots(page, shotPath, worldDots, { delta = 18, box = 2
     return best;
   };
   let visible = 0;
-  for (const c of client) {
+  client.forEach((c, i) => {
     const fg = whiteness(c.x, c.y);
-    const bg = whiteness(c.x, c.y + 9);
-    if (fg - bg >= delta) visible++;
-  }
+    if (faded) {
+      if (fg - whiteness(bgClient[i].x, bgClient[i].y) >= 10) visible++;
+    } else if (fg >= 200) visible++;
+  });
   return { visible, total: worldDots.length };
 }
 
@@ -225,7 +239,7 @@ try {
   await mouseDrag(page, { x: 115, y: 432 }, { hold: true });
   const dotsA = await liveDots(page);
   await shot(page, 'fix7-A-aiming.png');
-  const vA = await countVisibleDots(page, `${OUT}/fix7-A-aiming.png`, dotsA, { delta: 25 });
+  const vA = await countVisibleDots(page, `${OUT}/fix7-A-aiming.png`, dotsA);
   ok(dotsA.length >= 12, `aiming arc computed (${dotsA.length} dots)`);
   ok(vA.visible >= Math.ceil(vA.total * 0.6), `bright dots visible on screen (${vA.visible}/${vA.total})`);
   ok((await refDots(page)).length === 0, 'no reference before the first shot');
@@ -240,7 +254,7 @@ try {
   const dotsB = await refDots(page);
   await shot(page, 'fix7-B-after-release.png');
   await waitAiming(page);
-  const vB = await countVisibleDots(page, `${OUT}/fix7-B-after-release.png`, dotsB, { delta: 10 });
+  const vB = await countVisibleDots(page, `${OUT}/fix7-B-after-release.png`, dotsB, { faded: true });
   ok(dotsB.length >= 12, `reference stored at release (${dotsB.length} dots)`);
   ok(vB.visible >= Math.ceil(vB.total * 0.55), `faded reference visible after release (${vB.visible}/${vB.total})`);
 
@@ -249,8 +263,8 @@ try {
   const dotsC = await liveDots(page);
   const refC = await refDots(page);
   await shot(page, 'fix7-C-aiming-with-reference.png');
-  const vCbright = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, dotsC, { delta: 25 });
-  const vCref = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, refC, { delta: 10 });
+  const vCbright = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, dotsC);
+  const vCref = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, refC, { faded: true });
   ok(vCbright.visible >= Math.ceil(vCbright.total * 0.6), `new bright arc visible (${vCbright.visible}/${vCbright.total})`);
   ok(vCref.visible >= Math.ceil(vCref.total * 0.45), `previous faded arc still visible (${vCref.visible}/${vCref.total})`);
   // cancel: return the pouch near rest before release (sub-minimum power)
@@ -266,7 +280,7 @@ try {
   const afterD = await refDots(page);
   await shot(page, 'fix7-D-replaced.png');
   ok(afterD.length > 0 && JSON.stringify(afterD) !== beforeD, 'reference replaced by the newest shot');
-  const vD = await countVisibleDots(page, `${OUT}/fix7-D-replaced.png`, afterD, { delta: 10 });
+  const vD = await countVisibleDots(page, `${OUT}/fix7-D-replaced.png`, afterD, { faded: true });
   ok(vD.visible >= Math.ceil(vD.total * 0.55), `replaced reference visible (${vD.visible}/${vD.total})`);
 
   console.log('\n== E. question flow keeps it; NEXT LEVEL clears everything ==');
@@ -288,7 +302,7 @@ try {
   await mouseDrag(page, { x: 120, y: 430 }, { hold: true });
   const dotsF = await liveDots(page);
   await shot(page, 'fix7-F-level2-aiming.png');
-  const vF = await countVisibleDots(page, `${OUT}/fix7-F-level2-aiming.png`, dotsF, { delta: 25 });
+  const vF = await countVisibleDots(page, `${OUT}/fix7-F-level2-aiming.png`, dotsF);
   ok(dotsF.length >= 12 && (await refDots(page)).length === 0, `fresh aiming arc, no stale reference (${dotsF.length} dots)`);
   ok(vF.visible >= Math.ceil(vF.total * 0.6), `level-2 bright dots visible (${vF.visible}/${vF.total})`);
   const rest2 = await page.evaluate(() => window.__map.toClient(195, 346));
@@ -317,14 +331,14 @@ try {
   await touchDrag(m, { x: 110, y: 435 }, { hold: true });
   const dotsG = await liveDots(m);
   await shot(m, 'fix7-G-mobile-aiming.png');
-  const vG = await countVisibleDots(m, `${OUT}/fix7-G-mobile-aiming.png`, dotsG, { delta: 25 });
+  const vG = await countVisibleDots(m, `${OUT}/fix7-G-mobile-aiming.png`, dotsG);
   ok(dotsG.length >= 12, `touch drag shows the aiming arc (${dotsG.length} dots)`);
   ok(vG.visible >= Math.ceil(vG.total * 0.6), `mobile bright dots visible (${vG.visible}/${vG.total})`);
   await m.touchscreen.touchEnd();
   await waitAiming(m);
   const refG = await refDots(m);
   await shot(m, 'fix7-G-mobile-after-release.png');
-  const vGref = await countVisibleDots(m, `${OUT}/fix7-G-mobile-after-release.png`, refG, { delta: 10 });
+  const vGref = await countVisibleDots(m, `${OUT}/fix7-G-mobile-after-release.png`, refG, { faded: true });
   ok(refG.length >= 12, `touch shot kept its reference (${refG.length} dots)`);
   ok(vGref.visible >= Math.ceil(vGref.total * 0.55), `mobile faded reference visible (${vGref.visible}/${vGref.total})`);
   await m.close();
