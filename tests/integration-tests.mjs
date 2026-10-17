@@ -69,37 +69,42 @@ function aimShotAt(h, x, y, attempt = 0) {
   // solveLaunch uses one fixed angle; sweep angles until a real solution
   // exists. Steep lob angles (-40..-54) matter: a rear ground plaque can
   // only be reached OVER a front tower — exactly the arc the layout
-  // generator verifies as reachable.
-  const viable = [];
-  for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6, -42, -48, -54]) {
-    // steps: steep lobs fly >60 steps; the default path truncates short
-    const sol = h.solveLaunch(x, y, { angleDeg, steps: 160 });
-    if (sol && sol.missDistance < 40) viable.push(sol);
+  // generator verifies as reachable. The generator validates the plaque's
+  // CENTER and its UPPER HALF; try both aim points.
+  const s0 = h.scene();
+  const blockers0 = [];
+  for (const t of s0.factory.targets) {
+    if (Math.hypot(t.x - x, t.y - y) > 4 && !t.wb.hit) blockers0.push({ x: t.x, y: t.y, w: 116, h: 80 });
   }
-  if (!viable.length) return false;
-  // Prefer arcs that do not clip another plaque or a tower piece in front
-  // of the aim point — those legally answer a DIFFERENT (wrong) plaque.
-  const s = h.scene();
-  const blockers = [];
-  for (const t of s.factory.targets) {
-    if (Math.hypot(t.x - x, t.y - y) > 4 && !t.wb.hit) blockers.push({ x: t.x, y: t.y, w: 116, h: 80 });
-  }
-  for (const b of s.factory.blocks) {
-    if (!b.wb.removed) blockers.push({ x: b.x, y: b.y, w: b.displayWidth, h: b.displayHeight });
+  for (const b of s0.factory.blocks) {
+    if (!b.wb.removed) blockers0.push({ x: b.x, y: b.y, w: b.displayWidth, h: b.displayHeight });
   }
   const clearArc = (vx, vy) => {
     const pts = h.predictPath(vx, vy, { steps: 160 });
     for (const p of pts) {
       if (p.x > x - 10) break;
-      for (const bl of blockers) {
+      for (const bl of blockers0) {
         if (p.x > bl.x - bl.w / 2 - 14 && p.x < bl.x + bl.w / 2 + 14
           && p.y > bl.y - bl.h / 2 - 14 && p.y < bl.y + bl.h / 2 + 14) return false;
       }
     }
     return true;
   };
-  const clearing = viable.filter((sol) => clearArc(sol.vx, sol.vy));
-  const pool = clearing.length ? clearing : viable;
+  let pool = [];
+  for (const aimY of [y, y - 28]) {
+    const viable = [];
+    for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6, -42, -48, -54]) {
+      // steps: steep lobs fly >60 steps; the default path truncates short
+      const sol = h.solveLaunch(x, aimY, { angleDeg, steps: 160 });
+      if (sol && sol.missDistance < 40) viable.push(sol);
+    }
+    // Prefer arcs that do not clip another plaque or a tower piece in
+    // front of the aim point — those legally answer a DIFFERENT plaque.
+    const clearing = viable.filter((sol) => clearArc(sol.vx, sol.vy));
+    pool = clearing.length ? clearing : viable;
+    if (pool.length) break; // center aim with a clear arc wins
+  }
+  if (!pool.length) return false;
   const sol = pool[attempt % pool.length];
   return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
 }

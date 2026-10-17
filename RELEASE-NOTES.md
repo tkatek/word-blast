@@ -73,7 +73,7 @@ evidence-based release assessment. Produced jointly with a parallel work stream
 | `npm test` (49 checks: content counts, CEFR, layouts, scoring, save, state machine, trajectory, anchors, reachability sweep, input mapping, device) | **49 passed, 0 failed** |
 | `node scripts/check-towers.mjs` (template geometry) | **all templates valid** |
 | `node tests/integration-battery.mjs` (13 real-Phaser checks: 60-layout settle soak, one-answer-per-launch, old-projectile rejection, pause freeze/resume, portrait freeze, 8× restart soak, plaque respawn) | **13 passed, 0 failed** |
-| `node tests/baseline-playthrough.mjs` (full 15-level × 4-question playthrough, legitimate solved launches only) | **L1→L15 COMPLETE incl. GAME_COMPLETE** (see §7 for pass-rate history) |
+| `node tests/baseline-playthrough.mjs` (full 15×4 playthrough, legitimate solved launches only) | **one full 15/15 completion (incl. GAME_COMPLETE), a 14/15 run, and every level passing in isolation (most repeatedly)**; per-run end-to-end ≈60–70 % — residual variance is scripted-player execution on shuffled/dynamic layouts (see §7) |
 | Production build under subpath `/games/wordblast/` (static server, curl + browser boot + gameplay screenshot) | **loads & plays; sprites, backgrounds, slingshot, plaques all render** |
 | Visual verification (browser screenshots + vision review) | intact towers on platforms, slingshot grounded, mid-collapse tumbling + fragments, settled debris, next-question load — all confirmed on early/mid/late levels |
 
