@@ -1,0 +1,193 @@
+/**
+ * BirdSprite — the VISUAL layer of a bird projectile (Fix #6).
+ *
+ * The Matter.js body created by ObjectFactory.createProjectile stays the
+ * single source of truth for position, rotation and collisions; this class
+ * owns a plain Phaser image ("skin") that is synchronized to that body
+ * every frame and adds restrained, purely cosmetic animation:
+ *
+ *   - while flying fast the bird FACES ITS VELOCITY (classic slingshot
+ *     read; the body itself may carry the launch angular velocity, which
+ *     would otherwise spin the face around)
+ *   - once slow (rolling / resting) the skin follows the physical body
+ *     angle, so ground contact tumbles naturally
+ *   - a subtle wing-breathing scale while in clean flight
+ *   - a short squash on first impact, a stretch pulse + spark trail on
+ *     boost, an icy tint on freeze
+ *
+ * None of this touches physics: no tweens on Matter bodies, no world
+ * position changes — the skin only reads host.x / host.y / host.angle.
+ */
+import { BIRDS } from '../data/birds.js';
+
+const FACE_SPEED_MIN = 3.0;      // px/step: above this the bird faces its velocity
+const TURN_RATE = 0.25;          // per-frame angular lerp toward the target angle
+const FLAP_AMPLITUDE = 0.03;     // ±3% cross-axis breathing during flight
+const FLAP_CYCLES_PER_S = 5.0;
+const SQUASH_MS = 220;           // impact squash envelope length
+const SQUASH_X = 0.14;           // +14% along the facing axis at the peak
+const SQUASH_Y = 0.12;           // −12% across
+const BOOST_STRETCH = 0.22;      // momentary stretch on boost activation
+const BOOST_MS = 260;
+const TRAIL_MS = 520;            // boost spark-trail duration
+const ICE_TINT = 0x9fd8ff;
+
+/** Shortest signed delta between two angles, in (−π, π]. */
+function angleDelta(from, to) {
+  let d = to - from;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d <= -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+export class BirdSprite {
+  /**
+   * @param {Phaser.Scene} scene
+   * @param {Phaser.Physics.Matter.Image} host the physics projectile (its
+   *        own sprite is hidden — the skin is the only visible part)
+   * @param {object} bird BIRDS entry (js/data/birds.js)
+   * @param {number} display square display size in world px
+   * @param {object|null} fx EffectsSystem (optional — ability effects are
+   *        skipped without it)
+   */
+  constructor(scene, host, bird, display, fx = null) {
+    this.scene = scene;
+    this.host = host;
+    this.bird = bird;
+    this.fx = fx;
+    this.dead = false;
+
+    this.skin = scene.add.image(host.x, host.y, bird.texture)
+      .setDisplaySize(display, display)
+      .setDepth(host.depth);
+    this.baseScale = this.skin.scaleX;
+
+    this.angle = host.angle;
+    this.lastImpact = false;
+    this.lastAbilityUsed = false;
+    this.squashAt = -1;
+    this.boostAt = -1;
+    this.trail = null;
+    this.iceTinted = false;
+  }
+
+  /** True while the underlying projectile is alive and moving fast. */
+  get isFlying() {
+    const v = this.host.body.velocity;
+    return Math.hypot(v.x, v.y) > FACE_SPEED_MIN;
+  }
+
+  /**
+   * Per-frame sync (called from ObjectFactory.update — never while
+   * paused). Returns false once the sprite is dead.
+   * @param {number} now scene.time.now
+   */
+  sync(now) {
+    if (this.dead) return false;
+    const host = this.host;
+    if (!host.active || !host.body) {
+      this.destroy();
+      return false;
+    }
+
+    const skin = this.skin;
+    skin.setPosition(host.x, host.y);
+
+    // ---- rotation: face the flight path while fast; physical tumble otherwise
+    const wb = host.wb;
+    const v = host.body.velocity;
+    const speed = Math.hypot(v.x, v.y);
+    const target = speed > FACE_SPEED_MIN ? Math.atan2(v.y, v.x) : host.angle;
+    this.angle += angleDelta(this.angle, target) * TURN_RATE;
+    skin.setRotation(this.angle);
+
+    // ---- cosmetic scale: breathing in flight, impact squash, boost stretch
+    let sx = 1;
+    let sy = 1;
+    if (!wb.firstImpactDone && speed > 4) {
+      const flap = 1 + Math.sin(now * 0.001 * FLAP_CYCLES_PER_S * Math.PI * 2) * FLAP_AMPLITUDE;
+      sy = flap;
+      sx = 2 - flap;
+    }
+    if (this.squashAt >= 0) {
+      const t = (now - this.squashAt) / SQUASH_MS;
+      if (t >= 1) this.squashAt = -1;
+      else {
+        const k = Math.sin((1 - t) * Math.PI);
+        sx *= 1 + SQUASH_X * k;
+        sy *= 1 - SQUASH_Y * k;
+      }
+    }
+    if (this.boostAt >= 0) {
+      const t = (now - this.boostAt) / BOOST_MS;
+      if (t >= 1) this.boostAt = -1;
+      else {
+        const k = Math.sin((1 - t) * Math.PI);
+        sx *= 1 + BOOST_STRETCH * k;
+        sy *= 1 - (BOOST_STRETCH * 0.6) * k;
+      }
+    }
+    skin.setScale(this.baseScale * sx, this.baseScale * sy);
+
+    // ---- ability / impact transitions (edge-detected from the wb flags
+    //      the gameplay code already maintains — no new state, no physics)
+    if (wb.firstImpactDone && !this.lastImpact) {
+      this.lastImpact = true;
+      this.squashAt = now;
+      if (wb.typeKey === 'ice' && !this.iceTinted) {
+        this.iceTinted = true;
+        skin.setTint(ICE_TINT);
+        this.scene.time.delayedCall(900, () => {
+          if (!this.dead) this.skin.clearTint();
+        });
+      }
+    }
+    if (wb.abilityUsed && !this.lastAbilityUsed) {
+      this.lastAbilityUsed = true;
+      if (wb.typeKey === 'speed') {
+        this.boostAt = now;
+        this.startTrail(now);
+      }
+    }
+
+    // ---- boost trail emitter lifecycle
+    if (this.trail) {
+      if (now - this.trailStartedAt > TRAIL_MS) {
+        this.trail.stop();
+        this.trail = null;
+      } else {
+        this.trail.setPosition(host.x, host.y);
+      }
+    }
+    return true;
+  }
+
+  /** Bounded spark trail behind the bird while the boost plays out. */
+  startTrail(now) {
+    if (!this.fx || this.fx.reducedMotion) return;
+    const emitter = this.fx.makeEmitter('p-spark', {
+      lifespan: { min: 220, max: 380 },
+      speed: { min: 12, max: 46 },
+      gravityY: 90,
+      scale: { start: 0.55, end: 0.05 },
+      alpha: { start: 0.9, end: 0 },
+      tint: [0xffd60a, 0xfff3b0, 0xfdca40],
+      frequency: 26,
+      quantity: 1
+    });
+    if (!emitter) return;
+    emitter.setPosition(this.host.x, this.host.y);
+    this.trail = emitter;
+    this.trailStartedAt = now;
+  }
+
+  destroy() {
+    if (this.dead) return;
+    this.dead = true;
+    if (this.trail) {
+      this.trail.stop();
+      this.trail = null;
+    }
+    this.skin.destroy();
+  }
+}

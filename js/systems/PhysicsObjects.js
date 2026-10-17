@@ -21,6 +21,8 @@ import {
   TARGETS, WORLD, TUNNELING, BUDGETS, COLORS, PHYSICS
 } from '../config.js';
 import { TOWER_ASSETS } from '../data/tower-assets.js';
+import { projectileVisual } from '../data/birds.js';
+import { BirdSprite } from './BirdSprite.js';
 
 const MatterLib = Phaser.Physics.Matter.Matter;
 
@@ -38,6 +40,7 @@ export class ObjectFactory {
     this.respawnQueue = []; // answer plaques that fell out of the world
     this.settling = false;  // true during the silent build-time settle phase
     this.prevVel = new Map(); // body.id -> velocity before the last step
+    this.birdSkins = [];    // BirdSprite visual layers for bird projectiles
 
     this.scene.matter.world.on('beforeupdate', this.captureVelocities, this);
     this.scene.events.once('shutdown', () => {

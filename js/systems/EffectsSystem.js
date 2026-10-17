@@ -161,6 +161,64 @@ export class EffectsSystem {
     emitter?.explode(10, x, y);
   }
 
+  /**
+   * Blue bird split activation: a quick white flash ring + a puff of
+   * feather-light blue sparks at the split point (bird-projectile VFX,
+   * Fix #6 — purely visual, no physics involvement).
+   */
+  splitPop(x, y) {
+    const ring = this.scene.add.circle(x, y, 8).setStrokeStyle(4, 0xbde0fe, 0.95).setDepth(18);
+    this.scene.tweens.add({
+      targets: ring, radius: 46, alpha: 0, duration: 300, ease: 'Cubic.out',
+      onComplete: () => ring.destroy()
+    });
+    if (this.reducedMotion) return;
+    const emitter = this.makeEmitter('p-puff', {
+      speed: { min: 50, max: 130 },
+      lifespan: { min: 260, max: 520 },
+      scale: { start: 0.7, end: 1.3 },
+      alpha: { start: 0.9, end: 0 },
+      tint: [0x9d4edd, 0xbde0fe, 0xffffff],
+      emitting: false
+    });
+    emitter?.explode(9, x, y);
+  }
+
+  /**
+   * Purple bird freeze activation (first impact): icy expanding ring +
+   * a small burst of ice shards and snow. The frozen-tint on blocks is
+   * applied by the factory; this is the impact-point feedback.
+   */
+  freezeBurst(x, y) {
+    const ring = this.scene.add.circle(x, y, 10).setStrokeStyle(4, 0x90e0ef, 0.95).setDepth(18);
+    this.scene.tweens.add({
+      targets: ring, radius: 54, alpha: 0, duration: 380, ease: 'Cubic.out',
+      onComplete: () => ring.destroy()
+    });
+    if (this.reducedMotion) return;
+    const shards = this.makeEmitter('p-shard', {
+      speed: { min: 70, max: 170 },
+      angle: { min: 180, max: 360 },
+      gravityY: 420,
+      lifespan: { min: 280, max: 560 },
+      scale: { start: 0.9, end: 0.2 },
+      alpha: { start: 0.95, end: 0.1 },
+      tint: [0x90e0ef, 0xbde0fe, 0xffffff],
+      emitting: false
+    });
+    shards?.explode(11, x, y);
+    const snow = this.makeEmitter('p-puff', {
+      speed: { min: 20, max: 60 },
+      gravityY: -50,
+      lifespan: { min: 400, max: 800 },
+      scale: { start: 0.6, end: 1.4 },
+      alpha: { start: 0.7, end: 0 },
+      tint: [0xffffff, 0xcaf0f8],
+      emitting: false
+    });
+    snow?.explode(7, x, y - 8);
+  }
+
   /** Plaque respawn marker. */
   respawnPuff(x, y) {
     const ring = this.scene.add.circle(x, y - 40, 8).setStrokeStyle(4, 0x90e0ef, 0.9).setDepth(18);

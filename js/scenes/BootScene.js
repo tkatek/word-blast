@@ -14,6 +14,7 @@ import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
 import { preloadList } from '../data/tower-assets.js';
+import { birdPreloadList } from '../data/birds.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
 
@@ -42,12 +43,27 @@ export class BootScene extends Phaser.Scene {
     for (const { key, file } of preloadList()) {
       this.load.image(`tw-${key}`, BASE + file);
     }
+
+    // Bird projectile artwork (Fix #6): six cartoon birds mapped onto the
+    // existing projectile roster. If a bird PNG is unreachable, the
+    // projectile factory falls back to the legacy procedural circle
+    // textures of the same size ('proj-*' keys generated in
+    // generateTextures), so gameplay never breaks (headless test envs).
+    const BIRDBASE = (import.meta.env.BASE_URL || '/') + 'assets/images/birds/';
+    for (const { key, file } of birdPreloadList()) {
+      this.load.image(key, BIRDBASE + file);
+    }
+
     this.load.on('loaderror', (file) => {
       if (file.key === SLINGSHOT.ART.KEY) {
         // artwork unreachable (e.g. headless test env): draw a wooden Y with
         // identical anchor geometry so the slingshot still works
         console.warn(`[Boot] slingshot artwork missing — procedural fallback`);
         ensureSlingshotTexture(this);
+        return;
+      }
+      if (file.key.startsWith('bird-')) {
+        console.warn(`[Boot] bird artwork missing (${file.key}) — circle fallback`);
         return;
       }
       if (!file.src.includes('/tower/')) return;
@@ -115,7 +131,9 @@ export class BootScene extends Phaser.Scene {
     g.strokeRoundedRect(0, 0, 128, 72, 12);
     g.generateTexture('tex-target', 128, 72);
 
-    // projectiles
+    // projectiles — FALLBACK circles only: the real projectiles use the
+    // bird artwork ('bird-*', preloaded above); these keys remain for
+    // environments where the PNGs could not be fetched (headless tests)
     for (const key of Object.keys(PROJECTILE_TYPES)) {
       this.circleTexture(g, `proj-${key}`, COLORS.PROJECTILES[key]);
     }
