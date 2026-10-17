@@ -1,22 +1,28 @@
 /**
  * SlingshotRenderer — every pixel of the slingshot, and nothing else:
- * the supplied wooden artwork split into a rear layer + front-fork
- * overlay, two elastic rubber bands, the leather pouch, the tip wraps
- * and the aiming dots. Purely visual — launch physics lives in
- * Slingshot.js, which feeds this renderer positions each frame.
+ * ONE complete, static wooden artwork sprite (the supplied PNG is never
+ * cropped, split, masked or duplicated), two elastic rubber bands, the
+ * leather pouch, the tip wraps and the aiming dots. Purely visual —
+ * launch physics lives in Slingshot.js, which feeds this renderer
+ * positions each frame.
  *
  * Layering (back → front), all inside the fixed 1280×720 world:
- *   1  shadow        soft contact ellipse planting the base into the grass
- *   2  woodBack      FULL supplied artwork (trunk + both prongs)
- *   3  bandBack      rear rubber band — over the rear prong, behind the pouch
- *   8  pouch         leather cup cradling the bird
- *   9  (bird preview — created by Slingshot, drawn between pouch and fork)
- *  12  woodFront     front-fork overlay — same texture, cropped to the near
- *                    prong, so the bird passes BEHIND it and reads as
- *                    genuinely seated inside the fork
- *  13  bandFront     front rubber band — over the overlay, visibly wrapped
- *  14  tipWraps      band coils around both wooden fork tips
- *  15  trajectory    aiming dots (below HUD 50 / panels 80)
+ *   1  shadow      soft contact ellipse planting the base into the grass
+ *   2  wood        the COMPLETE supplied artwork (trunk + both prongs) as
+ *                  ONE static sprite. Its frame is pinned to '__BASE'
+ *                  explicitly: Phaser's Texture.add() promotes any newly
+ *                  added frame to the texture default, which once made an
+ *                  implicitly-framed image render a cropped prong instead
+ *                  of the full art (the "disconnected arms / invisible
+ *                  trunk" bug). Pinning the frame makes that impossible.
+ *   3  bandBack    rear rubber band — above the wood, behind the pouch
+ *   8  pouch       leather cup cradling the bird
+ *   9  (bird preview — created by Slingshot, drawn between the bands)
+ *  13  bandFront   front rubber band — over the bird, so the projectile
+ *                  reads as seated between the two elastics WITHOUT any
+ *                  duplicated or re-cropped wood overlay
+ *  14  tipWraps    band coils around both wooden fork tips
+ *  15  trajectory  aiming dots (below HUD 50 / panels 80)
  *
  * The artwork is never stretched during aiming — only the bands, pouch
  * and preview move. Texture anchors are normalized (SLINGSHOT.ART in
@@ -27,17 +33,14 @@ import { SLINGSHOT, WORLD, COLORS } from '../config.js';
 
 export const RENDER_DEPTH = {
   SHADOW: 1,
-  WOOD_BACK: 2,
+  WOOD: 2,
   BAND_BACK: 3,
   POUCH: 8,
   PROJECTILE: 9,
-  WOOD_FRONT: 12,
   BAND_FRONT: 13,
   TIP_WRAP: 14,
   TRAJECTORY: 15
 };
-
-const FRONT_FRAME = 'slingshot-wood-front-fork';
 
 /** Dark-brown elastic + worn leather palette (cartoon, matches the wood art). */
 const RUBBER = {
