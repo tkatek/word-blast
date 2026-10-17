@@ -60,12 +60,21 @@ const main = async () => {
   const M = h.Phaser.Physics.Matter.Matter;
   // dynamic plaques settle differently per run — retry the delivery
   let delivered = false;
-  for (let tries = 0; tries < 3 && !delivered; tries++) {
+  for (let tries = 0; tries < 8 && !delivered; tries++) {
     const t = h.correctTarget();
-    M.Sleeping.set(ball.body, false);
-    M.Body.setPosition(ball.body, { x: t.x + 8, y: t.y - 30 });
-    M.Body.setVelocity(ball.body, { x: 0, y: 1 });
-    delivered = await h.waitFor(() => s.prepared.answered === true, 2500);
+    if (!ball.wb.consumed && ball.body) {
+      M.Sleeping.set(ball.body, false);
+      M.Body.setPosition(ball.body, { x: t.x + [8, -8, 0, 20, -20, 12, 4, -16][tries], y: t.y - 60 });
+      M.Body.setVelocity(ball.body, { x: 0, y: 8 });   // decisive approach
+      delivered = await h.waitFor(() => s.prepared.answered === true, 2500);
+    }
+    if (!delivered && ball.body) {
+      // park the ball somewhere safe so it survives to the next try
+      M.Sleeping.set(ball.body, false);
+      M.Body.setPosition(ball.body, { x: 300, y: 400 });
+      M.Body.setVelocity(ball.body, { x: 0, y: 0 });
+      await h.waitFor(() => Math.hypot(ball.body.velocity.x, ball.body.velocity.y) < 0.2, 3000);
+    }
   }
   console.log('repro: impulse applied — ball dropping toward correct target ' + target.x + ' while state=' + h.state());
 

@@ -86,12 +86,26 @@ const main = async () => {
           for (const c of ranked) {
             if (h.fire(c.sol.vx, c.sol.vy, null)) { launched = true; break; }
           }
+          if (!launched) {
+            // a knocked-around plaque can drift past solvable arcs: aim at
+            // its ANCHOR (where a player expects the board) as a fallback
+            for (const c of h.solveLaunch ? [] : []) break;
+            const ax = target.wb ? target.wb.anchorX : target.x;
+            const ay = target.wb ? target.wb.anchorY : target.y;
+            for (const angleDeg of ANGLES) {
+              for (const aimY of [ay, ay - 28]) {
+                const sol = h.solveLaunch(ax, aimY, { angleDeg, steps: 130 });
+                if (sol && sol.missDistance < 40 && h.fire(sol.vx, sol.vy, null)) { launched = true; break; }
+              }
+              if (launched) break;
+            }
+          }
           if (!launched) { row.error = `Q${q + 1} no launch solution`; break; }
           fired++;
           const moved = await h.waitFor(() => {
             const st = h.state();
             const i = h.info();
-            return i.questionIndex === q + 1 || st === 'LEVEL_COMPLETE' || st === 'LEVEL_FAILED' || st === 'AIMING';
+            return i.questionIndex === q + 1 || st === 'LEVEL_COMPLETE' || st === 'GAME_COMPLETE' || st === 'LEVEL_FAILED' || st === 'AIMING';
           }, 25000);
           if (!moved) { row.error = `Q${q + 1} stalled (state=${h.state()})`; break; }
           if (h.state() === 'LEVEL_FAILED') break;
@@ -103,7 +117,7 @@ const main = async () => {
         if (h.state() === 'LEVEL_FAILED') { row.error = `Q${q + 1} level failed after ${fired} shots`; break; }
         row.questions.push({ q: q + 1, ms: Date.now() - t0, shots: fired });
       }
-      row.outcome = row.error ? 'FAIL' : (h.state() === 'LEVEL_COMPLETE' ? 'COMPLETE' : h.state());
+      row.outcome = row.error ? 'FAIL' : ((h.state() === 'LEVEL_COMPLETE' || h.state() === 'GAME_COMPLETE') ? 'COMPLETE' : h.state());
     } catch (err) {
       row.error = String(err && err.message || err);
     }

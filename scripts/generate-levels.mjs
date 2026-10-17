@@ -30,6 +30,11 @@ const SLING = { x: 195, y: 335 }; // canonical desktop anchor (SLINGSHOT.ANCHORS
  */
 const PLAQUE = { w: 116, h: 80 }; // TARGETS sign_blank logical size
 
+// The SAME launch angles the integration tests and debugAutoAim sweep —
+// a layout is only shipped when an arc at one of THESE angles clears it,
+// so "verified reachable" and "automatically hittable" are the same thing.
+const REACH_ANGLES = [-35, -30, -25, -20, -16, -12, -9, -6, -42, -48, -54];
+
 function anchorReachable(anchorX, anchorY, pieces, blockers, requireTwo = false) {
   // shield rects: tower pieces (by asset size) + already-placed plaques
   const shields = [];
@@ -44,13 +49,13 @@ function anchorReachable(anchorX, anchorY, pieces, blockers, requireTwo = false)
   let clearing = 0;
   const aimPoints = [[anchorX, anchorY], [anchorX, anchorY - 28]];
   for (const [ax, ay] of aimPoints) {
-    for (const ang of [-14, -22, -30, -38, -46, -54]) {
+    for (const ang of REACH_ANGLES) {
       // steps must match the shield check below: a steep lob to a distant
       // tower takes >60 steps, and the default path would truncate short
       // of the target (false "unreachable")
-      const sol = solveLaunch(SLING.x, SLING.y, ax, ay, { angleDeg: ang, steps: 130 });
+      const sol = solveLaunch(SLING.x, SLING.y, ax, ay, { angleDeg: ang, steps: 160 });
       if (!sol || sol.missDistance > 30) continue;
-      const pts = predictPath(SLING.x, SLING.y, sol.vx, sol.vy, { steps: 130 });
+      const pts = predictPath(SLING.x, SLING.y, sol.vx, sol.vy, { steps: 160 });
       let ok = true;
       for (const p of pts) {
         if (p.x > anchorX - 10) break;

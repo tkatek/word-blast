@@ -21,7 +21,7 @@
  */
 import { SLINGSHOT, WORLD, COLORS, PROJECTILE_TYPES, terrainFor, slingshotAnchor } from '../config.js';
 import { predictPath } from './Trajectory.js';
-import { DEVICE_TYPES } from './Device.js';
+import { DEVICE_TYPES, deviceInfo } from './Device.js';
 
 const DEPTH = {
   BACK_ARM: 2,
@@ -72,7 +72,10 @@ export class Slingshot {
     this.layerFrontArm = scene.add.graphics().setDepth(DEPTH.FRONT_ARM);
     this.layerTrajectory = scene.add.graphics().setDepth(DEPTH.TRAJECTORY);
 
-    this.applyDeviceAnchor(scene.registry.get('device')?.type);
+    // live deviceInfo() (test-override aware) beats the boot-time registry
+    // snapshot, so a scene restarted under a device override stands the
+    // slingshot on THAT art's painted cliff
+    this.applyDeviceAnchor(deviceInfo().type || scene.registry.get('device')?.type);
 
     scene.input.on('pointerdown', this.onPointerDown, this);
     scene.input.on('pointermove', this.onPointerMove, this);
@@ -101,7 +104,10 @@ export class Slingshot {
    * spawned at launch, so nothing live ever teleports.
    */
   applyDeviceAnchor(deviceType) {
-    this.deviceType = DEVICE_TYPES[deviceType] ? deviceType : DEVICE_TYPES.DESKTOP;
+    // validate against the VALUES ('desktop'|'tablet'|'mobile'), not the
+    // uppercase keys — DEVICE_TYPES['mobile'] is undefined
+    const valid = Object.values(DEVICE_TYPES).includes(deviceType);
+    this.deviceType = valid ? deviceType : DEVICE_TYPES.DESKTOP;
     this.terrain = terrainFor(this.deviceType);
     this.setAnchor(slingshotAnchor(this.deviceType));
   }

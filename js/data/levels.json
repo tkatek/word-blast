@@ -2517,7 +2517,7 @@
    "id": 11,
    "name": "Complex Sentences",
    "cefr": "B1",
-   "shotsPerQuestion": 3,
+   "shotsPerQuestion": 4,
    "projectiles": [
     "basic",
     "speed",
@@ -3088,7 +3088,7 @@
    "id": 13,
    "name": "Reading and Reasoning",
    "cefr": "B1",
-   "shotsPerQuestion": 3,
+   "shotsPerQuestion": 4,
    "projectiles": [
     "basic",
     "speed",
@@ -3421,7 +3421,7 @@
    "id": 14,
    "name": "Advanced Grammar",
    "cefr": "B1+",
-   "shotsPerQuestion": 2,
+   "shotsPerQuestion": 3,
    "projectiles": [
     "basic",
     "speed",
@@ -3686,7 +3686,7 @@
    "id": 15,
    "name": "Final Challenge",
    "cefr": "B1+",
-   "shotsPerQuestion": 2,
+   "shotsPerQuestion": 3,
    "projectiles": [
     "basic",
     "speed",

@@ -38,7 +38,7 @@ function eq(a, b, msg) {
 
 /** Deliver a resting shot projectile onto a target with retries.
  * Dynamic plaques settle differently per run; a retry or two lands one. */
-async function deliverOnto(h, ball, getTarget) {
+async function deliverOnto(h, ball, getTarget, didLand) {
   const M = h.Phaser.Physics.Matter.Matter;
   const s = h.scene();
   // dynamic plaques/towers drift while settling — deliver only onto a still world
@@ -48,15 +48,16 @@ async function deliverOnto(h, ball, getTarget) {
     const v = t.body.velocity;
     return Math.hypot(v.x, v.y) < 0.15 && h.scene().factory.blocksQuiet();
   }, 5000);
-  const offsets = [8, -8, 0, 20, -20, 12];
+  const offsets = [8, -8, 0, 20, -20, 12, 4, -16];
   for (let tries = 0; tries < offsets.length; tries++) {
     const t = getTarget();
     if (!t || !ball.body) return false;
     M.Sleeping.set(ball.body, false);
     M.Body.setPosition(ball.body, { x: t.x + offsets[tries], y: t.y - 30 });
     M.Body.setVelocity(ball.body, { x: 0, y: 1 });
-    const hit = await h.waitFor(() => s.state() === 'ANSWER_FEEDBACK', 3000);
-    if (hit) return true;
+    // verify the INTENDED plaque took the hit (neighbors drift around)
+    const landed = await h.waitFor(() => (didLand ? didLand() : s.state() === 'ANSWER_FEEDBACK'), 3500);
+    if (landed) return true;
   }
   return false;
 }
@@ -65,14 +66,41 @@ async function deliverOnto(h, ball, getTarget) {
  * attempt rotates the chosen angle: deterministic physics replays an
  * identical shot identically, so retrying must vary the angle. */
 function aimShotAt(h, x, y, attempt = 0) {
-  // solveLaunch uses one fixed angle; sweep angles until a real solution exists
+  // solveLaunch uses one fixed angle; sweep angles until a real solution
+  // exists. Steep lob angles (-40..-54) matter: a rear ground plaque can
+  // only be reached OVER a front tower — exactly the arc the layout
+  // generator verifies as reachable.
   const viable = [];
-  for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6]) {
-    const sol = h.solveLaunch(x, y, { angleDeg });
+  for (const angleDeg of [-35, -30, -25, -20, -16, -12, -9, -6, -42, -48, -54]) {
+    // steps: steep lobs fly >60 steps; the default path truncates short
+    const sol = h.solveLaunch(x, y, { angleDeg, steps: 160 });
     if (sol && sol.missDistance < 40) viable.push(sol);
   }
   if (!viable.length) return false;
-  const sol = viable[attempt % viable.length];
+  // Prefer arcs that do not clip another plaque or a tower piece in front
+  // of the aim point — those legally answer a DIFFERENT (wrong) plaque.
+  const s = h.scene();
+  const blockers = [];
+  for (const t of s.factory.targets) {
+    if (Math.hypot(t.x - x, t.y - y) > 4 && !t.wb.hit) blockers.push({ x: t.x, y: t.y, w: 116, h: 80 });
+  }
+  for (const b of s.factory.blocks) {
+    if (!b.wb.removed) blockers.push({ x: b.x, y: b.y, w: b.displayWidth, h: b.displayHeight });
+  }
+  const clearArc = (vx, vy) => {
+    const pts = h.predictPath(vx, vy, { steps: 160 });
+    for (const p of pts) {
+      if (p.x > x - 10) break;
+      for (const bl of blockers) {
+        if (p.x > bl.x - bl.w / 2 - 14 && p.x < bl.x + bl.w / 2 + 14
+          && p.y > bl.y - bl.h / 2 - 14 && p.y < bl.y + bl.h / 2 + 14) return false;
+      }
+    }
+    return true;
+  };
+  const clearing = viable.filter((sol) => clearArc(sol.vx, sol.vy));
+  const pool = clearing.length ? clearing : viable;
+  const sol = pool[attempt % pool.length];
   return h.api.simulateShot({ vx: sol.vx, vy: sol.vy });
 }
 
@@ -100,6 +128,8 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
       continue;
     }
     if (st === 'AIMING') {
+      // world stillness before aiming — plaques drift while settling
+      await h.waitFor(() => h.scene().factory.blocksQuiet(), 5000);
       if (attempt < 2) {
         autoAimSweep(h, null, attempt);
       } else {
@@ -111,7 +141,7 @@ async function answerCorrect(h, { timeoutMs = 25000 } = {}) {
         h.fire(6, -6);
         const ball = h.liveBalls()[0];
         if (ball) {
-          await deliverOnto(h, ball, () => h.correctTarget());
+          await deliverOnto(h, ball, () => h.correctTarget(), () => h.scene().prepared && h.scene().prepared.answered === true);
         }
       }
     }
@@ -170,7 +200,7 @@ const main = async () => {
     assert(ball, 'no live projectile after re-arm');
     // debris/mover-equivalent impulse onto the correct target while AIMING
     // (approach from the right: fences only guard the left sides)
-    assert(await deliverOnto(h, ball, () => h.correctTarget()), 'correct answer never registered');
+    assert(await deliverOnto(h, ball, () => h.correctTarget(), () => s.prepared && s.prepared.answered === true), 'correct answer never registered');
     assert(await h.waitFor(() => h.info().questionIndex === 1, 15000),
       `FREEZE: correct answer validated but question stuck (state ${h.state()})`);
     eq(h.info().score, 1000, 'score for first-attempt correct');
@@ -187,7 +217,7 @@ const main = async () => {
     const ball = h.liveBalls()[0];
     assert(ball, 'no resting ball');
     const wrong = s.factory.targets.find((t) => t.wb.choiceId !== s.prepared.question.correctAnswerId);
-    assert(await deliverOnto(h, ball, () => wrong), 'wrong answer never registered');
+    assert(await deliverOnto(h, ball, () => wrong, () => wrong.wb && wrong.wb.hit === true), 'wrong answer never registered');
     eq(h.info().questionIndex, 0, 'wrong answer must not advance the question');
     assert(await h.waitForState('AIMING', 12000), 'feedback never settled back to AIMING');
     assert(h.fire(6, -6), 'game not playable after late wrong answer');

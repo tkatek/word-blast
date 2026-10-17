@@ -91,6 +91,9 @@ export class GameScene extends Phaser.Scene {
       // exactly where the player saw the projectile leave the slingshot
       onLaunch: (vx, vy, type, origin) => this.launchProjectile(vx, vy, type, origin)
     });
+    // this scene's device (resolved in buildWorld) is authoritative — the
+    // constructor's own probe can race a device override swap
+    this.slingshot.applyDeviceAnchor(this.device.type);
 
     this.matter.world.on('collisionstart', this.onCollisionStart, this);
     this.input.keyboard.on('keydown-P', () => this.togglePause());
