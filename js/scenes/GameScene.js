@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import {
   STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK,
-  slingshotAnchor, terrainFor
+  slingshotAnchor
 } from '../config.js';
 import { GameStateMachine } from '../systems/GameStateMachine.js';
 import { ObjectFactory } from '../systems/PhysicsObjects.js';
@@ -91,9 +91,6 @@ export class GameScene extends Phaser.Scene {
       // exactly where the player saw the projectile leave the slingshot
       onLaunch: (vx, vy, type, origin) => this.launchProjectile(vx, vy, type, origin)
     });
-    // this scene's device (resolved in buildWorld) is authoritative — the
-    // constructor's own probe can race a device override swap
-    this.slingshot.applyDeviceAnchor(this.device.type);
 
     this.matter.world.on('collisionstart', this.onCollisionStart, this);
     this.input.keyboard.on('keydown-P', () => this.togglePause());
@@ -123,15 +120,14 @@ export class GameScene extends Phaser.Scene {
 
   buildWorld() {
     this.cameras.main.setBackgroundColor(COLORS.SKY);
-    // Device background is the ONLY visible terrain (depth -100). The
-    // gameplay surfaces are invisible static colliders measured from the
-    // painted platforms of THIS device's art (TERRAIN_PROFILES in config).
-    // Live deviceInfo() (override-aware for tests) beats the boot snapshot.
+    // The official background (depth -100) is the ONLY visible terrain: its
+    // painted grass line is pinned to WORLD.GROUND_Y, and the gameplay
+    // surface is the single invisible static collider at that same line.
+    // One ground for every device — desktop, tablet and phone alike.
     this.device = deviceInfo();
-    this.terrain = terrainFor(this.device.type);
-    this.factory.createTerrain(this.terrain);
+    this.factory.createTerrain();
     this.background = new BackgroundManager(this);
-    this.background.apply(this.device.type);
+    this.background.apply();
   }
 
   buildHUD() {
@@ -275,9 +271,9 @@ export class GameScene extends Phaser.Scene {
       backgroundColor: '#14213dcc', padding: { x: 16, y: 8 }
     }).setOrigin(0.5).setDepth(DEPTH.OVERLAY).setAlpha(0);
 
-    // tutorial hint (next to the slingshot on its cliff)
+    // tutorial hint (next to the slingshot)
     if (this.levelId === 1 && !this.save.data.tutorialDone) {
-      const a = slingshotAnchor(this.device.type);
+      const a = slingshotAnchor();
       this.tutorialHint = this.add.text(a.x + 42, a.y - 66,
         'Drag the ball back and release\nto hit the correct answer!', {
           fontFamily: 'Arial', fontSize: '16px', color: '#1d3557', backgroundColor: '#ffffffcc', padding: { x: 8, y: 6 }
@@ -330,9 +326,9 @@ export class GameScene extends Phaser.Scene {
     const question = this.questions.getQuestion(entry.questionId);
     this.prepared = this.questions.prepare(question);
 
-    // layouts are baked for the canonical desktop terrace and rigidly
-    // translated onto THIS device's painted platform (LevelManager)
-    const layout = this.levels.getLayout(this.levelId, index, this.device.type);
+    // layouts are baked against the canonical ground line and rigidly
+    // translated onto the live flat ground (LevelManager)
+    const layout = this.levels.getLayout(this.levelId, index);
     this.factory.buildLayout(layout);
     layout.targets.forEach((t, i) => {
       const meta = this.prepared.targets[i];
@@ -771,8 +767,10 @@ export class GameScene extends Phaser.Scene {
     this.rotationPaused = false;
     this.pausedForRotation = false;
     this.onOrientationChange = () => {
-      this.background?.refreshFromViewport();
-      this.syncSlingshotDevice();
+      // The background art, ground collider and slingshot anchor are
+      // device-independent — only the rotate-device overlay state and the
+      // live device snapshot need refreshing on a viewport change.
+      this.device = { ...deviceInfo() };
       this.updateOrientationState();
     };
     this.scale.on('resize', this.onOrientationChange);
@@ -787,26 +785,6 @@ export class GameScene extends Phaser.Scene {
       this.portraitQuery?.removeEventListener?.('change', this.onOrientationChange);
     });
     this.updateOrientationState();
-  }
-
-  /**
-   * A real device-class change (e.g. tablet → phone window) swaps the
-   * background art, whose painted platforms sit elsewhere — re-stand the
-   * slingshot on that art's anchor AND rebuild the invisible colliders to
-   * match. Never mid-drag (an aimed shot is never yanked away), and never
-   * for an in-flight projectile (its body was already spawned at launch and
-   * is independent of the anchor). Dynamic pieces settle onto the new
-   * colliders naturally; the next question is laid out for the new device.
-   */
-  syncSlingshotDevice() {
-    if (!this.slingshot || this.slingshot.isDragging()) return;
-    const type = deviceInfo().type;
-    if (type !== this.slingshot.deviceType) {
-      this.slingshot.applyDeviceAnchor(type);
-      this.terrain = terrainFor(type);
-      this.factory.applyTerrainProfile(this.terrain);
-      this.device = { ...deviceInfo() };
-    }
   }
 
   /**

@@ -96,17 +96,10 @@ export function installDebugAPI(game) {
       return enabled;
     },
 
-    /** Current device classification + background in use. */
+    /** Current device classification + the official background in use. */
     device() {
       const s = api.scene();
       return { ...deviceInfo(), background: s && s.background ? s.background.type : null };
-    },
-
-    /** Force a background variant for visual verification. */
-    setBackground(type) {
-      const s = api.scene();
-      if (!s || !s.background) throw new Error('no active game scene');
-      return s.background.apply(type);
     },
 
     /** Test-only orientation override: 'portrait' | 'landscape' | null. */
@@ -121,8 +114,7 @@ export function installDebugAPI(game) {
     setDeviceOverride(type) {
       setTypeOverride(type);
       const s = api.scene();
-      if (s && s.background) s.background.apply(type); // swap art for visuals
-      if (s && s.syncSlingshotDevice) s.syncSlingshotDevice(); // re-anchor sling + rebuild terrain colliders
+      if (s) s.device = { ...deviceInfo() };
       if (s && s.updateOrientationState) s.updateOrientationState();
       return type;
     },

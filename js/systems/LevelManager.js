@@ -5,7 +5,7 @@
  * scene code.
  */
 import { validateLevels } from './Validators.js';
-import { terrainFor } from '../config.js';
+import { WORLD, LAYOUT_BAKED_GROUND_Y } from '../config.js';
 
 export class LevelManager {
   /**
@@ -39,11 +39,11 @@ export class LevelManager {
 
   /**
    * Per-question runtime layout: pieces + pigs + targets + movers.
-   * Layouts are baked for the canonical (desktop) terrace; a deviceType
-   * translates them RIGIDLY (never scaled, so tower stacking survives
-   * exactly) onto that device's painted platform surface.
+   * Layouts are baked against LAYOUT_BAKED_GROUND_Y and translated RIGIDLY
+   * (never scaled, so tower stacking survives exactly) onto the live flat
+   * ground WORLD.GROUND_Y — the same single surface on every device.
    */
-  getLayout(levelId, index, deviceType) {
+  getLayout(levelId, index) {
     const entry = this.getQuestionEntry(levelId, index);
     if (!entry) return null;
     const l = entry.layout || {};
@@ -53,12 +53,9 @@ export class LevelManager {
       targets: l.targets || [],
       moving: l.moving || []
     };
-    const profile = terrainFor(deviceType);
-    const canonical = terrainFor('desktop');
-    const dx = profile.LAYOUT.dx + 0;
-    const dy = profile.TERRACE.top - canonical.TERRACE.top;
-    if (deviceType === 'desktop' || (dx === 0 && dy === 0)) return base;
-    const move = (p) => ({ ...p, x: +(p.x + dx).toFixed(1), y: +(p.y + dy).toFixed(1) });
+    const dy = WORLD.GROUND_Y - LAYOUT_BAKED_GROUND_Y;
+    if (dy === 0) return base;
+    const move = (p) => ({ ...p, x: p.x, y: +(p.y + dy).toFixed(1) });
     return {
       pieces: base.pieces.map(move),
       pigs: base.pigs.map(move),

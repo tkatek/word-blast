@@ -17,6 +17,7 @@ import { dirname, join } from 'path';
 import { TEMPLATES, instantiate, templatesForTier } from '../js/data/towers.js';
 import { TOWER_ASSETS } from '../js/data/tower-assets.js';
 import { solveLaunch, predictPath } from '../js/systems/Trajectory.js';
+import { LAYOUT_BAKED_GROUND_Y } from '../js/config.js';
 
 const SLING = { x: 195, y: 335 }; // canonical desktop anchor (SLINGSHOT.ANCHORS.desktop)
 
@@ -92,13 +93,10 @@ function rng(seed) {
   };
 }
 
-// Canonical geometry = desktop art (TERRAIN_PROFILES.desktop). Layouts are
-// translated RIGIDLY per device at runtime (LevelManager), so the baked span
-// must fit every painted terrace after translation:
-//   desktop dx=0   → 560..1229 on terrace [459, 1280]
-//   tablet  dx=-16 → 544..1213 on terrace [544, 1280]
-//   mobile  dx=+50 → 610..1279 on terrace [610, 1280]
-const TERRACE_TOP = 428;           // TERRAIN_PROFILES.desktop.TERRACE.top
+// Canonical geometry = LAYOUT_BAKED_GROUND_Y (js/config.js). Layouts are
+// translated RIGIDLY onto the live flat ground at runtime (LevelManager),
+// so the baked span must fit the shared gameplay area [0, 1280].
+const TERRACE_TOP = LAYOUT_BAKED_GROUND_Y;
 const SPAN_LEFT = 578;             // leftmost structure EDGE (slot plaques may overhang 18px → 560)
 const SPAN_RIGHT = 1211;           // rightmost structure EDGE (overhang → 1229; mobile dx+50 → 1279)
 const PANEL_SAFE_X = 760;          // tall structures sit right of the question panel

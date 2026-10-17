@@ -1,6 +1,6 @@
 /**
  * Physics object factory — the only place Matter bodies are created.
- * Owns: terrain (plateau + terrace), tower pieces built from the sprite
+ * Owns: the flat ground collider, tower pieces built from the sprite
  * manifest (wood / glass / stone / TNT / pigs), dynamic answer plaques,
  * moving obstacles and projectiles (5 types + split children).
  *
@@ -18,7 +18,7 @@
 import Phaser from 'phaser';
 import {
   MATERIALS, DAMAGE, EXPLOSION, ICE, PROJECTILE_TYPES, SPLIT_CHILD, BOOST,
-  TARGETS, WORLD, terrainFor, TUNNELING, BUDGETS, COLORS, PHYSICS
+  TARGETS, WORLD, TUNNELING, BUDGETS, COLORS, PHYSICS
 } from '../config.js';
 import { TOWER_ASSETS } from '../data/tower-assets.js';
 
@@ -27,8 +27,7 @@ const MatterLib = Phaser.Physics.Matter.Matter;
 export class ObjectFactory {
   constructor(scene) {
     this.scene = scene;
-    this.terrain = [];      // static terrain bodies (plateau + terrace)
-    this.terrainDef = terrainFor('desktop'); // profile the colliders follow
+    this.terrain = [];      // the single static ground collider
     this.blocks = [];       // active destructible pieces + pigs
     this.targets = [];      // active answer plaques
     this.movers = [];       // moving obstacles ({ go, baseX, baseY, axis, range, speed })
@@ -69,34 +68,27 @@ export class ObjectFactory {
   /* ------------------------------------------------------------------ */
 
   /**
-   * Invisible static colliders matching the PAINTED platforms of the active
-   * device background (see TERRAIN_PROFILES in config.js): the left grassy
-   * cliff (slingshot) and the main grassy terrace (towers). No visuals are
-   * drawn for these — the background art IS the terrain. The painted water
-   * gap between them has no collider; anything falling in drops out of the
-   * world (cleanupOutOfBound) or is recovered (answer plaques).
+   * THE gameplay ground: ONE invisible static collider spanning the whole
+   * world at WORLD.GROUND_Y, aligned with the painted grass line of the
+   * official background (BackgroundManager pins art and collider to the
+   * same line). Flat and continuous — the slingshot on the left and every
+   * answer tower center-right stand on this single surface, with no gaps
+   * and no platforms. Nothing is drawn: the background art IS the terrain.
+   * The collider extends past the side edges and 120px below the world so
+   * nothing can slip around or under it.
    */
-  createTerrain(profile) {
-    this.terrainDef = profile || terrainFor('desktop');
-    const mk = (seg) => {
-      const w = seg.right - seg.left;
-      const h = (WORLD.HEIGHT + 80) - seg.top;
-      const body = this.scene.matter.add.rectangle(
-        seg.left + w / 2, seg.top + h / 2, w, h,
-        { isStatic: true, friction: 0.9, label: 'terrain' }
-      );
-      this.terrain.push(body);
-      return body;
-    };
-    mk(this.terrainDef.PLATEAU);
-    mk(this.terrainDef.TERRACE);
-  }
-
-  /** Hot-swap the static colliders after a device-class change mid-scene. */
-  applyTerrainProfile(profile) {
-    for (const body of this.terrain) this.scene.matter.world.remove(body);
-    this.terrain.length = 0;
-    this.createTerrain(profile);
+  createTerrain() {
+    const left = -200;
+    const right = WORLD.WIDTH + 200;
+    const bottom = WORLD.HEIGHT + 120;
+    const w = right - left;
+    const h = bottom - WORLD.GROUND_Y;
+    const body = this.scene.matter.add.rectangle(
+      left + w / 2, WORLD.GROUND_Y + h / 2, w, h,
+      { isStatic: true, friction: 0.9, label: 'terrain' }
+    );
+    this.terrain.push(body);
+    return body;
   }
 
   /* ------------------------------------------------------------------ */
@@ -677,16 +669,16 @@ export class ObjectFactory {
   }
 
   /**
-   * Controlled recovery: a plaque that fell out of the playable area (the
-   * water gap, off-world) reappears at its anchor — never auto-answered,
-   * just kept hittable. Bounded to a few respawns per plaque.
+   * Controlled recovery: a plaque that fell out of the playable area (pushed
+   * off the side edges of the world) reappears at its anchor — never
+   * auto-answered, just kept hittable. Bounded to a few respawns per plaque.
    */
   recoverFallenTargets() {
     if (this.settling) return;
     for (const t of this.targets) {
       if (t.wb.hit || t.wb.respawned >= 3) continue;
       const out = t.y > WORLD.HEIGHT - 10
-        || t.x < this.terrainDef.WATER_GAP[0] - 20
+        || t.x < -20
         || t.x > WORLD.WIDTH - 30;
       if (out) this.respawnQueue.push(t);
     }

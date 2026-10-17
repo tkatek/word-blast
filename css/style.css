@@ -1,11 +1,13 @@
-/* WORD BLAST — debug-phase styling. Landscape, no scrolling, no selection. */
+/* WORD BLAST — full-bleed responsive shell (Fix #2).
+   No page margins, no max-width, no borders: the game canvas IS the page.
+   Landscape, no scrolling, no selection, no pinch-zoom. */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #8ecae6; /* matches the sky art so FIT letterboxing blends in */
+  background: #8ecae6; /* matches the sky art; only visible pre-boot */
   touch-action: none;           /* no accidental scrolling/zooming */
   -webkit-user-select: none;
   user-select: none;
@@ -13,19 +15,77 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* The canvas fills the whole available viewport. Safe-area insets (notches,
+   home indicators) inset the play area so nothing interactive hides under
+   them; the ViewportController sizes the buffer to this box × DPR. */
 #game {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* safe areas (notches) */
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
            env(safe-area-inset-bottom) env(safe-area-inset-left);
-  box-sizing: border-box;
 }
 
+/* Scale mode NONE: Phaser never writes inline canvas styles — CSS owns the
+   display size, the buffer tracks it × devicePixelRatio (sharp on retina). */
 #game canvas {
   display: block;
+  width: 100%;
+  height: 100%;
   touch-action: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Landscape-only gate (phones in portrait) — see OrientationGate.js   */
+/* ------------------------------------------------------------------ */
+#rotate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;                 /* hidden unless portrait phone */
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: rgba(8, 28, 21, 0.97);
+  color: #ffd60a;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#rotate-overlay.is-visible {
+  display: flex;
+}
+#rotate-overlay .rotate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  max-width: min(86vw, 420px);
+}
+#rotate-overlay h2 {
+  margin: 0;
+  font-size: clamp(22px, 6vw, 34px);
+  letter-spacing: 0.02em;
+}
+#rotate-overlay p {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(14px, 4vw, 17px);
+  line-height: 1.5;
+}
+#rotate-overlay .rotate-phone {
+  transform-origin: 60px 66px;
+  animation: wb-rotate-nudge 2.2s ease-in-out infinite;
+}
+@keyframes wb-rotate-nudge {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  75%           { transform: rotate(-82deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #rotate-overlay .rotate-phone { animation: none; }
 }

@@ -460,25 +460,26 @@ import { slingshotAnchor } from '../js/config.js';
 const _DT = DEVICE_TYPES; // already imported from Device.js above
 const LEVELS = levelsData; // alias for the reachability sweep below
 
-test('every device background has a slingshot anchor on the left cliff', () => {
+test('the slingshot anchor stands on the flat gameplay ground', () => {
+  // ONE ground, ONE background on every device — the deviceType argument
+  // is legacy and ignored
   for (const type of [_DT.DESKTOP, _DT.TABLET, _DT.MOBILE]) {
     const a = slingshotAnchor(type);
-    // on the elevated left plateau (measured grass tops ≈ y 385-424 per art,
-    // pouch sits BASE_OFFSET_Y above the grass contact point)
-    assert(a.x >= 80 && a.x <= 220, `${type}: anchor x ${a.x} on the flat cliff top`);
-    assert(a.y >= 300 && a.y <= 400, `${type}: anchor y ${a.y} above the cliff grass`);
+    assert(a.x >= 80 && a.x <= 220, `${type}: anchor x ${a.x} in the left launch area`);
     const baseY = a.y + SLINGSHOT.BASE_OFFSET_Y;
-    assert(baseY >= 370 && baseY <= 470, `${type}: base y ${baseY} rests on the painted grass`);
+    eq(baseY, WORLD.GROUND_Y + SLINGSHOT.ART.GRASS_EMBED,
+      `${type}: handle bottom plants GRASS_EMBED px into GROUND_Y`);
+    assert(a.y >= 240 && a.y <= 420, `${type}: anchor y ${a.y} above the gameplay ground`);
     // clear of the question panel (bottom ≈ y 210) and inside the world
     assert(a.y - 60 > 210, `${type}: fork stays below the question panel`);
     assert(a.x > 0 && a.y > 0 && a.x < WORLD.WIDTH && a.y < WORLD.HEIGHT, `${type}: inside world`);
   }
 });
 
-test('legacy WORLD.SLING_X/Y stay in sync with the desktop anchor', () => {
+test('legacy WORLD.SLING_X/Y stay in sync with the slingshot anchor', () => {
   const a = slingshotAnchor(_DT.DESKTOP);
-  eq(WORLD.SLING_X, a.x, 'SLING_X alias matches ANCHORS.desktop.x');
-  eq(WORLD.SLING_Y, a.y, 'SLING_Y alias matches ANCHORS.desktop.y');
+  eq(WORLD.SLING_X, a.x, 'SLING_X alias matches SLINGSHOT.ANCHOR.x');
+  eq(WORLD.SLING_Y, a.y, 'SLING_Y alias matches SLINGSHOT.ANCHOR.y');
 });
 
 test('slingshotAnchor returns an independent copy per call', () => {

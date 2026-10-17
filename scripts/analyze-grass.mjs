@@ -1,51 +1,55 @@
 /**
- * Measures the flat grass surface in a background artwork by pixel scanning.
- * For each sampled column it finds the topmost strongly-green pixel (grass),
- * then reports the dominant (modal) grass elevation inside given zones.
+ * Measures the flat grass line of the OFFICIAL gameplay background
+ * (public/assets/images/backgrounds/gameplay.webp) and prints the value for
+ * BACKGROUND.GRASS_LINE_Y in js/config.js.
  *
- * Usage: node scripts/analyze-grass.mjs <image> [more images...]
+ * Method: per column, find the topmost run of >= 25 strongly-green pixels
+ * that is part of the contiguous foreground field, then report the modal
+ * (dominant) elevation — the flat line every structure stands on. Columns
+ * where distant green hills win are rejected by requiring the run to sit in
+ * the lower half of the art.
+ *
+ * Usage: node scripts/analyze-grass.mjs [image]
  */
 import sharp from 'sharp';
+import { BACKGROUND } from '../js/config.js';
 
-const isGrass = (r, g, b) => g > 60 && g > r + 18 && g > b + 18;
+const file = process.argv[2] || new URL('../public/assets/images/backgrounds/gameplay.webp', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const isGrass = (r, g, b) => g > r + 12 && g > b + 12 && g > 90;
 
-for (const file of process.argv.slice(2)) {
-  const { data, info } = await sharp(file).raw().toBuffer({ resolveWithObject: true });
-  const { width: W, height: H, channels: C } = info;
-  const grassTop = new Array(W).fill(null);
+const { data, info } = await sharp(file).raw().toBuffer({ resolveWithObject: true });
+const { width: W, height: H, channels: C } = info;
 
-  for (let x = 0; x < W; x += 6) {
-    for (let y = Math.floor(H * 0.25); y < H; y += 3) {
-      const i = (y * W + x) * C;
-      if (isGrass(data[i], data[i + 1], data[i + 2])) {
-        grassTop[x] = y;
-        break;
-      }
+const tops = [];
+for (let x = 0; x < W; x += Math.max(1, Math.round(W / 80))) {
+  let run = 0;
+  let top = null;
+  for (let y = Math.floor(H * 0.3); y < H; y++) {
+    const i = (y * W + x) * C;
+    if (isGrass(data[i], data[i + 1], data[i + 2])) {
+      if (++run >= 25) { top = y - 24; break; }
+    } else {
+      run = 0;
     }
   }
-
-  const mode = (x0f, x1f, bin = 6) => {
-    const counts = new Map();
-    for (let x = 0; x < W; x += 6) {
-      const f = x / W;
-      if (f < x0f || f >= x1f) continue;
-      const y = grassTop[x];
-      if (y === null) continue;
-      const key = Math.round(y / bin) * bin;
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    let best = null;
-    for (const [k, n] of counts) if (!best || n > best.n) best = { y: k, n };
-    const total = [...counts.values()].reduce((a, b) => a + b, 0);
-    return best ? { y: best.y, frac: +(best.y / H).toFixed(3), share: +(best.n / total).toFixed(2) } : null;
-  };
-
-  const slingZone = mode(0.05, 0.22);
-  const playZone = mode(0.25, 0.95);
-  console.log(JSON.stringify({
-    file: file.split(/[\\/]/).pop(),
-    size: `${W}x${H}`,
-    slingZone: slingZone ? { y: slingZone.y, frac: slingZone.frac } : null,
-    gameplayZone: playZone
-  }));
+  if (top !== null && top > H * 0.5) tops.push(top); // foreground field only
 }
+
+const counts = new Map();
+for (const y of tops) {
+  const key = Math.round(y / 4) * 4;
+  counts.set(key, (counts.get(key) || 0) + 1);
+}
+let best = null;
+for (const [y, n] of counts) if (!best || n > best.n) best = { y, n };
+
+console.log(JSON.stringify({
+  file: file.split(/[\\/]/).pop(),
+  size: `${W}x${H}`,
+  grassLineY: best.y,
+  frac: +(best.y / H).toFixed(4),
+  columns: tops.length,
+  spread: { min: Math.min(...tops), max: Math.max(...tops) },
+  configured: BACKGROUND.GRASS_LINE_Y,
+  matchesConfig: best.y === BACKGROUND.GRASS_LINE_Y
+}, null, 2));

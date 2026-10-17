@@ -12,6 +12,7 @@ import { SaveManager } from '../systems/SaveManager.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
+import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
 import { preloadList } from '../data/tower-assets.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
@@ -23,20 +24,32 @@ export class BootScene extends Phaser.Scene {
   }
 
   /**
-   * Detect the device once and queue the background + tower sprite pack
-   * it needs. A missing tower file falls back to a procedural texture with
-   * the same key (load error listener below), so the game never breaks.
+   * Queue the official gameplay background, the supplied wooden slingshot
+   * artwork and the tower sprite pack. A missing binary falls back to a
+   * procedural texture with the same key (load error listener below), so
+   * the game never breaks.
    */
   preload() {
-    const info = deviceInfo();
-    this.registry.set('device', info);
-    BackgroundManager.preload(this, info.type);
+    this.registry.set('device', deviceInfo());
+    BackgroundManager.preload(this);
+
+    this.load.image(
+      SLINGSHOT.ART.KEY,
+      (import.meta.env.BASE_URL || '/') + 'assets/images/slingshot/slingshot-wood.png'
+    );
 
     const BASE = (import.meta.env.BASE_URL || '/') + 'assets/images/tower/';
     for (const { key, file } of preloadList()) {
       this.load.image(`tw-${key}`, BASE + file);
     }
     this.load.on('loaderror', (file) => {
+      if (file.key === SLINGSHOT.ART.KEY) {
+        // artwork unreachable (e.g. headless test env): draw a wooden Y with
+        // identical anchor geometry so the slingshot still works
+        console.warn(`[Boot] slingshot artwork missing — procedural fallback`);
+        ensureSlingshotTexture(this);
+        return;
+      }
       if (!file.src.includes('/tower/')) return;
       const key = file.key;
       console.warn(`[Boot] tower sprite missing (${key}) — procedural fallback`);
@@ -81,13 +94,6 @@ export class BootScene extends Phaser.Scene {
 
   generateTextures() {
     const g = this.add.graphics();
-
-    // ground
-    g.fillStyle(COLORS.GROUND, 1);
-    g.fillRect(0, 0, 64, 64);
-    g.fillStyle(0x3a5a40, 1);
-    g.fillRect(0, 0, 64, 10);
-    g.generateTexture('tex-ground', 64, 64);
 
     // blocks
     this.blockTexture(g, 'tex-wood', COLORS.WOOD, COLORS.WOOD_DARK);

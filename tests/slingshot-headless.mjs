@@ -30,8 +30,9 @@ const rawLevels = JSON.parse(readFileSync(new URL('../js/data/levels.json', impo
 for (const lvl of rawLevels.levels) {
   for (const q of lvl.questions) {
     if (!q.layout || !Array.isArray(q.layout.targets) || q.layout.targets.length !== 3) {
-      // canonical reachable triple (same band the committed data uses)
-      q.layout = { ...(q.layout || {}), targets: [{ x: 660, y: 608 }, { x: 880, y: 608 }, { x: 1100, y: 608 }] };
+      // canonical reachable triple — baked heights (translated onto
+      // WORLD.GROUND_Y at runtime like every layout)
+      q.layout = { ...(q.layout || {}), targets: [{ x: 660, y: 360 }, { x: 880, y: 360 }, { x: 1100, y: 360 }] };
     }
   }
 }
@@ -61,12 +62,6 @@ const srcPath = require.resolve('phaser');
 require.cache[srcPath] = { id: srcPath, filename: srcPath, loaded: true, exports: Phaser };
 
 const { WORLD, SLINGSHOT, slingshotAnchor } = await import('../js/config.js');
-// The committed target band (y≈608) was authored for GROUND_Y=640; the
-// terrain migration currently has 560 on disk. Pin the coherent pair.
-if (WORLD.GROUND_Y !== 640) {
-  WORLD.GROUND_Y = 640;
-  WORLD.GROUND_THICKNESS = 160;
-}
 
 const { BootScene } = await import('../js/scenes/BootScene.js');
 const { MenuScene } = await import('../js/scenes/MenuScene.js');
@@ -118,8 +113,9 @@ const main = async () => {
   if (sl.deviceType !== 'desktop') fail(`deviceType ${sl.deviceType}`);
   if (Math.abs(sl.anchor.x - a.x) > 0.01 || Math.abs(sl.anchor.y - a.y) > 0.01) fail(`anchor ${JSON.stringify(sl.anchor)} != ${JSON.stringify(a)}`);
   const baseY = sl.anchor.y + SLINGSHOT.BASE_OFFSET_Y;
-  if (baseY < 370 || baseY > 450) fail(`wooden base y ${baseY} not on the cliff grass band`);
-  ok(`anchor at (${a.x}, ${a.y}), base y ${baseY} on the cliff grass`);
+  const wantBase = WORLD.GROUND_Y + SLINGSHOT.ART.GRASS_EMBED;
+  if (Math.abs(baseY - wantBase) > 1) fail(`handle bottom y ${baseY} not planted on the gameplay ground (${wantBase})`);
+  ok(`anchor at (${a.x}, ${a.y}), base y ${baseY} planted into the grass line ${WORLD.GROUND_Y}`);
 
   // 2. loaded preview rests at the anchor
   if (!sl.preview) fail('no preview image loaded');

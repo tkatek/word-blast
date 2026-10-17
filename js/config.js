@@ -25,7 +25,7 @@ export const WORLD = {
   // the test suite and headless helpers; gameplay code reads the live
   // anchor off the Slingshot).
   SLING_X: 195,
-  SLING_Y: 413,
+  SLING_Y: 346,
   KILL_MARGIN: 260        // bodies this far outside the world get removed
 };
 
@@ -114,12 +114,41 @@ export const SLINGSHOT = {
   TRAJECTORY_STEPS: 60,
   TRAJECTORY_STEP_MS: 1000 / 60,
   /**
-   * Pouch rest position (world px in the fixed 1280×720 logical world).
-   * The wooden base stands exactly on the flat gameplay ground:
-   * ANCHOR.y + BASE_OFFSET_Y === WORLD.GROUND_Y (asserted by the tests).
+   * Pouch rest position = launch origin (world px in the fixed 1280×720
+   * logical world). The handle bottom of the supplied artwork plants into
+   * the flat gameplay ground:
+   *   ANCHOR.y + BASE_OFFSET_Y === WORLD.GROUND_Y + ART.GRASS_EMBED
+   * (asserted by the tests). One ground, one anchor — every device.
    */
-  ANCHOR: { x: 195, y: 413 },
-  BASE_OFFSET_Y: 58        // pouch rest → wooden base (grass contact)
+  ANCHOR: { x: 195, y: 346 },
+  // pouch rest → handle bottom of the artwork at the live scale; includes
+  // the grass embed so the base reads as planted, not floating.
+  BASE_OFFSET_Y: 133,
+  /**
+   * Anchors on the supplied wooden slingshot artwork
+   * (public/assets/images/slingshot/slingshot-wood.png, 1254×1254 RGBA),
+   * NORMALIZED to the texture so every attachment survives re-scaling:
+   *   REAR_TIP   left/rear fork tip    (texture px 501, 46)
+   *   FRONT_TIP  right/front fork tip  (texture px 864, 88)
+   *   POUCH      pouch rest / launch origin, centered in the fork gap
+   *                                                  (682, 78)
+   *   BASE       handle bottom planted into the grass (732, 1205)
+   *   FRONT_CROP texture rect of the near fork (700, 0, 300, 610) —
+   *              re-drawn OVER the bird and front band as its own sprite
+   *              so the projectile reads as seated BETWEEN the forks.
+   * Measured from the artwork's alpha silhouette; tune freely — the
+   * mechanics all derive from these values.
+   */
+  ART: {
+    KEY: 'slingshot-wood',
+    TEXTURE_SIZE: 1254,   // reference size; runtime reads the live texture
+    REAR_TIP: { x: 0.399522, y: 0.036683 },
+    FRONT_TIP: { x: 0.688995, y: 0.070175 },
+    POUCH: { x: 0.543860, y: 0.062200 },
+    BASE: { x: 0.583732, y: 0.960925 },
+    FRONT_CROP: { x: 0.558217, y: 0, w: 0.239234, h: 0.486443 },
+    GRASS_EMBED: 8        // px the handle bottom sinks below GROUND_Y
+  }
 };
 
 /**
