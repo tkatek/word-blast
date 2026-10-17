@@ -3,7 +3,7 @@
     "texture": "bird-black",
     "file": "black_bomb.png",
     "size": 288,
-    "bodyRadius": 80.7,
+    "bodyRadius": 80.67,
     "centerOffsetX": -1,
     "centerOffsetY": 0,
     "kb": 92
@@ -12,7 +12,7 @@
     "texture": "bird-blue",
     "file": "blue_split.png",
     "size": 282,
-    "bodyRadius": 80.7,
+    "bodyRadius": 80.67,
     "centerOffsetX": 0,
     "centerOffsetY": 0,
     "kb": 100
@@ -30,7 +30,7 @@
     "texture": "bird-purple",
     "file": "purple_ice.png",
     "size": 286,
-    "bodyRadius": 80.7,
+    "bodyRadius": 80.67,
     "centerOffsetX": -1,
     "centerOffsetY": -1,
     "kb": 110
@@ -39,7 +39,7 @@
     "texture": "bird-red",
     "file": "red_basic.png",
     "size": 274,
-    "bodyRadius": 80.7,
+    "bodyRadius": 80.67,
     "centerOffsetX": 0,
     "centerOffsetY": 0,
     "kb": 98

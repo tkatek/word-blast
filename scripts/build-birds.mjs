@@ -139,7 +139,7 @@ for (const file of readdirSync(SRC_DIR).filter((f) => f.endsWith('.png')).sort()
     texture: `bird-${key.split('_')[0]}`,
     file: `${key}.png`,
     size: chk.info.width,
-    bodyRadius: +chkCircle.r.toFixed(1),
+    bodyRadius: +chkCircle.r.toFixed(2),
     centerOffsetX: +(chkCircle.cx - chk.info.width / 2).toFixed(1),
     centerOffsetY: +(chkCircle.cy - chk.info.height / 2).toFixed(1),
     kb
