@@ -193,6 +193,12 @@ export class BirdSelector {
     }).setOrigin(0.5);
     card.add([shadow, frame, portrait, hotkey, badge, badgeNum]);
 
+    const rec = {
+      key, card, frame, portrait, badge, badgeNum, hotkey,
+      glowPulse: null,
+      birdName: birdForProjectile(key)?.name || PROJECTILE_TYPES[key].name
+    };
+
     card.setSize(CARD.BODY, CARD.BODY);
     card.setInteractive({ useHandCursor: true });
     card.on('pointerover', () => { if (this.enabled) card.y = CARD.Y - 3; });
@@ -201,24 +207,25 @@ export class BirdSelector {
       this.markUi();
       if (!this.enabled) return;
       this.audio?.emit('ui-click');
-      this.popCard(card, 0.94);
+      this.popCard(rec, 0.94);
       this.onSelect(key);
     });
 
-    return {
-      key, card, frame, portrait, badge, badgeNum, hotkey,
-      glowPulse: null,
-      birdName: birdForProjectile(key)?.name || PROJECTILE_TYPES[key].name
-    };
+    return rec;
   }
 
-  /** Small scale pop (selection feedback / press feedback). */
-  popCard(card, peak = 1.14) {
+  /**
+   * Small scale pop on the FRAME (selection feedback / press feedback).
+   * Deliberately not the card container: the selected card's glow pulse
+   * tween owns the container scale — killing it here would freeze the glow.
+   */
+  popCard(rec, peak = 1.14) {
     if (this.reducedMotion) return;
-    this.scene.tweens.killTweensOf(card);
+    this.scene.tweens.killTweensOf(rec.frame);
+    rec.frame.setScale(1);
     this.scene.tweens.add({
-      targets: card, scale: peak, duration: 110, yoyo: true, ease: 'Quad.out',
-      onComplete: () => card.setScale(1)
+      targets: rec.frame, scale: peak, duration: 110, yoyo: true, ease: 'Quad.out',
+      onComplete: () => rec.frame.setScale(1)
     });
   }
 
@@ -269,7 +276,7 @@ export class BirdSelector {
       this.prevAmmo[key] = count;
 
       // selection change → pop animation
-      if (isSelected && this.prevSelected !== key) this.popCard(rec.card, 1.16);
+      if (isSelected && this.prevSelected !== key) this.popCard(rec, 1.16);
     }
     this.prevSelected = selected && (ammo[selected] ?? 0) > 0 ? selected : null;
   }

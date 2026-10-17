@@ -5,7 +5,7 @@
  * scene code.
  */
 import { validateLevels } from './Validators.js';
-import { WORLD, LAYOUT_BAKED_GROUND_Y } from '../config.js';
+import { WORLD, LAYOUT_BAKED_GROUND_Y, BIRD_AMMO } from '../config.js';
 
 export class LevelManager {
   /**
@@ -67,6 +67,27 @@ export class LevelManager {
   isProjectileAvailable(levelId, typeKey) {
     const lvl = this.getLevel(levelId);
     return !!lvl && lvl.projectiles.includes(typeKey);
+  }
+
+  /**
+   * Fix #19 — per-level bird ammunition (data-driven from levels.json
+   * "birdAmmo"). Only roster members are returned; a level without the
+   * block falls back to BIRD_AMMO.DEFAULTS (intersects the roster). The
+   * GameScene resets these counts at the start of every question
+   * (BIRD_AMMO.MODE 'per-question'); a future 'per-level' shared pool can
+   * be enabled by switching that mode after rebalancing.
+   */
+  getBirdAmmo(levelId) {
+    const lvl = this.getLevel(levelId);
+    const roster = lvl ? lvl.projectiles : [];
+    const raw = lvl && lvl.birdAmmo && typeof lvl.birdAmmo === 'object' ? lvl.birdAmmo : null;
+    const ammo = {};
+    for (const key of roster) {
+      ammo[key] = raw && Number.isFinite(raw[key])
+        ? Math.max(0, Math.floor(raw[key]))
+        : (BIRD_AMMO.DEFAULTS[key] ?? 0);
+    }
+    return ammo;
   }
 
   totalShotsForLevel(levelId) {

@@ -347,6 +347,7 @@ export class QuestionCard {
       this.root.setPosition(QUESTION_CARD.CENTER.x, QUESTION_CARD.CENTER.y).setScale(1);
       return;
     }
+    this.killTweensOf(this.root); // a rapid toggle never overlaps tweens
     this.track(this.scene.tweens.add({ targets: this.scrim, alpha: 0.38, duration: QUESTION_CARD.TIMINGS.peekMs, ease: 'Sine.easeOut' }));
     this.track(this.scene.tweens.add({
       targets: this.root,
@@ -358,18 +359,21 @@ export class QuestionCard {
 
   /** Back to the resting spot. `instant` skips animation (internal use). */
   closePeek(instant = false) {
-    if (this.phase !== CARD_PHASES.PEEK && !instant) return;
     const wasPeek = this.phase === CARD_PHASES.PEEK;
-    this.phase = wasPeek ? CARD_PHASES.READY_TOP : this.phase;
+    if (!wasPeek && !instant) return;
+    if (wasPeek) this.phase = CARD_PHASES.READY_TOP;
     if (!wasPeek) return;
     this.scene.events.emit('wb-card-peek', false);
     const { TOP, TIMINGS } = QUESTION_CARD;
     if (instant || this.reducedMotion()) {
       this.killTweensOf(this.scrim);
+      this.killTweensOf(this.root);
       this.scrim.setVisible(false).setAlpha(0);
       this.root.setPosition(TOP.x, TOP.y).setScale(this.topScale);
       return;
     }
+    this.killTweensOf(this.scrim);
+    this.killTweensOf(this.root);
     this.track(this.scene.tweens.add({
       targets: this.scrim, alpha: 0, duration: TIMINGS.peekMs, ease: 'Sine.easeIn',
       onComplete: () => this.scrim.setVisible(false)

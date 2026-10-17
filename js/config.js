@@ -219,7 +219,7 @@ export const PROJECTILE_TYPES = {
     restitution: 0.25,
     frictionAir: 0.005,
     ability: 'freeze',
-    abilityHint: 'Freezes and weakens blocks on first impact'
+    abilityHint: 'Tap while flying: freezes & weakens blocks'
   },
   split: {
     key: 'split',
@@ -229,7 +229,7 @@ export const PROJECTILE_TYPES = {
     restitution: 0.35,
     frictionAir: 0.005,
     ability: 'split',
-    abilityHint: 'Tap while flying: splits into three'
+    abilityHint: 'Tap while flying: splits into five'
   },
   bomb: {
     key: 'bomb',
@@ -239,19 +239,51 @@ export const PROJECTILE_TYPES = {
     restitution: 0.2,
     frictionAir: 0.005,
     ability: 'detonate',
-    abilityHint: 'Explodes on first impact'
+    abilityHint: 'Tap while flying: detonate the bomb'
   }
 };
 
 export const SPLIT_CHILD = {
+  COUNT: 5,
   radius: 11,
   density: 0.0022,
-  spreadAngleDeg: 11,
+  spreadAngleDeg: 11,   // angle BETWEEN adjacent fan rays (total fan ≈ 44°)
+  SEPARATION: 24,       // px between adjacent children at spawn (⊥ to flight)
+  speedScale: 0.69,     // child speed = parent speed × this (energy-bounded)
   restitution: 0.35,
   frictionAir: 0.005
 };
 
 export const BOOST = { MULTIPLIER: 1.6 };
+
+/**
+ * Fix #19 — bird ammunition (inventory) defaults.
+ *
+ * Ammunition is DATA-DRIVEN per level (levels.json "birdAmmo"); this block
+ * is only the fallback when a level does not configure it, plus the mode
+ * switch. Values follow the proposed starting inventory:
+ *   RED 3 · BLUE 2 · YELLOW 2 · BLACK 1 · PURPLE 1  (9 birds total)
+ *
+ * MODE:
+ *   'per-question' — inventory re-initialized at the start of every
+ *                    question (the enabled, verified default).
+ *   'per-level'    — one shared pool across all four questions of a level.
+ *                    SUPPORTED by BirdInventory but NOT enabled: the 15
+ *                    levels must be rebalanced and verified first.
+ *
+ * Ammunition ≠ shots: launching consumes one ammo unit AND one shot; the
+ * question's shot limit always binds even when several birds remain.
+ */
+export const BIRD_AMMO = {
+  MODE: 'per-question',
+  DEFAULTS: {
+    basic: 3,
+    speed: 2,
+    split: 2,
+    bomb: 1,
+    ice: 1
+  }
+};
 
 export const TARGETS = {
   WIDTH: 116,             // canonical plaque size (small variant — audits
@@ -345,6 +377,59 @@ export const STATE_TRANSITIONS = {
   [STATES.LEVEL_FAILED]: [STATES.QUESTION_READY, STATES.LEVEL_READY, STATES.MENU],
   [STATES.GAME_COMPLETE]: [STATES.MENU, STATES.LEVEL_READY]
   // PAUSED handled separately by the machine (pausedFrom stack)
+};
+
+/**
+ * The animated English question card (Fix #9) — the supplied wooden
+ * parchment banner (public/assets/images/ui/question-card.png).
+ *
+ * Geometry ratios were measured from the artwork's pixels
+ * (scripts/tmp/analyze-question-card.mjs):
+ *   - the trimmed art is 2082×484 (aspect preserved everywhere);
+ *   - the parchment writing area sits at x 0.075..0.78 of the card box,
+ *     y 0.19..0.815 — text NEVER touches the wooden frame or bolts;
+ *   - the blue circular medallion (the audio button) is centered at
+ *     (0.8778, 0.4902) with radius 0.0403 × card width.
+ *
+ * Presentation timeline per question (all values in ms of ACTIVE,
+ * unpaused time — the reading countdown is frame-driven and freezes
+ * under pause/portrait/auto-pause exactly like the level timer):
+ *   CARD_ENTERING (350) → CARD_READING (4000) → CARD_MOVING_TO_TOP (600)
+ *   → CARD_READY (gameplay armed) → CARD_EXITING (240) on question change.
+ *
+ * TIMINGS is a mutable runtime object: the debug API
+ * (window.__WB__.setCardTimings) shortens the phases for automated test
+ * runs — production always reads the defaults below.
+ */
+export const QUESTION_CARD = {
+  TEXTURE: 'ui-question-card',
+  ART: {
+    ASPECT: 484 / 2082,
+    TEXT: { x0: 0.075, x1: 0.78, y0: 0.19, y1: 0.815 },
+    SPEAKER: { x: 0.8778, y: 0.4902, r: 0.0403 }
+  },
+  /** Center presentation (world px inside the fixed 1280×720 world). */
+  CENTER: { x: 640, y: 352, width: 860 },
+  /**
+   * Top resting spot: below the HUD (safe 10px gap under its y≤76 band).
+   * Deliberately biased left of the tower band: a top-CENTER card would
+   * cover up to 22.8% of the answer plaques (they reach y=102 in level
+   * 11); at x 110..730 the card covers effectively zero plaques across
+   * all 15 levels and leaves the slingshot (x≈195, fork y≥260) clear.
+   */
+  TOP: { x: 420, y: 158, width: 620 },
+  TYPE: {
+    KICKER: { size: 18, min: 12, color: '#8a5a2b' },
+    MAIN: { size: 30, min: 15, color: '#3d2814' }
+  },
+  TIMINGS: {
+    enterMs: 350,     // fade + 0.9→1.0 scale, Sine.easeOut
+    readingMs: 4000,  // mandatory centered reading time (spec §2)
+    moveMs: 600,      // center → top, Sine.easeInOut (spec §3)
+    exitMs: 240,      // brief exit fade on question change / level end
+    peekMs: 320       // top ↔ enlarged reading view
+  },
+  SHADOW: { dy: 7, alpha: 0.2 }
 };
 
 /**

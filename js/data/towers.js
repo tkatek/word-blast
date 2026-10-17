@@ -8,10 +8,15 @@
  *   - Template origin (0,0) sits at the CENTER of the structure's footprint
  *     ON the ground surface (terrace top). x grows right, y grows UP
  *     (templates are authored bottom-up; instantiation flips to screen y).
- *   - Pieces are placed by CENTER, computed so resting faces touch exactly
- *     (zero overlap — verified mechanically by scripts/check-towers.mjs).
- *   - `slots` are answer-plaque anchor centers (plaque is 116x80, so a slot
- *     resting on a surface at height h sits at h + 40).
+ *   - Pieces are placed by CENTER, computed through the snap helpers below
+ *     (onGround / onTopOf / slotOn) so resting faces touch EXACTLY —
+ *     zero gap, zero overlap (verified by scripts/check-towers.mjs).
+ *   - `slots` are answer-plaque anchor centers. Plaques are 80 tall in
+ *     every parchment variant (S/M/L widths), so a slot resting on a
+ *     surface at height h always sits at h + 40.
+ *   - Slots live on FLAT tops only (crates, beams, blocks, plinths) or the
+ *     open ground — never on gable triangles, whose sloped art under a
+ *     flat collider reads as a floating plaque.
  *   - `pigs` are decorative occupants — they never carry answer data.
  *
  * Stability contract: every resting face is backed by a real piece below
@@ -26,14 +31,25 @@ const W = (key) => TOWER_ASSETS[key].size[0]; // logical width
 const plaqueHalf = 40; // TARGETS.HEIGHT / 2 — literal to stay dependency-light
 const pigHalf = (key) => TOWER_ASSETS[key].size[1] / 2;
 
+/* Surface-snapping placement system: every piece center is derived from
+ * the surface it rests on, so "resting faces touch exactly" is structural
+ * rather than hand-tuned per piece.
+ *   onGround(key)          center y of a piece standing on the ground
+ *   onTopOf(top, key)      center y of a piece stacked at surface top `top`
+ *   slotOn(top)            answer-plaque anchor center on surface top `top`
+ */
+const onGround = (key) => H(key) / 2;
+const onTopOf = (surfaceTop, key) => surfaceTop + H(key) / 2;
+const slotOn = (surfaceTop) => surfaceTop + plaqueHalf;
+
 /** Two posts + a plank across their tops. Returns pieces + surface height. */
 function frame(postKey, plankKey, halfSpan) {
   const postH = H(postKey);
   return {
     pieces: [
-      { a: postKey, x: -halfSpan, y: postH / 2 },
-      { a: postKey, x: halfSpan, y: postH / 2 },
-      { a: plankKey, x: 0, y: postH + H(plankKey) / 2 }
+      { a: postKey, x: -halfSpan, y: onGround(postKey) },
+      { a: postKey, x: halfSpan, y: onGround(postKey) },
+      { a: plankKey, x: 0, y: onTopOf(postH, plankKey) }
     ],
     top: postH + H(plankKey)
   };
@@ -44,13 +60,13 @@ export const TEMPLATES = {
   pedestal: {
     width: 110, height: 210,
     pieces: [{ a: 'wood_crate_cross', x: 0, y: H('wood_crate_cross') / 2 }],
-    slots: [{ x: 0, y: H('wood_crate_cross') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(H('wood_crate_cross')) }],
     pigs: []
   },
   panel_pedestal: {
     width: 90, height: 175,
     pieces: [{ a: 'wood_crate_panel', x: 0, y: H('wood_crate_panel') / 2 }],
-    slots: [{ x: 0, y: H('wood_crate_panel') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(H('wood_crate_panel')) }],
     pigs: []
   },
   wood_frame: {
@@ -65,7 +81,7 @@ export const TEMPLATES = {
       { a: 'wood_crate_panel', x: 36, y: H('wood_crate_panel') / 2 },
       { a: 'wood_crate_cross', x: 0, y: H('wood_crate_panel') + H('wood_crate_cross') / 2 }
     ],
-    slots: [{ x: 0, y: H('wood_crate_panel') + H('wood_crate_cross') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(H('wood_crate_panel') + H('wood_crate_cross')) }],
     pigs: []
   },
   log_stand: {
@@ -75,19 +91,21 @@ export const TEMPLATES = {
       { a: 'wood_log', x: 30, y: 30 },
       { a: 'wood_beam_h', x: 0, y: 60 + H('wood_beam_h') / 2 }
     ],
-    slots: [{ x: 0, y: 60 + H('wood_beam_h') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(60 + H('wood_beam_h')) }],
     pigs: []
   },
   asym_peak: {
     width: 250, height: 330,
-    // tall post + triangle peak on the left, low crate on the right;
-    // the answer plaque rides the PEAK (open sky), never the sheltered base
+    // tall post + triangle gable on the left reads as a marker totem —
+    // gables are silhouette decoration, NEVER a plaque surface (sloped art
+    // under a flat collider looks like the plaque floats). The answer
+    // plaque rides the crate's FLAT top on the right, in open sky.
     pieces: [
-      { a: 'wood_beam_v', x: -80, y: H('wood_beam_v') / 2 },
-      { a: 'wood_triangle', x: -80, y: H('wood_beam_v') + H('wood_triangle') / 2 },
-      { a: 'wood_crate_cross', x: 50, y: H('wood_crate_cross') / 2 }
+      { a: 'wood_beam_v', x: -80, y: onGround('wood_beam_v') },
+      { a: 'wood_triangle', x: -80, y: onTopOf(H('wood_beam_v'), 'wood_triangle') },
+      { a: 'wood_crate_cross', x: 50, y: onGround('wood_crate_cross') }
     ],
-    slots: [{ x: -80, y: H('wood_beam_v') + H('wood_triangle') + plaqueHalf }],
+    slots: [{ x: 50, y: slotOn(H('wood_crate_cross')) }],
     pigs: []
   },
 
@@ -98,15 +116,21 @@ export const TEMPLATES = {
     pigs: [{ a: 'pig_small', x: 0, y: pigHalf('pig_small') }]
   },
   stone_keep: {
-    width: 330, height: 308,
+    width: 400, height: 308,
+    // stone base + beam + crate, capped by a WOOD GABLE (pure silhouette —
+    // decoration, not a resting surface). The answer plaque stands on a
+    // small stone plinth beside the tower: a flat, clearly shootable sign
+    // that is not buried in the structure. Pig watches from the far side.
     pieces: [
-      { a: 'stone_block_l', x: -38, y: H('stone_block_l') / 2 },
-      { a: 'stone_block_l', x: 38, y: H('stone_block_l') / 2 },
-      { a: 'stone_beam_h', x: 0, y: H('stone_block_l') + H('stone_beam_h') / 2 },
-      { a: 'wood_crate_cross', x: 0, y: H('stone_block_l') + H('stone_beam_h') + H('wood_crate_cross') / 2 }
+      { a: 'stone_block_l', x: -38, y: onGround('stone_block_l') },
+      { a: 'stone_block_l', x: 38, y: onGround('stone_block_l') },
+      { a: 'stone_beam_h', x: 0, y: onTopOf(H('stone_block_l'), 'stone_beam_h') },
+      { a: 'wood_crate_cross', x: 0, y: onTopOf(H('stone_block_l') + H('stone_beam_h'), 'wood_crate_cross') },
+      { a: 'wood_triangle', x: 0, y: onTopOf(H('stone_block_l') + H('stone_beam_h') + H('wood_crate_cross'), 'wood_triangle') },
+      { a: 'stone_block_s', x: 165, y: onGround('stone_block_s') }
     ],
-    slots: [{ x: 0, y: H('stone_block_l') + H('stone_beam_h') + H('wood_crate_cross') + plaqueHalf }],
-    pigs: [{ a: 'pig_worker', x: 130, y: pigHalf('pig_worker') }]
+    slots: [{ x: 165, y: slotOn(H('stone_block_s')) }],
+    pigs: [{ a: 'pig_worker', x: -140, y: pigHalf('pig_worker') }]
   },
   bridge: {
     width: 360, height: 230,
@@ -119,7 +143,7 @@ export const TEMPLATES = {
       { a: 'barrel_wood', x: -145, y: 33 },
       { a: 'barrel_wood', x: 145, y: 33 }
     ],
-    slots: [{ x: 0, y: H('stone_column') + H('stone_beam_h') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(H('stone_column') + H('stone_beam_h')) }],
     pigs: [{ a: 'pig_medium', x: 0, y: pigHalf('pig_medium') }]
   },
   shelter_wall: {
@@ -143,7 +167,7 @@ export const TEMPLATES = {
       { a: 'glass_beam_h', x: 0, y: H('glass_column') + H('glass_beam_h') / 2 },
       { a: 'stone_block_s', x: 0, y: H('glass_column') + H('glass_beam_h') + H('stone_block_s') / 2 }
     ],
-    slots: [{ x: 0, y: H('glass_column') + H('glass_beam_h') + H('stone_block_s') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(H('glass_column') + H('glass_beam_h') + H('stone_block_s')) }],
     pigs: []
   },
 
@@ -157,7 +181,7 @@ export const TEMPLATES = {
       { a: 'wood_crate_cross', x: 0, y: 150 + H('wood_crate_cross') / 2 },
       { a: 'wood_beam_h', x: 0, y: 150 + H('wood_crate_cross') + H('wood_beam_h') / 2 }
     ],
-    slots: [{ x: 0, y: 150 + H('wood_crate_cross') + H('wood_beam_h') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(150 + H('wood_crate_cross') + H('wood_beam_h')) }],
     pigs: [
       { a: 'pig_small', x: 0, y: pigHalf('pig_small') },
       { a: 'pig_king', x: 150, y: pigHalf('pig_king') }
@@ -173,7 +197,7 @@ export const TEMPLATES = {
       { a: 'glass_block_s', x: 32, y: 158 + H('glass_block_s') / 2 },
       { a: 'glass_beam_h', x: 0, y: 158 + H('glass_block_s') + H('glass_beam_h') / 2 }
     ],
-    slots: [{ x: 0, y: 158 + H('glass_block_s') + H('glass_beam_h') + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(158 + H('glass_block_s') + H('glass_beam_h')) }],
     pigs: []
   },
   tnt_depot: {
@@ -187,7 +211,7 @@ export const TEMPLATES = {
       { a: 'crate_tnt', x: 0, y: H('wood_beam_v') + H('wood_beam_h') + H('crate_tnt') / 2 }
     ],
     slots: [
-      { x: 0, y: H('wood_beam_v') + H('wood_beam_h') + H('crate_tnt') + plaqueHalf },
+      { x: 0, y: slotOn(H('wood_beam_v') + H('wood_beam_h') + H('crate_tnt')) },
       { x: 160, y: plaqueHalf }
     ],
     pigs: [{ a: 'pig_helmet', x: -160, y: pigHalf('pig_helmet') }]
@@ -203,9 +227,9 @@ export const TEMPLATES = {
       { a: 'stone_beam_h', x: 0, y: H('stone_block_l') + H('stone_block_s') + H('stone_beam_h') / 2 }
     ],
     slots: [
-      { x: -80, y: H('stone_block_l') + H('stone_block_s') + plaqueHalf },
-      { x: 80, y: H('stone_block_l') + H('stone_block_s') + plaqueHalf },
-      { x: 0, y: H('stone_block_l') + H('stone_block_s') + H('stone_beam_h') + plaqueHalf }
+      { x: -80, y: slotOn(H('stone_block_l') + H('stone_block_s')) },
+      { x: 80, y: slotOn(H('stone_block_l') + H('stone_block_s')) },
+      { x: 0, y: slotOn(H('stone_block_l') + H('stone_block_s') + H('stone_beam_h')) }
     ],
     pigs: []
   },
@@ -216,7 +240,7 @@ export const TEMPLATES = {
       { a: 'wood_crate_cross', x: 0, y: H('stone_block_l') + H('wood_crate_cross') / 2 },
       { a: 'wood_crate_cross', x: 0, y: H('stone_block_l') + H('wood_crate_cross') * 1.5 }
     ],
-    slots: [{ x: 0, y: H('stone_block_l') + H('wood_crate_cross') * 2 + plaqueHalf }],
+    slots: [{ x: 0, y: slotOn(H('stone_block_l') + H('wood_crate_cross') * 2) }],
     pigs: [{ a: 'pig_angry', x: 110, y: pigHalf('pig_angry') }]
   }
 };
@@ -224,7 +248,7 @@ export const TEMPLATES = {
 function withFrame(f) {
   return {
     pieces: f.pieces,
-    slots: [{ x: 0, y: f.top + plaqueHalf }]
+    slots: [{ x: 0, y: slotOn(f.top) }]
   };
 }
 

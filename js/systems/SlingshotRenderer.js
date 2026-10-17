@@ -22,6 +22,8 @@
  *                  reads as seated between the two elastics WITHOUT any
  *                  duplicated or re-cropped wood overlay
  *  14  tipWraps    band coils around both wooden fork tips
+ * 14.5  lastTraj   previous shot's dots — faded reference that stays on
+ *                  screen after release until the level ends (Fix #7)
  *  15  trajectory  aiming dots (below HUD 50 / panels 80)
  *
  * The artwork is never stretched during aiming — only the bands, pouch
@@ -39,6 +41,7 @@ export const RENDER_DEPTH = {
   PROJECTILE: 9,
   BAND_FRONT: 13,
   TIP_WRAP: 14,
+  TRAJECTORY_LAST: 14.5,
   TRAJECTORY: 15
 };
 
@@ -163,7 +166,9 @@ export class SlingshotRenderer {
     this.pouchG = scene.add.graphics().setDepth(RENDER_DEPTH.POUCH);
     this.bandFront = scene.add.graphics().setDepth(RENDER_DEPTH.BAND_FRONT);
     this.tipWrap = scene.add.graphics().setDepth(RENDER_DEPTH.TIP_WRAP);
+    this.lastTrajectory = scene.add.graphics().setDepth(RENDER_DEPTH.TRAJECTORY_LAST);
     this.trajectory = scene.add.graphics().setDepth(RENDER_DEPTH.TRAJECTORY);
+    this.lastDotCount = 0; // dots currently on the reference layer (tests/debug)
 
     // sensible defaults until the first layout()
     this.scale = 0.1;
@@ -229,6 +234,11 @@ export class SlingshotRenderer {
    *   birdR   number  loaded bird display radius in px (0 = empty pouch /
    *                   legacy circle) — cup and band anchors scale with it
    *   dots    [{x,y}]|null       trajectory preview points (aiming only)
+   *
+   * The previous shot's reference dots are NOT part of this per-frame
+   * state: they are static world-space points, drawn once by
+   * renderLastDots() when the shot is released and cleared once by
+   * renderLastDots(null) — per-frame render() never touches that layer.
    */
   render(s) {
     const pouch = s.pouch;
@@ -429,9 +439,27 @@ export class SlingshotRenderer {
     });
   }
 
+  /**
+   * Fix #7 — the last completed shot's trajectory, kept on screen as a
+   * faded aiming reference. Same white as the live dots but semi-transparent
+   * and slightly smaller, so the bright aiming arc always reads on top.
+   * Static: drawn once at capture, cleared once at reset — never per frame.
+   */
+  renderLastDots(dots) {
+    const g = this.lastTrajectory;
+    g.clear();
+    this.lastDotCount = dots ? dots.length : 0;
+    if (!dots) return;
+    g.fillStyle(COLORS.TRAJECTORY, 0.32);
+    dots.forEach((pt, i) => {
+      const r = Math.max(1.5, 3.6 - i * 0.06);
+      g.fillCircle(pt.x, pt.y, r);
+    });
+  }
+
   destroy() {
     for (const obj of [this.shadow, this.wood, this.bandBack, this.pouchG,
-      this.bandFront, this.tipWrap, this.trajectory]) {
+      this.bandFront, this.tipWrap, this.lastTrajectory, this.trajectory]) {
       obj.destroy();
     }
   }

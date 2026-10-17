@@ -163,6 +163,30 @@ export function validateLevels(levelsData, questions) {
           }
         }
       }
+      // Fix #19 — bird ammunition must keep every question completable:
+      // keys ⊆ roster, non-negative integers, total >= shotsPerQuestion.
+      // (levels without "birdAmmo" inherit BIRD_AMMO.DEFAULTS at runtime,
+      // which satisfies the same rule for the shipped rosters.)
+      if (lvl.birdAmmo != null) {
+        if (typeof lvl.birdAmmo !== 'object' || Array.isArray(lvl.birdAmmo)) {
+          errors.push(`${where}: birdAmmo must be an object of {type: count}`);
+        } else {
+          let total = 0;
+          for (const [k, n] of Object.entries(lvl.birdAmmo)) {
+            if (!lvl.projectiles.includes(k)) {
+              errors.push(`${where}: birdAmmo key "${k}" is not in the level roster`);
+            } else if (!Number.isInteger(n) || n < 0) {
+              errors.push(`${where}: birdAmmo["${k}"] must be a non-negative integer`);
+            } else {
+              total += n;
+            }
+          }
+          const shots = Number.isInteger(lvl.shotsPerQuestion) ? lvl.shotsPerQuestion : 0;
+          if (total < shots) {
+            errors.push(`${where}: birdAmmo total ${total} < shotsPerQuestion ${shots} (a question could become unwinnable)`);
+          }
+        }
+      }
     }
     const st = lvl.starThresholds;
     if (!st || !Number.isInteger(st.two) || !Number.isInteger(st.three) || st.two <= 0 || st.three <= st.two) {

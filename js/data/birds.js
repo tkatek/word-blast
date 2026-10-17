@@ -39,6 +39,11 @@ export const BIRDS = {
     ability: null,
     recommendedDisplay: 54.3
   },
+  // Fix #19 — ability mapping INTENTIONALLY swapped vs. the original roster:
+  //   BLUE   → speed (mid-flight boost)
+  //   YELLOW → split (splits into FIVE smaller birds)
+  // The file names keep their historical prefixes (blue_split.png is the
+  // artwork file, not the ability); only projectileKey defines gameplay.
   blue: {
     id: 'blue',
     name: 'Blue Bird',
@@ -46,8 +51,8 @@ export const BIRDS = {
     file: 'blue_split.png',
     size: 282,
     bodyRadius: 80.67,
-    projectileKey: 'split',
-    ability: 'split',
+    projectileKey: 'speed',
+    ability: 'boost',
     recommendedDisplay: 59.4
   },
   yellow: {
@@ -57,8 +62,8 @@ export const BIRDS = {
     file: 'yellow_speed.png',
     size: 366,
     bodyRadius: 81,
-    projectileKey: 'speed',
-    ability: 'boost',
+    projectileKey: 'split',
+    ability: 'split',
     recommendedDisplay: 67.8
   },
   black: {

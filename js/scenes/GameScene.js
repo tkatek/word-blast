@@ -23,6 +23,8 @@ import { GameHUD, woodPanel, woodButton, chunkyText } from '../systems/GameHUD.j
 import { LevelTimer } from '../systems/LevelTimer.js';
 import { HeartsSystem } from '../systems/HeartsSystem.js';
 import { QuestionCard } from '../systems/QuestionCard.js';
+import { BirdInventory } from '../systems/BirdInventory.js';
+import { BirdSelector, AbilityButton } from '../systems/BirdSelector.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -31,10 +33,7 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
     this.stateChangeHandlers = []; // must exist before the state machine first fires
     this.disableAutoPause = false; // set via debug API for automated runs; survives restarts
-    // Fix #9 — the card's peek (enlarged reading) view must never let a
-    // slingshot drag start behind it. Registered once per scene instance;
-    // the handler re-reads the live slingshot on every call.
-    this.events.on('wb-card-peek', (open) => this.onCardPeek(open));
+    this.peekHooked = false;       // peek listener registered (Fix #9)
   }
 
   /** Slingshot availability follows the question card's peek state (Fix #9). */
@@ -50,6 +49,14 @@ export class GameScene extends Phaser.Scene {
 
   init(data) {
     this.levelId = Math.max(1, Math.min(15, data.levelId || 1));
+    // Fix #9 — the card's peek (enlarged reading) view must never let a
+    // slingshot drag start behind it. Registered once per scene instance
+    // (the handler re-reads the live slingshot on every call); init() is
+    // the earliest hook where the scene's event emitter exists.
+    if (!this.peekHooked && this.events) {
+      this.peekHooked = true;
+      this.events.on('wb-card-peek', (open) => this.onCardPeek(open));
+    }
     // Scene instances are reused across restarts: null out every per-run
     // reference here so create() never touches destroyed objects from a
     // previous lifetime (double-boot protection).
@@ -974,6 +981,9 @@ export class GameScene extends Phaser.Scene {
       this.exitToMenu();
       return;
     }
+    // Fix #7 — level transition starts fresh: destroy the reference line
+    // and reset its data (scene shutdown rebuilds the whole slingshot).
+    this.slingshot?.clearShotReference();
     this.scene.restart({ levelId: this.levelId + 1 });
   }
 
@@ -1003,6 +1013,8 @@ export class GameScene extends Phaser.Scene {
     if (this.stateMachine.isPaused()) {
       this.matter.world.resume();
     }
+    // Fix #7 — a full restart starts fresh, like a level transition.
+    this.slingshot?.clearShotReference();
     this.scene.restart({ levelId: this.levelId });
   }
 
@@ -1010,10 +1022,12 @@ export class GameScene extends Phaser.Scene {
   exitToLevelSelect() {
     if (this.leavingLevel) return;
     this.leavingLevel = true;
+    this.slingshot?.clearShotReference(); // Fix #7 — no dots outside gameplay
     this.scene.start('LevelSelectScene');
   }
 
   exitToMenu() {
+    this.slingshot?.clearShotReference(); // Fix #7 — no dots outside gameplay
     this.scene.start('MenuScene');
   }
 
@@ -1282,7 +1296,15 @@ export class GameScene extends Phaser.Scene {
   debugLaunch(vx, vy, typeKey) {
     this.slingshot.firePreview();
     this.slingshot.setEnabled(false);
-    return this.launchProjectile(vx, vy, typeKey || this.selectedProjectile);
+    const type = typeKey || this.selectedProjectile;
+    const a = this.slingshot.anchor;
+    const ok = this.launchProjectile(vx, vy, type);
+    if (ok) {
+      // Fix #7 — capture the same release-time reference a pointer release
+      // would, so automated runs observe the kept-dots behavior.
+      this.slingshot.captureShotReference(this.slingshot.computeDots(a, vx, vy, type));
+    }
+    return ok;
   }
 
   /** Compute and fire a shot at a target (used by integration tests). */

@@ -11,10 +11,11 @@
     "test:unit": "node tests/run-tests.mjs",
     "test:integration": "node tests/integration-tests.mjs",
     "test:lifecycle": "node tests/bird-lifecycle-tests.mjs",
+    "test:card": "node tests/question-card-tests.mjs",
     "repro:freeze": "node tests/repro-freeze.mjs",
     "verify:birds": "node scripts/verify-birds.mjs",
     "verify:build": "node scripts/verify-build.mjs",
-    "test": "node tests/run-tests.mjs && node tests/integration-tests.mjs && node tests/bird-lifecycle-tests.mjs"
+    "test": "node tests/run-tests.mjs && node tests/integration-tests.mjs && node tests/bird-lifecycle-tests.mjs && node tests/question-card-tests.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

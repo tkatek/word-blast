@@ -44,6 +44,7 @@ export class Slingshot {
     this.previewDisplay = 0;       // loaded bird display size (pouch fitting)
     this.grabOffset = null;        // pointer→pouch offset while dragging
     this.snap = null;              // { from:{x,y}, t0, ms } — snap-back animation
+    this.lastShotDots = null;      // Fix #7 — last completed shot's dots (reference)
 
     this.renderer = new SlingshotRenderer(scene);
     // single canonical anchor — the artwork's handle plants into the flat
@@ -64,6 +65,9 @@ export class Slingshot {
     this.scene.input.off('pointerup', this.onPointerUp, this);
     this.scene.input.off('pointerupoutside', this.onPointerUp, this);
     this.scene.events.off('update', this.onUpdate, this);
+    // Fix #7 — scene shutdown destroys the graphics; drop the stored
+    // reference so a stale array can never leak into another level.
+    this.lastShotDots = null;
   }
 
   /* ------------------------------------------------------------------ */
@@ -197,7 +201,14 @@ export class Slingshot {
     this.startSnap(p, SNAP_MS);
     this.firePreview();
     this.setEnabled(false);
-    this.callbacks.onLaunch(vx, vy, this.loadedType, { x: p.x, y: p.y });
+    const launched = this.callbacks.onLaunch(vx, vy, this.loadedType, { x: p.x, y: p.y });
+    if (launched) {
+      // Fix #7 — freeze the release-time prediction as the faded reference
+      // for the next aim. Captured HERE (pouch position + exact launch
+      // velocity just handed to the physics) so the kept dots are the arc
+      // the player actually shot, never a recomputation.
+      this.captureShotReference(this.computeDots(p, vx, vy, this.loadedType));
+    }
   }
 
   /** Release without a shot: pouch + bird spring back to rest, nothing consumed. */
@@ -312,14 +323,40 @@ export class Slingshot {
     const speed = Math.min(power, 1) * SLINGSHOT.MAX_SPEED;
     const vx = (dx / dragLen) * speed;
     const vy = (dy / dragLen) * speed;
-    const type = PROJECTILE_TYPES[this.loadedType];
+    return this.computeDots(p, vx, vy, this.loadedType);
+  }
+
+  /**
+   * Shared dot sampler behind both the live aiming arc and the kept
+   * reference (Fix #7): identical prediction for identical inputs, so the
+   * faded dots always match what the shot was aimed along.
+   */
+  computeDots(p, vx, vy, typeKey) {
+    const type = PROJECTILE_TYPES[typeKey];
     const pts = predictPath(p.x, p.y, vx, vy, { frictionAir: type.frictionAir });
     const dots = [];
     for (let i = 2; i < pts.length; i += 3) {
       const pt = pts[i];
       if (pt.y > WORLD.GROUND_Y - 6) break; // dots stop at the painted grass
-      dots.push(pt);
+      dots.push({ x: pt.x, y: pt.y });
     }
     return dots;
+  }
+
+  /**
+   * Fix #7 — store and draw the most recent completed shot's trajectory as
+   * the faded reference. Replaces (never accumulates) the previous one:
+   * exactly one reference line exists at any time, in world coordinates,
+   * never recomputed or moved afterwards.
+   */
+  captureShotReference(dots) {
+    this.lastShotDots = dots;
+    this.renderer.renderLastDots(dots);
+  }
+
+  /** Fix #7 — drop the reference line entirely (level change / restart / exit). */
+  clearShotReference() {
+    this.lastShotDots = null;
+    this.renderer.renderLastDots(null);
   }
 }

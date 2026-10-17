@@ -397,7 +397,10 @@ export class ObjectFactory {
   }
 
   /**
-   * One-shot mid-flight ability (boost / split). Returns true if activated.
+   * One-shot mid-flight ability (Fix #19 roster: boost / split×5 / bomb /
+   * freeze). Returns true if activated. The abilityUsed + consumed guards
+   * make double activation from double taps structurally impossible.
+   *
    * Speed caps keep every projectile inside the verified anti-tunneling
    * envelope (TUNNELING): boosted <= 24 px/step, split children <= 20.
    */
@@ -420,37 +423,98 @@ export class ObjectFactory {
     }
     if (ability === 'split') {
       projectile.wb.abilityUsed = true;
-      const v = projectile.body.velocity;
-      const mag = Math.hypot(v.x, v.y);
-      const cap = Math.min(mag, TUNNELING.SPLIT_CHILD_SPEED_CAP);
-      const spread = (SPLIT_CHILD.spreadAngleDeg * Math.PI) / 180;
-      const shotId = projectile.wb.shotId;
-      for (const sign of [-1, 1]) {
-        const cos = Math.cos(spread * sign);
-        const sin = Math.sin(spread * sign);
-        const nvx = (v.x * cos - v.y * sin) / mag * cap;
-        const nvy = (v.x * sin + v.y * cos) / mag * cap;
-        const childGo = this.createProjectile('split', projectile.x, projectile.y, shotId, { child: true });
-        childGo.setVelocity(nvx, nvy);
-      }
-      this.scene.fx?.splitPop(projectile.x, projectile.y);
-      this.scene.audio.emit('split');
+      this.splitIntoFive(projectile);
+      return true;
+    }
+    if (ability === 'detonate') {
+      // Manual mid-flight detonation (Fix #19). The impact-based fallback in
+      // onProjectileFirstImpact covers a bomb that is never tapped; both
+      // paths remove the body first, so exactly ONE explosion can ever run.
+      projectile.wb.abilityUsed = true;
+      const pos = { x: projectile.x, y: projectile.y };
+      this.remove(projectile);
+      this.explosionQueue.push(pos);
+      this.scene.audio.emit('explode');
+      return true;
+    }
+    if (ability === 'freeze') {
+      // Manual mid-flight freeze (Fix #19). The impact-based fallback below
+      // is skipped once the ability already ran (one activation per launch).
+      projectile.wb.abilityUsed = true;
+      this.freezeNear(projectile.x, projectile.y);
+      this.scene.fx?.freezeBurst(projectile.x, projectile.y);
+      this.scene.audio.emit('freeze');
       return true;
     }
     return false;
   }
 
-  /** First-impact effects (bomb detonation, ice freeze). */
+  /**
+   * Fix #19 — the yellow bird splits into exactly FIVE smaller birds in a
+   * controlled fan (upper / slightly-up / center / slightly-down / lower).
+   *
+   *   - the parent body is removed and replaced by five children that all
+   *     inherit the parent's shotId (ONE shot identity — the answer-selection
+   *     lock in GameScene therefore applies to the whole fan at once)
+   *   - children spawn SEPARATION px apart perpendicular to the flight
+   *     direction, so no child is created inside a sibling
+   *   - each child's speed = parent speed × SPLIT_CHILD.speedScale
+   *     (energy-bounded, see config.js), capped by the tunneling guard
+   *   - children are temporary ability projectiles: they consume no extra
+   *     ammunition and carry no ability of their own
+   */
+  splitIntoFive(projectile) {
+    const v = projectile.body.velocity;
+    const mag = Math.hypot(v.x, v.y) || 1;
+    const speed = Math.min(
+      mag * SPLIT_CHILD.speedScale,
+      TUNNELING.SPLIT_CHILD_SPEED_CAP
+    );
+    // fan geometry: unit flight direction + perpendicular
+    const dirX = v.x / mag;
+    const dirY = v.y / mag;
+    const perpX = -dirY;
+    const perpY = dirX;
+    const spread = (SPLIT_CHILD.spreadAngleDeg * Math.PI) / 180;
+    const shotId = projectile.wb.shotId;
+    const origin = { x: projectile.x, y: projectile.y };
+    const half = (SPLIT_CHILD.COUNT - 1) / 2;
+
+    // remove the parent FIRST so the fan replaces it (never coexists)
+    this.remove(projectile);
+
+    for (let i = 0; i < SPLIT_CHILD.COUNT; i++) {
+      const angle = (i - half) * spread;        // −2d, −d, 0, +d, +2d
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const nvx = (dirX * cos - dirY * sin) * speed;
+      const nvy = (dirX * sin + dirY * cos) * speed;
+      // spawn slots along the perpendicular (+ slight forward stagger) —
+      // adjacent slots are SEPARATION px apart, children r=11 → no overlap
+      const px = origin.x + perpX * (i - half) * SPLIT_CHILD.SEPARATION + dirX * (i * 3);
+      const py = origin.y + perpY * (i - half) * SPLIT_CHILD.SEPARATION + dirY * (i * 3);
+      const childGo = this.createProjectile('split', px, py, shotId, { child: true });
+      childGo.setVelocity(nvx, nvy);
+    }
+    this.scene.fx?.splitPop(origin.x, origin.y);
+    this.scene.audio.emit('split');
+  }
+
+  /** First-impact effects (bomb detonation, ice freeze) — impact fallbacks. */
   onProjectileFirstImpact(projectile, otherBody) {
     if (projectile.wb.firstImpactDone || projectile.wb.consumed) return;
     projectile.wb.firstImpactDone = true;
     const ability = projectile.wb.ability;
     if (ability === 'detonate') {
+      // impact-based fallback (documented): only reachable when the player
+      // never tapped — a manual detonation already consumed the body, so
+      // no repeated detonation is possible.
       const pos = { x: projectile.x, y: projectile.y };
       this.remove(projectile);
       this.explosionQueue.push(pos);
       this.scene.audio.emit('explode');
     } else if (ability === 'freeze') {
+      if (projectile.wb.abilityUsed) return; // manual freeze already ran
       this.freezeNear(projectile.x, projectile.y);
       this.scene.fx?.freezeBurst(projectile.x, projectile.y);
       this.scene.audio.emit('freeze');
