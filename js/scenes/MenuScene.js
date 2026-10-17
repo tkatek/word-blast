@@ -3,6 +3,7 @@
  */
 import Phaser from 'phaser';
 import { STATES, WORLD } from '../config.js';
+import { attachViewport, coverView } from '../systems/Viewport.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -11,7 +12,10 @@ export class MenuScene extends Phaser.Scene {
 
   create() {
     const save = this.registry.get('save');
-    this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x134611);
+    // Full-bleed backdrop: covers the whole visible view on any aspect
+    // ratio (Fix #2) — re-covered on every resize below.
+    this.backdrop = this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x134611);
+    this.viewport = attachViewport(this, (view) => coverView(this.backdrop, view));
 
     this.add.text(WORLD.WIDTH / 2, 150, 'WORD BLAST', {
       fontFamily: 'Arial', fontSize: '72px', fontStyle: 'bold', color: '#ffd60a'

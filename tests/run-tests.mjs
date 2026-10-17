@@ -527,6 +527,51 @@ test('all targets in all levels stay reachable from every device anchor', () => 
   eq(checked, totalTargets * 3, 'swept every target from every device anchor');
 });
 
+console.log('\n== background & ground =====================================');
+
+import { computeBackgroundFit } from '../js/systems/BackgroundManager.js';
+import { computeFitView } from '../js/systems/Viewport.js';
+
+test('background fit covers the world without distortion for any art size', () => {
+  // the shipped art plus stress aspects (4:3 tablet art, 2:1 ultrawide art)
+  const sizes = [[1672, 941], [1448, 1086], [1774, 887], [1920, 1080], [2560, 1200]];
+  for (const [w, h] of sizes) {
+    const f = computeBackgroundFit(w, h);
+    const dw = w * f.scale;
+    const dh = h * f.scale;
+    assert(dw >= WORLD.WIDTH - 0.01 && dh >= WORLD.HEIGHT - 0.01, `${w}x${h}: art covers the whole world`);
+    eq(+(dw / dh).toFixed(6), +(w / h).toFixed(6), `${w}x${h}: uniform scale — never stretched`);
+    assert(f.x - dw / 2 <= 0.01 && f.x + dw / 2 >= WORLD.WIDTH - 0.01, `${w}x${h}: no horizontal gaps`);
+    assert(f.y - dh / 2 <= 0.01 && f.y + dh / 2 >= WORLD.HEIGHT - 0.01, `${w}x${h}: no vertical gaps`);
+  }
+});
+
+test('the official art paints its grass line exactly on the gameplay ground', () => {
+  // shipped artwork contract: 1672x941, flat grass line at 615 — if the art
+  // ever changes, re-measure (scripts/analyze-grass.mjs) and update
+  // BACKGROUND.GRASS_LINE_Y; this test refuses silent drift.
+  const f = computeBackgroundFit(1672, 941);
+  assert(Math.abs(f.grassWorldY - WORLD.GROUND_Y) <= 1,
+    `painted grass lands at y=${f.grassWorldY.toFixed(2)}, collider at y=${WORLD.GROUND_Y}`);
+});
+
+test('the responsive view always shows the entire world, on any aspect', () => {
+  const cases = [
+    [1280, 720],   // exactly 16:9
+    [2560, 1440],  // 16:9 retina
+    [1024, 768],   // 4:3 tablet
+    [2280, 1080],  // 19.5:9 phone landscape
+    [844, 390]     // tall phone portrait (gate shows, but framing still safe)
+  ];
+  for (const [bw, bh] of cases) {
+    const v = computeFitView(bw, bh);
+    assert(v.x <= 0 && v.y <= 0, `${bw}x${bh}: view starts at/above world origin (${v.x}, ${v.y})`);
+    assert(v.x + v.width >= WORLD.WIDTH && v.y + v.height >= WORLD.HEIGHT,
+      `${bw}x${bh}: view ends at/beyond world edge`);
+    assert(v.zoom > 0, `${bw}x${bh}: positive zoom`);
+  }
+});
+
 console.log('\n== input mapping ============================================');
 
 test('#21 client<->world mapping is exact and round-trips', () => {

@@ -88,6 +88,19 @@ export function currentView(scene) {
 }
 
 /**
+ * Stretch a rectangle game object so it exactly covers the visible view —
+ * used by menu backdrops so no letterbox bars appear on non-16:9 screens.
+ * @param {Phaser.GameObjects.Rectangle} rect
+ * @param {object} view visible world rectangle (computeFitView)
+ */
+export function coverView(rect, view) {
+  if (!rect || !view) return rect;
+  rect.setSize(view.width, view.height);
+  rect.setPosition(view.x + view.width / 2, view.y + view.height / 2);
+  return rect;
+}
+
+/**
  * Frame a scene's main camera on the whole logical world and keep it framed
  * across resizes. Registers exactly one listener on the (game-wide) scale
  * manager and removes it on scene shutdown — safe for scene restarts and

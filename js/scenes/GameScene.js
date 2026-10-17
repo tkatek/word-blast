@@ -17,6 +17,7 @@ import { solveLaunch, predictPath } from '../systems/Trajectory.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { EffectsSystem } from '../systems/EffectsSystem.js';
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
+import { attachViewport } from '../systems/Viewport.js';
 import { DebugLog } from '../systems/DebugLog.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
@@ -773,15 +774,20 @@ export class GameScene extends Phaser.Scene {
       this.device = { ...deviceInfo() };
       this.updateOrientationState();
     };
-    this.scale.on('resize', this.onOrientationChange);
-    this.scale.on('orientationchange', this.onOrientationChange);
+    // Fix #2: full-bleed responsive framing. ONE scale-manager listener
+    // (attachViewport) re-frames the camera so the whole 1280×720 world is
+    // always visible, extends the scenery beyond it on wide/tall viewports,
+    // and re-checks the orientation state. Cleaned up on scene shutdown.
+    this.viewport = attachViewport(this, (view) => {
+      this.background?.extendTo(view);
+      this.onOrientationChange();
+    });
     if (window.matchMedia) {
       this.portraitQuery = window.matchMedia('(orientation: portrait)');
       this.portraitQuery.addEventListener?.('change', this.onOrientationChange);
     }
     this.events.once('shutdown', () => {
-      this.scale.off('resize', this.onOrientationChange);
-      this.scale.off('orientationchange', this.onOrientationChange);
+      this.viewport.detach();
       this.portraitQuery?.removeEventListener?.('change', this.onOrientationChange);
     });
     this.updateOrientationState();

@@ -3,6 +3,7 @@
  */
 import Phaser from 'phaser';
 import { SAVE, WORLD } from '../config.js';
+import { attachViewport, coverView } from '../systems/Viewport.js';
 
 export class LevelSelectScene extends Phaser.Scene {
   constructor() {
@@ -12,7 +13,10 @@ export class LevelSelectScene extends Phaser.Scene {
   create() {
     const save = this.registry.get('save');
     const levels = this.registry.get('levels');
-    this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x1b4332);
+    // Full-bleed backdrop: covers the whole visible view on any aspect
+    // ratio (Fix #2) — re-covered on every resize below.
+    this.backdrop = this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x1b4332);
+    this.viewport = attachViewport(this, (view) => coverView(this.backdrop, view));
 
     this.add.text(WORLD.WIDTH / 2, 60, 'SELECT LEVEL', {
       fontFamily: 'Arial', fontSize: '40px', fontStyle: 'bold', color: '#ffd60a'

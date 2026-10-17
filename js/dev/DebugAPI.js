@@ -5,6 +5,8 @@
 import { WORLD } from '../config.js';
 import { clientToWorld } from '../systems/InputMapper.js';
 import { deviceInfo, setOrientationOverride, setTypeOverride } from '../systems/Device.js';
+import { currentView } from '../systems/Viewport.js';
+import { refreshOrientationGate } from '../systems/OrientationGate.js';
 import { DebugLog } from '../systems/DebugLog.js';
 
 export function installDebugAPI(game) {
@@ -53,7 +55,10 @@ export function installDebugAPI(game) {
     /** Map client coords → world coords for the canvas (input mapping test). */
     mapClient(clientX, clientY) {
       const canvas = game.canvas;
-      return clientToWorld(clientX, clientY, canvas.getBoundingClientRect());
+      // Fix #2: the canvas shows the camera's fit view (zoom-aware), not
+      // necessarily the bare 1280×720 world rect.
+      const scene = game.scene.getScenes(true)[0];
+      return clientToWorld(clientX, clientY, canvas.getBoundingClientRect(), currentView(scene));
     },
 
     /** Await a game state (polling — robust across scene restarts). */
@@ -105,6 +110,7 @@ export function installDebugAPI(game) {
     /** Test-only orientation override: 'portrait' | 'landscape' | null. */
     setOrientationOverride(mode) {
       setOrientationOverride(mode);
+      refreshOrientationGate(); // DOM rotate overlay follows the override
       const s = api.scene();
       if (s && s.updateOrientationState) s.updateOrientationState();
       return mode;
@@ -113,6 +119,7 @@ export function installDebugAPI(game) {
     /** Test-only device-type override: 'desktop' | 'tablet' | 'mobile' | null. */
     setDeviceOverride(type) {
       setTypeOverride(type);
+      refreshOrientationGate(); // portrait requirement depends on the device class
       const s = api.scene();
       if (s) s.device = { ...deviceInfo() };
       if (s && s.updateOrientationState) s.updateOrientationState();
