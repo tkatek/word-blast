@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import {
-  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK,
+  STATES, WORLD, COLORS, PHYSICS, SLINGSHOT, PROJECTILE_TYPES, TARGETS, SCORING, FEEDBACK, HUD,
   slingshotAnchor
 } from '../config.js';
 import { GameStateMachine } from '../systems/GameStateMachine.js';
@@ -19,6 +19,9 @@ import { EffectsSystem } from '../systems/EffectsSystem.js';
 import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
 import { attachViewport } from '../systems/Viewport.js';
 import { DebugLog } from '../systems/DebugLog.js';
+import { GameHUD, woodPanel, woodButton, chunkyText } from '../systems/GameHUD.js';
+import { LevelTimer } from '../systems/LevelTimer.js';
+import { HeartsSystem } from '../systems/HeartsSystem.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -43,7 +46,11 @@ export class GameScene extends Phaser.Scene {
     this.device = null;
     this.prepared = null;
     this.currentShot = null;
-    this.hudLevel = this.hudQuestion = this.hudShots = this.hudScore = this.hudState = null;
+    this.hud = null;              // GameHUD (Fix #17); built in create()
+    this.levelTimer = null;       // authoritative countdown (LevelTimer)
+    this.hearts = null;           // level-life rules (HeartsSystem)
+    this.leavingLevel = false;    // one-shot guard for restart / exit clicks
+    this.uiPointerConsumed = false; // a UI button ate this pointerdown
     this.questionText = this.choicesText = null;
     this.projectileButtons = [];
     this.questionIndex = 0; // known before create() for logging
@@ -78,6 +85,13 @@ export class GameScene extends Phaser.Scene {
     this.settleStartedAt = 0;
     this.slowFrames = 0;         // consecutive quiet frames for shot resolution
     this.armPending = false;     // re-arm deferred by a pause lands on resume
+    this.leavingLevel = false;
+    this.uiPointerConsumed = false;
+
+    // Fix #17 — level life + countdown (fresh every create(), so a restart
+    // can never inherit a stale timer or a stale heart count)
+    this.hearts = new HeartsSystem(HUD.HEARTS_PER_LEVEL);
+    this.levelTimer = new LevelTimer(HUD.TIME_LIMIT_MS);
 
     this.buildWorld();
     this.buildHUD();
@@ -100,7 +114,13 @@ export class GameScene extends Phaser.Scene {
     for (let i = 1; i <= 5; i++) {
       this.input.keyboard.on(`keydown-${i}`, () => this.selectProjectileByIndex(i - 1));
     }
-    this.input.on('pointerdown', (pointer) => {
+    this.input.on('pointerdown', () => {
+      // UI buttons flag their own pointerdown (Phaser emits GameObject
+      // events before scene-level ones), so a tap on the pause button or a
+      // menu entry can never accidentally trigger the loaded bird's ability.
+      const uiTap = this.uiPointerConsumed;
+      this.uiPointerConsumed = false;
+      if (uiTap) return;
       if (this.stateMachine.is(STATES.PROJECTILE_FLYING)) this.tryActivateAbilities();
     });
 
@@ -132,30 +152,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   buildHUD() {
-    const bg = this.add.rectangle(WORLD.WIDTH / 2, 26, WORLD.WIDTH - 20, 44, COLORS.HUD_BACKGROUND, 0.85)
-      .setDepth(DEPTH.HUD);
-    this.hudLevel = this.add.text(24, 12, '', { fontFamily: 'Arial', fontSize: '18px', color: COLORS.HUD_TEXT }).setDepth(DEPTH.HUD);
-    this.hudQuestion = this.add.text(330, 12, '', { fontFamily: 'Arial', fontSize: '18px', color: COLORS.HUD_TEXT }).setDepth(DEPTH.HUD);
-    this.hudShots = this.add.text(560, 12, '', { fontFamily: 'Arial', fontSize: '18px', color: '#ffd60a' }).setDepth(DEPTH.HUD);
-    this.hudScore = this.add.text(730, 12, '', { fontFamily: 'Arial', fontSize: '18px', color: '#90be6d' }).setDepth(DEPTH.HUD);
-    this.hudState = this.add.text(940, 12, '', { fontFamily: 'monospace', fontSize: '15px', color: '#a8dadc' }).setDepth(DEPTH.HUD);
+    // Top game HUD (Fix #17): cartoon wooden bar with pause button, level
+    // plaque, timer / question / stars, hearts, shots, score and sound.
+    // The HUD owns no gameplay state — it renders whatever refreshHUD()
+    // pushes and calls back into this scene through `actions`.
+    this.hud = new GameHUD(this, {
+      onPause: () => this.doPause(),
+      onResume: () => this.togglePause(),
+      onRestartQuestion: () => this.restartQuestionFromMenu(),
+      onRestartLevel: () => this.restartLevel(),
+      onExitToLevels: () => this.exitToLevelSelect(),
+      onToggleSound: () => this.toggleSound(),
+      onToggleReducedMotion: () => this.toggleReducedMotion()
+    }, {
+      markUi: () => { this.uiPointerConsumed = true; },
+      save: this.save
+    });
+    this.hud.setTimer(HUD.TIME_LIMIT_MS);
 
-    const pauseBtn = this.add.text(WORLD.WIDTH - 30, 26, '⏸', {
-      fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#457b9d', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(DEPTH.HUD).setInteractive({ useHandCursor: true });
-    pauseBtn.on('pointerdown', () => this.togglePause());
-
-    const restartBtn = this.add.text(WORLD.WIDTH - 105, 26, '⟳', {
-      fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#457b9d', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(DEPTH.HUD).setInteractive({ useHandCursor: true });
-    restartBtn.on('pointerdown', () => this.restartLevel());
-
-    const menuBtn = this.add.text(WORLD.WIDTH - 180, 26, '☰', {
-      fontFamily: 'Arial', fontSize: '24px', color: '#ffffff', backgroundColor: '#457b9d', padding: { x: 10, y: 4 }
-    }).setOrigin(0.5).setDepth(DEPTH.HUD).setInteractive({ useHandCursor: true });
-    menuBtn.on('pointerdown', () => this.exitToMenu());
-
-    // question panel
+    // question panel — deliberately separate from the HUD (the question
+    // card gets its own redesign later; the HUD reserves the band above it)
     this.questionPanel = this.add.container(0, 0).setDepth(DEPTH.PANEL);
     this.questionText = this.add.text(24, 84, '', {
       fontFamily: 'Arial', fontSize: '17px', color: '#1d3557', backgroundColor: '#ffffffcc',
@@ -175,7 +191,10 @@ export class GameScene extends Phaser.Scene {
         fontFamily: 'Arial', fontSize: '15px', color: '#ffffff', backgroundColor: '#457b9d',
         padding: { x: 10, y: 5 }
       }).setDepth(DEPTH.HUD).setInteractive({ useHandCursor: true });
-      btn.on('pointerdown', () => this.selectProjectile(key));
+      btn.on('pointerdown', () => {
+        this.uiPointerConsumed = true;
+        this.selectProjectile(key);
+      });
       this.projectileButtons.push({ key, btn });
       this.time.delayedCall(0, () => btn.x = 24 + this.projectileButtons.reduce((acc, b) => acc + (b.btn === btn ? 0 : b.btn.width + 10), 0));
     });
@@ -197,49 +216,41 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.feedback.add([this.feedbackBg, this.feedbackTitle, this.feedbackBody]);
 
-    // pause overlay
-    this.pauseOverlay = this.add.container(0, 0).setDepth(DEPTH.OVERLAY).setVisible(false);
-    this.pauseOverlay.add(this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x000000, 0.6));
-    this.pauseOverlay.add(this.add.text(WORLD.WIDTH / 2, 200, 'PAUSED', {
-      fontFamily: 'Arial', fontSize: '56px', fontStyle: 'bold', color: '#ffd60a'
-    }).setOrigin(0.5));
-    this.overlayButton(this.pauseOverlay, 'RESUME', 320, () => this.togglePause());
-    this.overlayButton(this.pauseOverlay, 'RESTART LEVEL', 390, () => this.restartLevel());
-    this.overlayButton(this.pauseOverlay, 'EXIT TO MENU', 460, () => this.exitToMenu());
-    // accessibility: disable camera shake + heavy particles
-    this.motionBtn = this.overlayButton(this.pauseOverlay, '', 520, () => {
-      const next = !this.save.data.settings.reducedMotion;
-      this.save.setSetting('reducedMotion', next);
-      this.refreshMotionButton();
-    });
-    this.refreshMotionButton();
+    // The pause menu lives in the GameHUD (Fix #17) — nothing to build here.
 
-    // fail overlay
+    // fail overlay (out of shots / out of hearts / time up)
+    const fx = WORLD.WIDTH / 2;
     this.failOverlay = this.add.container(0, 0).setDepth(DEPTH.OVERLAY).setVisible(false);
-    this.failOverlay.add(this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x000000, 0.65));
-    this.failOverlay.add(this.add.text(WORLD.WIDTH / 2, 180, 'OUT OF SHOTS', {
-      fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#e63946'
-    }).setOrigin(0.5));
-    this.overlayButton(this.failOverlay, 'RETRY QUESTION', 300, () => this.retryQuestion());
-    this.overlayButton(this.failOverlay, 'RESTART LEVEL', 370, () => this.restartLevel());
-    this.overlayButton(this.failOverlay, 'MENU', 440, () => this.exitToMenu());
+    const failScrim = this.add.rectangle(fx, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x08131f, 0.66)
+      .setInteractive({ useHandCursor: false }); // swallows taps while shown
+    failScrim.on('pointerdown', () => { this.uiPointerConsumed = true; });
+    const failCard = woodPanel(this, fx, 295, 480, 390);
+    const failInner = woodPanel(this, fx, 295, 446, 356, 'parch');
+    this.failTitle = chunkyText(this, fx, 158, 'OUT OF SHOTS!', 38, '#a4323f').setOrigin(0.5);
+    this.failBody = this.add.text(fx, 205, '', {
+      fontFamily: 'Arial', fontSize: '17px', color: '#5c3a1e', align: 'center', wordWrap: { width: 400 }
+    }).setOrigin(0.5, 0);
+    this.failOverlay.add([failScrim, failCard, failInner, this.failTitle, this.failBody]);
+    this.failRetryBtn = this.overlayButton(this.failOverlay, 'RETRY QUESTION', 322, () => this.retryQuestion(), 'green');
+    this.overlayButton(this.failOverlay, 'RESTART LEVEL', 390, () => this.restartLevel(), 'orange');
+    this.overlayButton(this.failOverlay, 'LEVELS', 458, () => this.exitToLevelSelect(), 'slate');
 
     // victory overlay
     this.winOverlay = this.add.container(0, 0).setDepth(DEPTH.OVERLAY).setVisible(false);
-    this.winOverlay.add(this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x000000, 0.65));
-    this.winTitle = this.add.text(WORLD.WIDTH / 2, 150, 'LEVEL COMPLETE!', {
+    this.winOverlay.add(this.add.rectangle(fx, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x000000, 0.65));
+    this.winTitle = this.add.text(fx, 150, 'LEVEL COMPLETE!', {
       fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#90be6d'
     }).setOrigin(0.5);
-    this.winStars = this.add.text(WORLD.WIDTH / 2, 225, '', {
+    this.winStars = this.add.text(fx, 225, '', {
       fontFamily: 'Arial', fontSize: '54px', color: '#ffd60a'
     }).setOrigin(0.5);
-    this.winScore = this.add.text(WORLD.WIDTH / 2, 290, '', {
+    this.winScore = this.add.text(fx, 290, '', {
       fontFamily: 'Arial', fontSize: '24px', color: '#ffffff'
     }).setOrigin(0.5);
     this.winOverlay.add([this.winTitle, this.winStars, this.winScore]);
-    this.overlayButton(this.winOverlay, 'NEXT LEVEL ▶', 360, () => this.goNextLevel());
-    this.overlayButton(this.winOverlay, 'REPLAY', 425, () => this.restartLevel());
-    this.overlayButton(this.winOverlay, 'MENU', 490, () => this.exitToMenu());
+    this.overlayButton(this.winOverlay, 'NEXT LEVEL ▶', 360, () => this.goNextLevel(), 'green');
+    this.overlayButton(this.winOverlay, 'REPLAY', 425, () => this.restartLevel(), 'blue');
+    this.overlayButton(this.winOverlay, 'MENU', 490, () => this.exitToMenu(), 'slate');
 
     // rotate-device overlay (phones in portrait — gameplay is frozen behind it)
     this.rotateOverlay = this.add.container(WORLD.WIDTH / 2, WORLD.HEIGHT / 2).setDepth(200).setVisible(false);
@@ -282,14 +293,12 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  overlayButton(container, label, y, onClick) {
-    const btn = this.add.text(WORLD.WIDTH / 2, y, label, {
-      fontFamily: 'Arial', fontSize: '26px', color: '#ffffff', backgroundColor: '#1d3557',
-      padding: { x: 24, y: 10 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    btn.on('pointerdown', onClick);
-    btn.on('pointerover', () => btn.setStyle({ color: '#ffd60a' }));
-    btn.on('pointerout', () => btn.setStyle({ color: '#ffffff' }));
+  /** Wooden cartoon button for the full-screen overlays. */
+  overlayButton(container, label, y, onClick, color = 'green', w = 330) {
+    const btn = woodButton(this, {
+      x: WORLD.WIDTH / 2, y, w, h: 58, label, color, size: 21, onClick,
+      markUi: () => { this.uiPointerConsumed = true; }
+    });
     container.add(btn);
     return btn;
   }
@@ -322,6 +331,7 @@ export class GameScene extends Phaser.Scene {
     this.shotsLeft = this.level.shotsPerQuestion;
     this.settleFrames = 0;
     this.slowFrames = 0;
+    this.hearts?.clearCharge(); // a fresh attempt may be charged again on failure
 
     const entry = this.levels.getQuestionEntry(this.levelId, index);
     const question = this.questions.getQuestion(entry.questionId);
@@ -397,6 +407,12 @@ export class GameScene extends Phaser.Scene {
     if (!this.stateMachine.is(STATES.AIMING)) return false;
     if (this.shotsLeft <= 0) return false;
     if (!this.levels.isProjectileAvailable(this.levelId, typeKey)) return false;
+
+    // Lifecycle (Fix #6B): the previous shot's late-answer window closes
+    // the moment this new shot exists (the shotId guard in
+    // routeProjectileImpact), so its leftover bodies are pure litter —
+    // destroy them BEFORE the new bird spawns so nothing accumulates.
+    this.factory.sweepProjectiles();
 
     const shotId = (this.currentShot?.id || 0) + 1;
     this.currentShot = { id: shotId, launched: true, answered: false, resolvedHandled: false, startedAt: this.time.now };
@@ -563,6 +579,7 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.stateMachine.isPaused()) return;
     this.elapsedMs += delta;
+    this.updateLevelTimer(delta);
     this.factory.update(time, delta, this.elapsedMs);
 
     const s = this.stateMachine.current;
@@ -572,6 +589,35 @@ export class GameScene extends Phaser.Scene {
     if (s === STATES.ANSWER_FEEDBACK) {
       this.updateAnswerSettle();
     }
+  }
+
+  /**
+   * Fix #17 — the level countdown. It only advances while the player is
+   * actually playing: the paused early-return above already freezes it for
+   * the pause menu, portrait rotation and hidden tabs (auto-pause), and the
+   * state filter below additionally freezes it during mandatory answer
+   * feedback, question loading and the terminal level states. Delta
+   * accumulation inside this guarded frame hook is the same accounting the
+   * scene already uses for its movers — no wall-clock reads, no setTimeout.
+   */
+  updateLevelTimer(delta) {
+    if (!this.levelTimer) return;
+    const s = this.stateMachine.current;
+    if (s === STATES.QUESTION_READY || s === STATES.AIMING
+      || s === STATES.PROJECTILE_FLYING || s === STATES.PHYSICS_RESOLVING) {
+      this.levelTimer.tick(delta);
+      if (this.levelTimer.expired) this.timeUp();
+    }
+    this.hud?.setTimer(this.levelTimer.remainingMs);
+  }
+
+  /** Countdown reached zero → the existing level-failure flow. */
+  timeUp() {
+    if (this.leavingLevel) return;
+    // Extremely transient states (e.g. NEXT_QUESTION) cannot legally fail
+    // yet — the next frame retries as soon as the machine can transition.
+    if (!this.stateMachine.can(STATES.LEVEL_FAILED)) return;
+    this.levelFailed('time-up');
   }
 
   updateShotResolution() {
@@ -614,6 +660,11 @@ export class GameScene extends Phaser.Scene {
     // watcher below (feedback already shown).
     if (this.currentShot.answered) return;
 
+    // Lifecycle (Fix #6B): the miss is decided — play the shot's landing
+    // animation and remove its visuals (bodies are swept at the next
+    // launch; see launchProjectile).
+    this.factory.despawnShotVisuals(this.currentShot.id);
+
     // controlled recovery: rubble covering the correct target is cleared
     this.recoverBlockedTarget();
 
@@ -627,7 +678,7 @@ export class GameScene extends Phaser.Scene {
       if (this.stateMachine.is(STATES.PROJECTILE_FLYING)) {
         this.stateMachine.set(STATES.PHYSICS_RESOLVING);
       }
-      this.levelFailed('No shots left');
+      this.failQuestionAttempt('No shots left');
     }
   }
 
@@ -669,11 +720,14 @@ export class GameScene extends Phaser.Scene {
         this.loadQuestion(this.questionIndex + 1);
       }
     } else {
+      // wrong answer resolved: same reliable cleanup as a miss before the
+      // slingshot may arm again (Fix #6B)
+      this.factory.despawnShotVisuals(this.currentShot.id);
       if (this.shotsLeft > 0) {
         this.stateMachine.set(STATES.AIMING);
         this.armAfterShot();
       } else {
-        this.levelFailed('No shots left');
+        this.failQuestionAttempt('No shots left');
       }
     }
   }
@@ -708,6 +762,10 @@ export class GameScene extends Phaser.Scene {
   /* ------------------------------------------------------------------ */
 
   levelComplete() {
+    // Lifecycle (Fix #6B): the final question's transition is to this
+    // overlay, not to loadQuestion — sweep the last shot here so no bird
+    // lingers under the victory panel (question changes sweep already).
+    this.factory.sweepProjectiles();
     const score = this.scoring.computeScore();
     const stars = this.scoring.computeStars(this.level.starThresholds);
     this.save.recordLevelResult(this.levelId, score, stars);
@@ -715,7 +773,7 @@ export class GameScene extends Phaser.Scene {
 
     this.winStars.setText('★'.repeat(stars) + '☆'.repeat(3 - stars));
     this.winScore.setText(`Score: ${score}`);
-    const nextBtn = this.winOverlay.list.find((t) => t.text === 'NEXT LEVEL ▶');
+    const nextBtn = this.winOverlay.list.find((t) => t.labelText && t.labelText.text === 'NEXT LEVEL ▶');
     if (nextBtn) nextBtn.setVisible(this.levelId < 15);
     if (this.levelId === 15 && this.save.allCompleted) {
       this.stateMachine.set(STATES.GAME_COMPLETE);
@@ -726,12 +784,50 @@ export class GameScene extends Phaser.Scene {
     this.refreshHUD();
   }
 
-  levelFailed(reason) {
+  /**
+   * Fix #17 — a question attempt failed because its available shots ran
+   * out. Charges exactly ONE heart for the whole attempt (never per
+   * individual missed or wrong shot, never twice for the same failure —
+   * HeartsSystem.charge guards it and loadQuestion clears the guard).
+   * With hearts left the failed question may be retried; at zero the
+   * existing level-failed state becomes terminal for the level.
+   */
+  failQuestionAttempt(reason) {
+    const consumed = this.hearts.charge();
+    if (consumed) {
+      this.hud?.onHeartLost(this.hearts.lastLostIndex());
+      this.audio.emit('heart-lost');
+      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — heart lost (${this.hearts.remaining} left)`);
+    }
+    this.levelFailed(this.hearts.empty ? 'out-of-hearts' : 'out-of-shots', reason);
+  }
+
+  /** reason: 'out-of-shots' | 'out-of-hearts' | 'time-up' (HUD variants). */
+  levelFailed(reason, detail = '') {
     this.stateMachine.set(STATES.LEVEL_FAILED);
+    this.refreshFailOverlay(reason);
     this.failOverlay.setVisible(true);
     this.audio.emit('level-failed');
-    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — LEVEL_FAILED (${reason})`);
+    DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — LEVEL_FAILED (${detail || reason})`);
     this.refreshHUD();
+  }
+
+  /** Wood-style fail card content per failure kind (Fix #17). */
+  refreshFailOverlay(reason) {
+    if (reason === 'time-up') {
+      this.failTitle.setText("TIME'S UP!");
+      this.failBody.setText('The clock ran out on this level.\nBlast faster next time!');
+      this.failRetryBtn.setVisible(false);
+    } else if (reason === 'out-of-hearts') {
+      this.failTitle.setText('OUT OF HEARTS!');
+      this.failBody.setText('All hearts are gone — the level is over.\nRestart the level for a fresh set of hearts.');
+      this.failRetryBtn.setVisible(false);
+    } else {
+      const n = this.hearts ? this.hearts.remaining : 0;
+      this.failTitle.setText('OUT OF SHOTS!');
+      this.failBody.setText(`This question failed and cost you one heart.\n${n} ${n === 1 ? 'heart' : 'hearts'} left — take a breath and try again!`);
+      this.failRetryBtn.setVisible(true);
+    }
   }
 
   retryQuestion() {
@@ -748,16 +844,60 @@ export class GameScene extends Phaser.Scene {
     this.scene.restart({ levelId: this.levelId + 1 });
   }
 
-  restartLevel() {
-    if (this.pauseOverlay.visible) {
+  /** Pause-menu "Restart Question": reload the CURRENT question cleanly. */
+  restartQuestionFromMenu() {
+    if (this.leavingLevel) return;
+    this.hud?.closePause();
+    if (this.stateMachine.isPaused()) {
       this.matter.world.resume();
-      this.pauseOverlay.setVisible(false);
+      this.stateMachine.resume();
+    }
+    this.armPending = false; // the reload schedules its own arming delay
+    // Every live state may route through LEVEL_FAILED back to
+    // QUESTION_READY; where that transition is not legal (transient
+    // NEXT_QUESTION) loadQuestion's own QUESTION_READY transition is.
+    if (this.stateMachine.can(STATES.LEVEL_FAILED)) {
+      this.stateMachine.set(STATES.LEVEL_FAILED);
+    }
+    this.failOverlay.setVisible(false);
+    this.loadQuestion(this.questionIndex);
+  }
+
+  restartLevel() {
+    if (this.leavingLevel) return;
+    this.leavingLevel = true; // one-shot: repeated clicks must not double-restart
+    this.hud?.closePause();
+    if (this.stateMachine.isPaused()) {
+      this.matter.world.resume();
     }
     this.scene.restart({ levelId: this.levelId });
   }
 
+  /** Pause-menu exit — goes to the level select screen (Fix #17). */
+  exitToLevelSelect() {
+    if (this.leavingLevel) return;
+    this.leavingLevel = true;
+    this.scene.start('LevelSelectScene');
+  }
+
   exitToMenu() {
     this.scene.start('MenuScene');
+  }
+
+  /** Sound on/off — persisted setting + audio bus switch (Fix #17). */
+  toggleSound() {
+    const next = !this.save.data.settings.sound;
+    this.save.setSetting('sound', next);
+    if (this.audio) this.audio.enabled = next;
+    this.audio?.emit('ui-click');
+    this.refreshHUD();
+  }
+
+  /** Reduced-motion toggle (was on the old pause overlay; now the menu). */
+  toggleReducedMotion() {
+    const next = !this.save.data.settings.reducedMotion;
+    this.save.setSetting('reducedMotion', next);
+    this.refreshHUD();
   }
 
   /* ------------------------------------------------------------------ */
@@ -846,8 +986,8 @@ export class GameScene extends Phaser.Scene {
 
   togglePause() {
     if (this.stateMachine.isPaused()) {
+      this.hud?.closePause();
       this.matter.world.resume();
-      this.pauseOverlay.setVisible(false);
       this.stateMachine.resume();
       if (this.stateMachine.is(STATES.AIMING)) this.slingshot.setEnabled(true);
     } else {
@@ -862,7 +1002,7 @@ export class GameScene extends Phaser.Scene {
     this.matter.world.pause();
     this.slingshot.cancelDrag();
     this.slingshot.setEnabled(false);
-    this.pauseOverlay.setVisible(true);
+    this.hud?.openPause();
     this.refreshHUD();
   }
 
@@ -876,13 +1016,28 @@ export class GameScene extends Phaser.Scene {
   /* HUD helpers                                                         */
   /* ------------------------------------------------------------------ */
 
+  /**
+   * The one funnel through which the authoritative gameplay state reaches
+   * the HUD (Fix #17): a plain snapshot is pushed; the HUD keeps no
+   * counters of its own. The projectile selector + ability hint (bottom of
+   * the screen, not part of the top HUD) refresh here too.
+   */
   refreshHUD() {
-    if (!this.hudLevel) return; // transitions can fire before the HUD exists
-    this.hudLevel.setText(`Lv ${this.levelId} ${this.level.name}`);
-    this.hudQuestion.setText(`Question ${this.questionIndex + 1}/4 — ${this.prepared?.question.cefr || ''}`);
-    this.hudShots.setText(`Shots: ${this.shotsLeft}`);
-    this.hudScore.setText(`Score: ${this.scoring.liveScore()}`);
-    this.hudState.setText(`${this.stateMachine.current}`);
+    if (!this.hud) return; // transitions can fire before the HUD exists
+    this.hud.sync({
+      levelId: this.levelId,
+      levelName: this.level.name,
+      questionIndex: this.questionIndex,
+      questionTotal: this.level.questions.length,
+      shotsLeft: this.shotsLeft,
+      projectileKey: this.selectedProjectile,
+      score: this.scoring.liveScore(),
+      heartsRemaining: this.hearts ? this.hearts.remaining : 0,
+      questionsCompleted: this.scoring.questionsCompleted,
+      starThresholds: this.level.starThresholds,
+      state: this.stateMachine.current,
+      soundOn: this.save.data.settings.sound
+    });
     for (const { key, btn } of this.projectileButtons) {
       btn.setBackgroundColor(key === this.selectedProjectile ? '#e76f51' : '#457b9d');
     }
@@ -898,12 +1053,6 @@ export class GameScene extends Phaser.Scene {
 
   hideFeedback() {
     this.feedback.setVisible(false);
-  }
-
-  refreshMotionButton() {
-    if (!this.motionBtn) return;
-    const on = !!this.save.data.settings.reducedMotion;
-    this.motionBtn.setText(on ? 'REDUCED MOTION: ON' : 'REDUCED MOTION: OFF');
   }
 
   showToast(msg, ms = 1500) {
@@ -958,6 +1107,8 @@ export class GameScene extends Phaser.Scene {
       shotsUsed: this.scoring.shotsUsed,
       correctAttempts: [...this.scoring.correctAttempts],
       wrongHits: this.scoring.wrongHits,
+      hearts: this.hearts ? this.hearts.remaining : null,
+      timeLeftMs: this.levelTimer ? this.levelTimer.remainingMs : null,
       selectedProjectile: this.selectedProjectile,
       availableProjectiles: this.level.projectiles,
       targets: this.factory.targets.map((t) => ({

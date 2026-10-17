@@ -643,6 +643,94 @@ test('landscape lock applies only to portrait phones', () => {
   assert(!requiresLandscape(desktopTall), 'narrow desktop window never triggers the overlay');
 });
 
+console.log('\n== level countdown timer (Fix #17) =========================');
+
+import { LevelTimer } from '../js/systems/LevelTimer.js';
+import { HUD as HUD_CFG } from '../js/config.js';
+
+test('timer counts down by accumulated deltas and never goes negative', () => {
+  const t = new LevelTimer(10_000);
+  eq(t.display, '00:10');
+  for (let i = 0; i < 20; i++) t.tick(600); // 12s of gameplay time
+  eq(t.remainingMs, 0, 'clamped at zero');
+  eq(t.display, '00:00', 'display never negative');
+  assert(t.expired);
+  eq(t.tick(600), false, 'no further ticks do anything');
+});
+
+test('timer that never ticks never runs down (pause/tab-hidden safety)', () => {
+  const t = new LevelTimer(5000);
+  // paused frames feed no deltas — wall-clock time passing must not matter
+  eq(t.remainingMs, 5000);
+  assert(!t.expired);
+});
+
+test('timer restarts at the full limit and never runs fast after a reset', () => {
+  const t = new LevelTimer(300_000);
+  t.tick(299_000);
+  t.reset();
+  eq(t.remainingMs, 300_000, 'reset restores the full limit');
+  t.tick(1000); t.tick(1000);
+  eq(t.remainingMs, 298_000);
+});
+
+test('MM:SS formatting rounds up sub-second remainders', () => {
+  eq(new LevelTimer(5 * 60_000).display, '05:00');
+  eq(new LevelTimer(59_999).display, '01:00');
+  eq(new LevelTimer(4 * 60_000 + 31_500).display, '04:32');
+  eq(new LevelTimer(0).display, '00:00');
+});
+
+test('config default: five minutes for the four-question level', () => {
+  eq(HUD_CFG.TIME_LIMIT_MS, 300_000, 'tunable via HUD.TIME_LIMIT_MS');
+  eq(HUD_CFG.LOW_TIME_MS, 30_000);
+  eq(HUD_CFG.HEARTS_PER_LEVEL, 3);
+});
+
+console.log('\n== hearts / level-life rules (Fix #17) ======================');
+
+import { HeartsSystem } from '../js/systems/HeartsSystem.js';
+
+test('a level starts with full hearts and loses one per charged failure', () => {
+  const h = new HeartsSystem(3);
+  eq(h.remaining, 3);
+  assert(h.charge());
+  eq(h.remaining, 2);
+  eq(h.lastLostIndex(), 2, 'the rightmost heart is the one lost');
+});
+
+test('the same failed attempt is never charged twice', () => {
+  const h = new HeartsSystem(3);
+  assert(h.charge());
+  assert(!h.charge(), 'double-charge for one failure must be rejected');
+  eq(h.remaining, 2);
+});
+
+test('a fresh question may be charged again after the guard clears', () => {
+  const h = new HeartsSystem(3);
+  h.charge();
+  h.clearCharge(); // loadQuestion does this
+  assert(h.charge());
+  eq(h.remaining, 1);
+});
+
+test('at zero hearts the level-life is exhausted and nothing more is charged', () => {
+  const h = new HeartsSystem(3);
+  h.charge(); h.clearCharge(); h.charge(); h.clearCharge(); h.charge();
+  assert(h.empty);
+  eq(h.remaining, 0);
+  h.clearCharge();
+  assert(!h.charge(), 'no negative hearts');
+});
+
+test('hearts reset to full for a new level / explicit restart', () => {
+  const h = new HeartsSystem(3);
+  h.charge(); h.charge();
+  h.reset();
+  eq(h.remaining, 3);
+  assert(!h.empty);
+});
+
 console.log('\n== summary ==================================================');
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) {

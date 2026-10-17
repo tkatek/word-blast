@@ -143,6 +143,26 @@ export function installDebugAPI(game) {
     },
 
     /**
+     * Test/screenshot aid (Fix #17): pin the countdown without touching the
+     * state machine — the next active-state frame ticks normally from there.
+     */
+    setTimeRemaining(ms) {
+      const s = api.scene();
+      if (!s || !s.levelTimer) return null;
+      s.levelTimer.setRemaining(ms);
+      return s.levelTimer.remainingMs;
+    },
+
+    /** Test/screenshot aid (Fix #17): force the displayed/ruled heart count. */
+    setHearts(n) {
+      const s = api.scene();
+      if (!s || !s.hearts) return null;
+      s.hearts.remaining = Math.max(0, Math.min(s.hearts.max, n | 0));
+      s.refreshHUD();
+      return s.hearts.remaining;
+    },
+
+    /**
      * Manually advance the game loop N frames. Used by automated tests when
      * the host tab is occluded and requestAnimationFrame stops firing.
      */

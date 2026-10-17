@@ -26,6 +26,17 @@ import { BirdSprite } from './BirdSprite.js';
 
 const MatterLib = Phaser.Physics.Matter.Matter;
 
+/**
+ * Projectile visual lifecycle pacing (Fix #6B): after a shot resolves, its
+ * birds rest briefly (upright ease), then fade out with a small puff.
+ * Their PHYSICS BODIES stay alive until the next launch sweeps them, so
+ * the documented late-answer window (a resolved shot's projectile touching
+ * a plaque before the next launch — the historical freeze fix) keeps
+ * working exactly as before.
+ */
+const DESPAWN_REST_MS = 250;   // upright rest before the fade starts
+const DESPAWN_FADE_MS = 300;   // fade-out length
+
 export class ObjectFactory {
   constructor(scene) {
     this.scene = scene;
@@ -281,6 +292,8 @@ export class ObjectFactory {
       abilityUsed: false,
       firstImpactDone: false,
       consumed: false,
+      visualDespawned: false, // shot outcome decided — landing animation queued
+      visualGone: false,      // visuals already removed (idempotency guard)
       skin: null
     };
     if (visual.bird) {
@@ -298,6 +311,55 @@ export class ObjectFactory {
   /** All projectiles belonging to a shot id. */
   projectilesOfShot(shotId) {
     return this.projectiles.filter((p) => !p.wb.consumed && p.wb.shotId === shotId);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Projectile lifecycle (Fix #6B)                                       */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Shot outcome decided (miss resolved / wrong answer): every bird of the
+   * shot plays a short time-limited landing animation (brief upright rest
+   * → fade + puff) and then disappears. Bodies stay (see DESPAWN_REST_MS
+   * note) until the next launch sweeps them. Idempotent.
+   * @param {number} shotId
+   */
+  despawnShotVisuals(shotId) {
+    for (const p of this.projectiles) {
+      if (p.wb.consumed || p.wb.shotId !== shotId || p.wb.visualDespawned) continue;
+      p.wb.visualDespawned = true;
+      this.scene.time.delayedCall(DESPAWN_REST_MS, () => {
+        if (p.active) this.despawnVisual(p);
+      });
+    }
+  }
+
+  /**
+   * Hide ONE projectile's visuals for good (idempotent): bird skins fade
+   * out and are destroyed; fallback circles are simply hidden. The Matter
+   * body is untouched.
+   */
+  despawnVisual(go) {
+    if (!go || !go.wb || go.wb.visualGone || !go.active) return;
+    go.wb.visualGone = true;
+    const skin = go.wb.skin;
+    if (skin && !skin.dead) {
+      const img = skin.skin;
+      this.scene.fx?.respawnPuff(go.x, go.y);
+      skin.beginFade(DESPAWN_FADE_MS);
+    } else {
+      go.setVisible(false);
+    }
+  }
+
+  /**
+   * Hard-destroy every projectile still around (bodies + visuals) —
+   * called at each launch (the previous shot's late-answer window is
+   * closed by the shotId guard the moment a new shot exists, so this
+   * only removes litter) and on question teardown. Idempotent.
+   */
+  sweepProjectiles() {
+    for (const p of [...this.projectiles]) this.remove(p);
   }
 
   /**

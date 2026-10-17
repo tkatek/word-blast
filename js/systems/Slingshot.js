@@ -41,6 +41,8 @@ export class Slingshot {
     this.loadedType = 'basic';
     this.preview = null;
     this.previewIsBird = false;    // preview uses bird artwork (tilt-able)
+    this.previewDisplay = 0;       // loaded bird display size (pouch fitting)
+    this.grabOffset = null;        // pointer→pouch offset while dragging
     this.snap = null;              // { from:{x,y}, t0, ms } — snap-back animation
 
     this.renderer = new SlingshotRenderer(scene);
@@ -111,6 +113,7 @@ export class Slingshot {
       .setDepth(RENDER_DEPTH.PROJECTILE);
     this.preview.setDisplaySize(visual.display, visual.display);
     this.previewIsBird = !!visual.bird;
+    this.previewDisplay = visual.display;
     if (this.previewIsBird) {
       // plain image — cosmetic tweens are safe (it carries no physics)
       const s = this.preview.scaleX;
@@ -135,13 +138,22 @@ export class Slingshot {
     const p = this.pouchPoint();
     if (Math.hypot(pointer.worldX - p.x, pointer.worldY - p.y) <= GRAB_RADIUS) {
       this.dragging = true;
+      // Fix #6B: remember WHERE around the bird the player grabbed. The
+      // pouch then follows pointer + offset, so the bird never teleports
+      // to the pointer on the first move (fingers always press off-center
+      // on touch — that jump read as the slingshot "disconnecting").
+      const dx = p.x - pointer.worldX;
+      const dy = p.y - pointer.worldY;
+      const len = Math.hypot(dx, dy) || 1;
+      const cap = Math.min(len, GRAB_RADIUS * 0.75);
+      this.grabOffset = { x: (dx / len) * cap, y: (dy / len) * cap };
     }
   }
 
   onPointerMove(pointer) {
     if (!this.dragging) return;
-    let x = pointer.worldX;
-    let y = pointer.worldY;
+    let x = pointer.worldX + (this.grabOffset ? this.grabOffset.x : 0);
+    let y = pointer.worldY + (this.grabOffset ? this.grabOffset.y : 0);
     // the pouch stays inside the visible world and above the grass line
     // (pointer coords clamp at the canvas edge; full power is still
     // available on any back/diagonal pull)
@@ -169,6 +181,7 @@ export class Slingshot {
   onPointerUp() {
     if (!this.dragging) return;
     this.dragging = false;
+    this.grabOffset = null;
     const p = this.pouchPoint();
     const dx = this.anchor.x - p.x;
     const dy = this.anchor.y - p.y;
@@ -191,6 +204,7 @@ export class Slingshot {
   cancelDrag() {
     if (!this.dragging) return;
     this.dragging = false;
+    this.grabOffset = null;
     this.startSnap(this.pouchPoint(), CANCEL_SNAP_MS);
     this.redraw();
   }
@@ -248,7 +262,12 @@ export class Slingshot {
 
   onUpdate() {
     if (this.snap) {
-      if (this.snapT() >= 1) this.snap = null;
+      // the last animation frame ends exactly AT rest — pin the preview
+      // there so no sub-pixel residue from the overshoot survives (Fix #6B)
+      if (this.snapT() >= 1) {
+        this.snap = null;
+        if (this.preview) this.preview.setPosition(this.anchor.x, this.anchor.y);
+      }
       // a cancelled drag keeps its bird: the preview rides the spring back
       if (this.preview) {
         const p = this.pouchPoint();
@@ -271,6 +290,9 @@ export class Slingshot {
     this.renderer.render({
       pouch: this.pouchPoint(),
       bird: this.preview,
+      // pouch/band geometry follows the loaded bird's size so the cup
+      // cradles the artwork instead of the old 32px ball (Fix #6B)
+      birdR: this.preview ? this.previewDisplay / 2 : 0,
       dots: this.dragging ? this.trajectoryDots() : null
     });
   }

@@ -237,6 +237,8 @@ export class SlingshotRenderer {
    * @param {object} s render state:
    *   pouch   {x,y}  visual pouch center (dragged / snapping / rest)
    *   bird    Phaser.Image|null  the loaded preview (null after launch)
+   *   birdR   number  loaded bird display radius in px (0 = empty pouch /
+   *                   legacy circle) — cup and band anchors scale with it
    *   dots    [{x,y}]|null       trajectory preview points (aiming only)
    */
   render(s) {
@@ -245,6 +247,13 @@ export class SlingshotRenderer {
     const pullLen = len(pull);
     const stretch = Math.min(pullLen / SLINGSHOT.MAX_DRAG, 1);
     const u = pullLen > 2 ? mul(pull, 1 / pullLen) : v(0.06, 0.99); // slack cup faces up
+
+    // Pouch cup + band anchors sized for the CURRENT occupant (Fix #6B):
+    // the legacy constants fit a 32px ball; a 54-68px bird needs a wider,
+    // deeper cup or it reads as sitting ON the pouch with bands that end
+    // beside the artwork instead of grabbing its rim.
+    const birdR = Math.max(0, s.birdR || 0);
+    this.pouchR = Math.max(11, birdR * 0.72);
 
     this.drawPouch(this.pouchG, pouch, u, stretch, !!s.bird);
     this.drawBand(this.bandBack, this.rearTip, this.attachOnPouch(pouch, this.rearTip), stretch, RUBBER.rear, true);
@@ -255,7 +264,7 @@ export class SlingshotRenderer {
 
   /** Where a band meets the pouch: on its rim, toward the given tip. */
   attachOnPouch(pouch, tip) {
-    return add(pouch, mul(norm(sub(tip, pouch)), 11));
+    return add(pouch, mul(norm(sub(tip, pouch)), this.pouchR || 11));
   }
 
   /**
@@ -309,8 +318,11 @@ export class SlingshotRenderer {
   drawPouch(g, p, u, stretch, hasBird) {
     g.clear();
     const w = perp(u); // pouch long axis
-    const L = (hasBird ? 16 : 12.5) * (1 + 0.16 * stretch); // half length
-    const D = (hasBird ? 9.5 : 7) * (1 + 0.22 * stretch);   // cup depth
+    // cup geometry scales with the occupant (this.pouchR, set in render());
+    // legacy 32px balls keep the original read via the Math.max floor
+    const R = this.pouchR || 11;
+    const L = (hasBird ? R * 1.28 : 12.5) * (1 + 0.16 * stretch); // half length
+    const D = (hasBird ? R * 0.76 : 7) * (1 + 0.22 * stretch);    // cup depth
     const A = sub(p, mul(w, L));
     const B = add(p, mul(w, L));
     const outerCp = add(p, mul(u, D * 2.55));

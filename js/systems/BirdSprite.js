@@ -22,6 +22,10 @@ import { BIRDS } from '../data/birds.js';
 
 const FACE_SPEED_MIN = 3.0;      // px/step: above this the bird faces its velocity
 const TURN_RATE = 0.25;          // per-frame angular lerp toward the target angle
+const REST_SPEED = 0.6;          // px/step below which a bird counts as at rest
+const UPRIGHT_RATE = 0.12;       // per-frame ease toward the upright pose at rest
+const DAMP_TURN_RATE = 0.35;     // post-impact follow: fraction of remaining angle
+const DAMP_MAX_STEP = 0.045;     // post-impact follow: rad/frame cap (≈2.7 rad/s)
 const FLAP_AMPLITUDE = 0.03;     // ±3% cross-axis breathing during flight
 const FLAP_CYCLES_PER_S = 5.0;
 const SQUASH_MS = 220;           // impact squash envelope length
@@ -31,6 +35,8 @@ const BOOST_STRETCH = 0.22;      // momentary stretch on boost activation
 const BOOST_MS = 260;
 const TRAIL_MS = 520;            // boost spark-trail duration
 const ICE_TINT = 0x9fd8ff;
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /** Shortest signed delta between two angles, in (−π, π]. */
 function angleDelta(from, to) {
@@ -69,6 +75,29 @@ export class BirdSprite {
     this.boostAt = -1;
     this.trail = null;
     this.iceTinted = false;
+    this.fading = false;
+  }
+
+  /**
+   * Time-limited landing animation (Fix #6B): freeze the pose, fade the
+   * artwork out and destroy the skin. The physics host is untouched.
+   * Safe to call repeatedly — only the first call runs.
+   * @param {number} ms fade duration
+   */
+  beginFade(ms = 300) {
+    if (this.dead || this.fading) return;
+    this.fading = true;
+    if (this.trail) {
+      this.trail.stop();
+      this.trail = null;
+    }
+    this.scene.tweens.add({
+      targets: this.skin,
+      alpha: 0,
+      duration: ms,
+      ease: 'Sine.out',
+      onComplete: () => this.destroy()
+    });
   }
 
   /** True while the underlying projectile is alive and moving fast. */
@@ -93,18 +122,30 @@ export class BirdSprite {
     const skin = this.skin;
     skin.setPosition(host.x, host.y);
 
-    // ---- rotation: face the flight path while fast; physical tumble otherwise
+    // ---- rotation policy (Fix #6B — no flips, no face-down rest poses):
+    //   clean flight  → face the velocity vector (classic slingshot read)
+    //   after impact  → follow the physical body angle, but rate-DAMPED so
+    //                   a fast-tumbling body never whips the artwork around
+    //   at rest       → ease upright so a landed bird never lies on its head
     const wb = host.wb;
     const v = host.body.velocity;
     const speed = Math.hypot(v.x, v.y);
-    const target = speed > FACE_SPEED_MIN ? Math.atan2(v.y, v.x) : host.angle;
-    this.angle += angleDelta(this.angle, target) * TURN_RATE;
+    if (!wb.firstImpactDone && speed > FACE_SPEED_MIN) {
+      this.angle += angleDelta(this.angle, Math.atan2(v.y, v.x)) * TURN_RATE;
+    } else if (this.fading) {
+      // keep the last pose while fading out
+    } else if (speed < REST_SPEED || host.body.isSleeping) {
+      this.angle += angleDelta(this.angle, 0) * UPRIGHT_RATE;
+    } else {
+      const d = angleDelta(this.angle, host.angle) * DAMP_TURN_RATE;
+      this.angle += clamp(d, -DAMP_MAX_STEP, DAMP_MAX_STEP);
+    }
     skin.setRotation(this.angle);
 
     // ---- cosmetic scale: breathing in flight, impact squash, boost stretch
     let sx = 1;
     let sy = 1;
-    if (!wb.firstImpactDone && speed > 4) {
+    if (!this.fading && !wb.firstImpactDone && speed > 4) {
       const flap = 1 + Math.sin(now * 0.001 * FLAP_CYCLES_PER_S * Math.PI * 2) * FLAP_AMPLITUDE;
       sy = flap;
       sx = 2 - flap;
@@ -184,6 +225,7 @@ export class BirdSprite {
   destroy() {
     if (this.dead) return;
     this.dead = true;
+    this.scene.tweens.killTweensOf(this.skin);
     if (this.trail) {
       this.trail.stop();
       this.trail = null;

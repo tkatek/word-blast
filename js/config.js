@@ -326,6 +326,22 @@ export const STATE_TRANSITIONS = {
   // PAUSED handled separately by the machine (pausedFrom stack)
 };
 
+/**
+ * Top game HUD (Fix #17). Gameplay-facing values only — every color and
+ * geometry constant used by the wooden cartoon HUD lives in GameHUD.js
+ * next to its rendering code. Keep this block small and tunable:
+ * playtesting adjusts TIME_LIMIT_MS / LOW_TIME_MS / HEARTS_PER_LEVEL only.
+ */
+export const HUD = {
+  /** Countdown per level (ms). Proposed default: 5 minutes for 4 questions. */
+  TIME_LIMIT_MS: 5 * 60 * 1000,
+  /** Below this the timer pill turns red and pulses. */
+  LOW_TIME_MS: 30 * 1000,
+  /** Lives per level; one is consumed per question attempt failed by
+   *  exhausting its shots (never per individual missed shot). */
+  HEARTS_PER_LEVEL: 3
+};
+
 export const COLORS = {
   SKY: 0x8ecae6,
   WOOD: 0xb08968,
