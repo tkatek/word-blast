@@ -53,10 +53,16 @@ export class BackgroundManager {
     return KEY;
   }
 
+  /** Most mirrored rings ever generated per axis (insane aspect ratios). */
+  static get MAX_RINGS() { return 3; }
+
   constructor(scene) {
     this.scene = scene;
     this.image = null;
     this.type = 'gameplay'; // stable identifier for debug tooling
+    this.mirrors = [];      // decorative out-fill beyond the art (Fix #2)
+    this.fit = null;        // last computed fit (reused by extendTo)
+    this.lastView = null;
   }
 
   /** Show the official background (idempotent; loads on demand if needed). */
@@ -72,6 +78,7 @@ export class BackgroundManager {
       .setOrigin(0.5, 0.5)
       .setDepth(-100); // behind bodies (0+), HUD (50+)
     this.layout();
+    if (this.lastView) this.extendTo(this.lastView); // late texture arrival
     return true;
   }
 
@@ -79,12 +86,68 @@ export class BackgroundManager {
   layout() {
     if (!this.image) return;
     const src = this.image.texture.getSourceImage();
-    const fit = computeBackgroundFit(src.width, src.height);
-    this.image.setScale(fit.scale);
-    this.image.setPosition(fit.x, fit.y);
+    this.fit = computeBackgroundFit(src.width, src.height);
+    this.image.setScale(this.fit.scale);
+    this.image.setPosition(this.fit.x, this.fit.y);
+    for (const m of this.mirrors) m.setScale(this.fit.scale);
+    if (this.lastView) this.extendTo(this.lastView);
+  }
+
+  /**
+   * Fix #2 — decorative out-fill. When the responsive camera shows MORE than
+   * the 1280×720 world (ultrawide desktops, 4:3 tablets, phone landscape),
+   * the area beyond the art is filled with MIRRORED copies of the art itself:
+   * seams are pixel-continuous, the aspect ratio is preserved (no stretching)
+   * and no new assets are needed. Purely decorative — no physics, no input,
+   * and the aligned main image (depth -100) on top guarantees the painted
+   * grass line stays exactly on the ground collider. Mirrors sit behind it
+   * at depth -101 and are pooled: resizes only reposition/reflip them.
+   *
+   * @param {{x:number, y:number, width:number, height:number}} view visible
+   *        world rectangle (Viewport.computeFitView)
+   */
+  extendTo(view) {
+    if (!this.image || !this.fit || !view) return;
+    this.lastView = view;
+    const { scale, x, y } = this.fit;
+    const src = this.image.texture.getSourceImage();
+    const dw = src.width * scale;
+    const dh = src.height * scale;
+    const artLeft = x - dw / 2;
+    const artTop = y - dh / 2;
+
+    const ringsBeyond = (marginBefore, marginAfter) =>
+      Math.max(Math.ceil(marginBefore), Math.ceil(marginAfter), 0);
+    const ringsX = ringsBeyond((artLeft - view.x) / dw, (view.x + view.width - (artLeft + dw)) / dw);
+    const ringsY = ringsBeyond((artTop - view.y) / dh, (view.y + view.height - (artTop + dh)) / dh);
+    const rings = Math.min(BackgroundManager.MAX_RINGS, Math.max(ringsX, ringsY));
+
+    let i = 0;
+    for (let ix = -rings; ix <= rings; ix++) {
+      for (let iy = -rings; iy <= rings; iy++) {
+        if (ix === 0 && iy === 0) continue; // the real, aligned art
+        let m = this.mirrors[i];
+        if (!m) {
+          m = this.scene.add.image(0, 0, KEY)
+            .setOrigin(0.5, 0.5)
+            .setDepth(-101) // behind the aligned art, in front of the sky
+            .setScale(scale);
+          this.mirrors[i] = m;
+        }
+        // Alternating flips per ring keep every seam a perfect mirror joint.
+        m.setVisible(true)
+          .setPosition(x + ix * dw, y + iy * dh)
+          .setFlipX(Math.abs(ix) % 2 === 1)
+          .setFlipY(Math.abs(iy) % 2 === 1);
+        i++;
+      }
+    }
+    for (; i < this.mirrors.length; i++) this.mirrors[i].setVisible(false);
   }
 
   destroy() {
+    for (const m of this.mirrors) m.destroy();
+    this.mirrors.length = 0;
     if (this.image) this.image.destroy();
     this.image = null;
   }
