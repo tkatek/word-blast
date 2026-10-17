@@ -70,13 +70,16 @@ const layerCounts = (h) => {
  * Simulate a REAL pointer drag + release through the slingshot controller
  * (the same handlers Phaser's input system calls), aiming at an exact
  * launch velocity. Inverse of the launch math: the pouch sits opposite the
- * launch direction at dragLen = speed * MAX_DRAG / MAX_SPEED pixels. The
- * press lands exactly on the CURRENT pouch point, so the grab offset is
- * zero and the release velocity is exactly (vx, vy).
+ * launch direction at dragLen = speed * MAX_DRAG / MAX_SPEED pixels. Waits
+ * for any snap-back animation to finish first (a live game tick during the
+ * drag would move the preview — in real play the next drag starts seconds
+ * after the snap settled) and presses exactly on the CURRENT pouch point,
+ * so the grab offset is zero and the release velocity is exactly (vx, vy).
  */
-function dragAndRelease(h, vx, vy, { hold = false } = {}) {
+async function dragAndRelease(h, vx, vy, { hold = false } = {}) {
   const s = h.scene();
   const sling = s.slingshot;
+  await h.waitFor(() => !sling.snap && sling.enabled, 5000);
   const MAX_DRAG = 140, MAX_SPEED = 24; // SLINGSHOT constants (config.js)
   const speed = Math.hypot(vx, vy);
   const dragLen = Math.min(1, speed / MAX_SPEED) * MAX_DRAG;
@@ -84,7 +87,7 @@ function dragAndRelease(h, vx, vy, { hold = false } = {}) {
     x: sling.anchor.x - (vx / speed) * dragLen,
     y: sling.anchor.y - (vy / speed) * dragLen
   };
-  const cur = sling.pouchPoint(); // may be mid snap-back — press ON it
+  const cur = sling.pouchPoint();
   const pt = (x, y) => ({ worldX: x, worldY: y });
   sling.onPointerDown(pt(cur.x, cur.y));
   sling.onPointerMove(pt(p.x, p.y));
@@ -126,7 +129,7 @@ await test('setup: level 1 boots to AIMING', async () => {
 });
 
 await test('aiming shows bright dots and no reference exists yet', async () => {
-  dragAndRelease(h, 6, -10, { hold: true });
+  await dragAndRelease(h, 6, -10, { hold: true });
   const dots = sl(h).trajectoryDots();
   assert(dots && dots.length > 0, 'no aiming dots while dragging');
   assert(aimDrawn(h), 'bright layer drew no dots while dragging');
@@ -137,7 +140,7 @@ await test('aiming shows bright dots and no reference exists yet', async () => {
 });
 
 await test('release keeps the shot dots as the faded reference', async () => {
-  const { pouch } = dragAndRelease(h, 0.5, -14); // soft vertical lob — open grass miss
+  const { pouch } = await dragAndRelease(h, 0.5, -14); // soft vertical lob — open grass miss
   assert(await h.waitForState('PROJECTILE_FLYING', 5000), `shot never launched (${h.state()})`);
   assert(await h.waitForState('AIMING', 25000), `shot never resolved (${h.state()})`);
   const ref = sl(h).lastShotDots;
@@ -154,7 +157,7 @@ await test('reference survives the next bird load untouched', async () => {
   const before = refSnapshot(h);
   assert(before.length > 0, 'reference vanished');
   // re-arm already happened (AIMING): the new preview loaded; drag a little
-  dragAndRelease(h, 6, -10, { hold: true });
+  await dragAndRelease(h, 6, -10, { hold: true });
   assert(aimDrawn(h) > 0, 'new drag shows no bright dots');
   assert(refDrawn(h) === before.length, 'dragging the new bird disturbed the reference');
   assert(sameCoords(refSnapshot(h), before), 'reference moved during the new aim');
@@ -166,7 +169,7 @@ let firstRef = [];
 
 await test('a newer completed shot REPLACES the older reference', async () => {
   firstRef = refSnapshot(h);
-  const { pouch } = dragAndRelease(h, 3, -12); // different angle/power — still open grass
+  const { pouch } = await dragAndRelease(h, 3, -12); // different angle/power — still open grass
   assert(await h.waitForState('AIMING', 25000), `shot never resolved (${h.state()})`);
   const ref = sl(h).lastShotDots;
   assert(ref && ref.length > 0, 'no reference after second shot');
@@ -179,18 +182,31 @@ await test('a newer completed shot REPLACES the older reference', async () => {
   assert(lc.last === 1 && lc.aim === 1, `duplicate graphics objects: ${JSON.stringify(lc)}`);
 });
 
-await test('question transition within the level keeps the reference', async () => {
-  const before = refSnapshot(h);
-  // the real advanceAfterFeedback sequence: NEXT_QUESTION, then the exact
-  // loadQuestion call queueNextQuestion makes after the card exit
-  const s = h.scene();
-  s.stateMachine.set('NEXT_QUESTION');
-  s.loadQuestion(s.questionIndex + 1);
-  assert(await h.waitForState('AIMING', 15000), `stuck in ${h.state()}`);
-  assert(sameCoords(refSnapshot(h), before), 'reference lost/duplicated across questions');
-  assert(refDrawn(h) === before.length, 'reference layer changed across questions');
+await test('question transition within the level keeps the reference (real flow)', async () => {
+  const startQ = h.info().questionIndex;
+  // Answer the current question correctly with a real aimed shot, then let
+  // the REAL pipeline run: feedback settle → NEXT_QUESTION → card exit →
+  // loadQuestion. (The answering shot legally replaces the reference.)
+  const t0 = Date.now();
+  for (;;) {
+    if (h.info().questionIndex === startQ + 1 && h.state() === 'AIMING') break;
+    if (Date.now() - t0 > 90000) throw new Error(`question never advanced (${h.state()})`);
+    const st = h.state();
+    if (st === 'LEVEL_FAILED') {
+      h.scene().retryQuestion();
+      await h.waitForState('AIMING', 12000);
+    } else if (st === 'AIMING') {
+      await h.waitFor(() => h.scene().factory.blocksQuiet(), 5000);
+      h.api.autoAim();
+      await h.waitFor(() => h.state() !== 'AIMING' && h.state() !== 'PROJECTILE_FLYING', 25000);
+    } else {
+      await h.waitFor(() => h.state() !== st, 15000);
+    }
+  }
+  assert(sl(h).lastShotDots && sl(h).lastShotDots.length > 0, 'reference lost across the question change');
   const lc = layerCounts(h);
   assert(lc.last === 1 && lc.aim === 1, `duplicate graphics objects: ${JSON.stringify(lc)}`);
+  assert(refDrawn(h) === sl(h).lastShotDots.length, 'reference layer changed across questions');
 });
 
 await test('pause/resume keeps the reference', async () => {
@@ -214,25 +230,27 @@ await test('level transition destroys the reference and starts fresh', async () 
   const lc = layerCounts(h);
   assert(lc.last === 1 && lc.aim === 1, `stale graphics survived the restart: ${JSON.stringify(lc)}`);
   // fresh level: aiming shows only the new bright arc, no faded reference
-  dragAndRelease(h, 6, -10, { hold: true });
+  await dragAndRelease(h, 6, -10, { hold: true });
   assert(aimDrawn(h) > 0 && refDrawn(h) === 0, 'aiming in level 2 shows an old reference');
   sl(h).cancelDrag();
 });
 
 await test('restarting the level clears the reference', async () => {
-  const { pouch } = dragAndRelease(h, 2, -11);
+  await dragAndRelease(h, 2, -11);
   assert(await h.waitForState('AIMING', 25000), `shot never resolved (${h.state()})`);
   assert(sl(h).lastShotDots && sl(h).lastShotDots.length > 0, 'no reference after the shot');
   assert(refDrawn(h) > 0, 'reference layer empty after the shot');
   h.scene().restartLevel();
-  assert(await h.waitFor(() => h.scene().stateMachine && h.state() === 'AIMING', 20000),
-    `restart never re-armed (${h.state()})`);
+  // a restart always passes through the fresh QUESTION_READY (card intro)
+  // before arming — waiting for AIMING alone would match the pre-restart state
+  assert(await h.waitForState('QUESTION_READY', 8000), `restart never reloaded (${h.state()})`);
+  assert(await h.waitForState('AIMING', 15000), `restart never re-armed (${h.state()})`);
   assert(sl(h).lastShotDots === null, 'restart kept stored reference data');
   assert(refDrawn(h) === 0, 'restart kept reference dots on screen');
 });
 
 await test('exiting to the menu clears the reference (scene shutdown)', async () => {
-  const { pouch } = dragAndRelease(h, 2, -11);
+  await dragAndRelease(h, 2, -11);
   assert(await h.waitForState('AIMING', 25000), `shot never resolved (${h.state()})`);
   assert(refDrawn(h) > 0, 'no reference before exit');
   h.scene().exitToMenu();
