@@ -17,12 +17,15 @@
 import { SLINGSHOT, WORLD, PROJECTILE_TYPES, slingshotAnchor } from '../config.js';
 import { predictPath } from './Trajectory.js';
 import { SlingshotRenderer, RENDER_DEPTH } from './SlingshotRenderer.js';
+import { projectileVisual } from '../data/birds.js';
 
 const SNAP_MS = 160;            // release → pouch/bands back at rest (spec: 120–200ms)
 const CANCEL_SNAP_MS = 140;     // gentler return for a cancelled / dud drag
 const MAX_OVERSHOOT = 16;       // px the pouch may swing past rest (elastic rebound)
 const GRAB_RADIUS = 72;         // pointer activation radius around the pouch
 const POUCH_MARGIN = { x: 16, y: 64 }; // pouch never leaves the visible world
+const TILT_GAIN = 0.45;         // fraction of the launch angle applied as bird tilt
+const TILT_MAX = 0.42;          // rad — restrained, face stays readable
 
 export class Slingshot {
   /**
@@ -37,6 +40,7 @@ export class Slingshot {
     this.enabled = false;
     this.loadedType = 'basic';
     this.preview = null;
+    this.previewIsBird = false;    // preview uses bird artwork (tilt-able)
     this.snap = null;              // { from:{x,y}, t0, ms } — snap-back animation
 
     this.renderer = new SlingshotRenderer(scene);
@@ -97,12 +101,28 @@ export class Slingshot {
   /** Load (or swap) the preview bird sitting in the pouch. */
   load(typeKey) {
     this.loadedType = typeKey;
-    if (this.preview) this.preview.destroy();
+    if (this.preview) {
+      this.scene.tweens.killTweensOf(this.preview);
+      this.preview.destroy();
+    }
     this.snap = null; // a fresh load ends any lingering snap animation
-    this.preview = this.scene.add.image(this.anchor.x, this.anchor.y, `proj-${typeKey}`)
+    const visual = projectileVisual(typeKey, this.scene.textures, PROJECTILE_TYPES[typeKey].radius, false);
+    this.preview = this.scene.add.image(this.anchor.x, this.anchor.y, visual.texture)
       .setDepth(RENDER_DEPTH.PROJECTILE);
-    const d = PROJECTILE_TYPES[typeKey].radius * 2;
-    this.preview.setDisplaySize(d, d);
+    this.preview.setDisplaySize(visual.display, visual.display);
+    this.previewIsBird = !!visual.bird;
+    if (this.previewIsBird) {
+      // plain image — cosmetic tweens are safe (it carries no physics)
+      const s = this.preview.scaleX;
+      this.preview.setScale(s * 0.72);
+      this.scene.tweens.add({
+        targets: this.preview, scaleX: s, scaleY: s, duration: 150, ease: 'Back.out'
+      });
+      this.scene.tweens.add({
+        targets: this.preview, scaleX: s * 1.02, scaleY: s * 1.02,
+        duration: 850, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: 160
+      });
+    }
     this.redraw();
   }
 
@@ -134,7 +154,15 @@ export class Slingshot {
     const clamped = Math.min(l, SLINGSHOT.MAX_DRAG);
     const nx = l === 0 ? 0 : dx / l;
     const ny = l === 0 ? 0 : dy / l;
-    if (this.preview) this.preview.setPosition(this.anchor.x + nx * clamped, this.anchor.y + ny * clamped);
+    if (this.preview) {
+      this.preview.setPosition(this.anchor.x + nx * clamped, this.anchor.y + ny * clamped);
+      // bird tilts gently toward where it will fly (cosmetic, clamped)
+      if (this.previewIsBird) {
+        const launchAngle = Math.atan2(this.anchor.y - this.preview.y, this.anchor.x - this.preview.x);
+        const tilt = Math.max(-TILT_MAX, Math.min(TILT_MAX * 0.5, launchAngle * TILT_GAIN));
+        this.preview.setRotation(tilt);
+      }
+    }
     this.redraw();
   }
 
@@ -169,6 +197,7 @@ export class Slingshot {
 
   firePreview() {
     if (this.preview) {
+      this.scene.tweens.killTweensOf(this.preview);
       this.preview.destroy();
       this.preview = null;
     }
@@ -218,14 +247,20 @@ export class Slingshot {
   }
 
   onUpdate() {
-    if (!this.snap) return;
-    if (this.snapT() >= 1) this.snap = null;
-    // a cancelled drag keeps its bird: the preview rides the spring back
-    if (this.preview) {
-      const p = this.pouchPoint();
-      this.preview.setPosition(p.x, p.y);
+    if (this.snap) {
+      if (this.snapT() >= 1) this.snap = null;
+      // a cancelled drag keeps its bird: the preview rides the spring back
+      if (this.preview) {
+        const p = this.pouchPoint();
+        this.preview.setPosition(p.x, p.y);
+      }
+      this.redraw();
     }
-    this.redraw();
+    // preview bird eases back to its resting orientation after a drag
+    if (this.preview && !this.dragging && this.preview.rotation !== 0) {
+      const r = this.preview.rotation * 0.82;
+      this.preview.setRotation(Math.abs(r) < 0.008 ? 0 : r);
+    }
   }
 
   /* ------------------------------------------------------------------ */

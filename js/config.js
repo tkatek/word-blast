@@ -25,7 +25,7 @@ export const WORLD = {
   // the test suite and headless helpers; gameplay code reads the live
   // anchor off the Slingshot).
   SLING_X: 195,
-  SLING_Y: 413,
+  SLING_Y: 346,
   KILL_MARGIN: 260        // bodies this far outside the world get removed
 };
 
@@ -120,10 +120,10 @@ export const SLINGSHOT = {
    *   ANCHOR.y + BASE_OFFSET_Y === WORLD.GROUND_Y + ART.GRASS_EMBED
    * (asserted by the tests). One ground, one anchor — every device.
    */
-  ANCHOR: { x: 195, y: 413 },
+  ANCHOR: { x: 195, y: 346 },
   // pouch rest → handle bottom of the artwork at the live scale; includes
   // the grass embed so the base reads as planted, not floating.
-  BASE_OFFSET_Y: 66,
+  BASE_OFFSET_Y: 133,
   /**
    * Anchors on the supplied wooden slingshot artwork
    * (public/assets/images/slingshot/slingshot-wood.png, 1254×1254 RGBA),

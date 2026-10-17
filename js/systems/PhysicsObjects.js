@@ -253,19 +253,21 @@ export class ObjectFactory {
     const type = child
       ? { ...base, radius: SPLIT_CHILD.radius, density: SPLIT_CHILD.density, restitution: SPLIT_CHILD.restitution, frictionAir: SPLIT_CHILD.frictionAir, ability: null }
       : base;
-    const texture = child ? 'proj-split-child' : `proj-${typeKey}`;
-    const d = type.radius * 2;
-    // circle body created at the texture's own radius (20 for the 40x40
-    // texture); setDisplaySize then scales body + visual together.
-    const go = this.scene.matter.add.image(x, y, texture, undefined, {
-      shape: { type: 'circle', radius: 20 },
+    // Bird artwork when loaded (js/data/birds.js), legacy circle otherwise.
+    // The circle body is created with the texture's own body radius and
+    // setDisplaySize(display) then scales body + visual together — the
+    // collider lands on EXACTLY type.radius world px either way, so mass,
+    // bounce and collisions are identical to the pre-bird circles.
+    const visual = projectileVisual(typeKey, this.scene.textures, type.radius, child);
+    const go = this.scene.matter.add.image(x, y, visual.texture, undefined, {
+      shape: { type: 'circle', radius: visual.shapeRadius },
       density: type.density,
       restitution: type.restitution,
       frictionAir: type.frictionAir,
       friction: 0.6,
       label: 'projectile'
     });
-    go.setDisplaySize(d, d);
+    go.setDisplaySize(visual.display, visual.display);
     go.setDepth(9);
     go.wb = {
       kind: 'projectile',
@@ -274,8 +276,17 @@ export class ObjectFactory {
       ability: type.ability,
       abilityUsed: false,
       firstImpactDone: false,
-      consumed: false
+      consumed: false,
+      skin: null
     };
+    if (visual.bird) {
+      // the physics host renders nothing; the BirdSprite skin is the
+      // visible bird (position/rotation synced in update() — physics stays
+      // the single source of truth)
+      go.setVisible(false);
+      go.wb.skin = new BirdSprite(this.scene, go, visual.bird, visual.display, this.scene.fx || null);
+      this.birdSkins.push(go.wb.skin);
+    }
     this.projectiles.push(go);
     return go;
   }
@@ -322,6 +333,7 @@ export class ObjectFactory {
         const childGo = this.createProjectile('split', projectile.x, projectile.y, shotId, { child: true });
         childGo.setVelocity(nvx, nvy);
       }
+      this.scene.fx?.splitPop(projectile.x, projectile.y);
       this.scene.audio.emit('split');
       return true;
     }
@@ -340,6 +352,7 @@ export class ObjectFactory {
       this.scene.audio.emit('explode');
     } else if (ability === 'freeze') {
       this.freezeNear(projectile.x, projectile.y);
+      this.scene.fx?.freezeBurst(projectile.x, projectile.y);
       this.scene.audio.emit('freeze');
     }
   }
@@ -642,9 +655,22 @@ export class ObjectFactory {
       }
     }
 
+    // bird projectile skins: visual sync only (hosts removed above this
+    // frame are detected and their skins destroyed here)
+    this.syncBirdSkins(now);
+
     this.syncTargetLabels();
     this.cleanupOutOfBound();
     this.recoverFallenTargets();
+  }
+
+  /** Sync + prune bird skins (visual layer — see BirdSprite). */
+  syncBirdSkins(now) {
+    for (let i = this.birdSkins.length - 1; i >= 0; i--) {
+      if (!this.birdSkins[i].sync(now)) {
+        this.birdSkins.splice(i, 1);
+      }
+    }
   }
 
   cleanupOutOfBound() {
@@ -717,6 +743,8 @@ export class ObjectFactory {
   clearQuestionObjects() {
     this.explosionQueue.length = 0;
     this.respawnQueue.length = 0;
+    for (const skin of this.birdSkins) skin.destroy();
+    this.birdSkins = [];
     const all = [
       ...this.blocks, ...this.targets, ...this.projectiles, ...this.fragments,
       ...this.movers.map((m) => m.go)
