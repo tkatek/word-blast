@@ -34,7 +34,7 @@ export const BIRDS = {
     texture: 'bird-red',
     file: 'red_basic.png',
     size: 274,
-    bodyRadius: 80.7,
+    bodyRadius: 80.67,
     projectileKey: 'basic',
     ability: null,
     recommendedDisplay: 54.3
@@ -45,7 +45,7 @@ export const BIRDS = {
     texture: 'bird-blue',
     file: 'blue_split.png',
     size: 282,
-    bodyRadius: 80.7,
+    bodyRadius: 80.67,
     projectileKey: 'split',
     ability: 'split',
     recommendedDisplay: 59.4
@@ -56,7 +56,7 @@ export const BIRDS = {
     texture: 'bird-yellow',
     file: 'yellow_speed.png',
     size: 366,
-    bodyRadius: 81.0,
+    bodyRadius: 81,
     projectileKey: 'speed',
     ability: 'boost',
     recommendedDisplay: 67.8
@@ -67,7 +67,7 @@ export const BIRDS = {
     texture: 'bird-black',
     file: 'black_bomb.png',
     size: 288,
-    bodyRadius: 80.7,
+    bodyRadius: 80.67,
     projectileKey: 'bomb',
     ability: 'detonate',
     recommendedDisplay: 60.7
@@ -78,7 +78,7 @@ export const BIRDS = {
     texture: 'bird-purple',
     file: 'purple_ice.png',
     size: 286,
-    bodyRadius: 80.7,
+    bodyRadius: 80.67,
     projectileKey: 'ice',
     ability: 'freeze',
     recommendedDisplay: 53.2
@@ -89,7 +89,7 @@ export const BIRDS = {
     texture: 'bird-green',
     file: 'green_bonus.png',
     size: 288,
-    bodyRadius: 81.0,
+    bodyRadius: 81,
     projectileKey: null,
     ability: null,
     recommendedDisplay: 53.3
