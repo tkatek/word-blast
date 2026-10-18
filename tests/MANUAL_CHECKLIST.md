@@ -24,13 +24,30 @@ and fairness, which automation cannot judge honestly.
 - [ ] L15: the four finale layouts are beatable; all five projectile types
       get moments to shine.
 
-## Projectile abilities
+## Projectile abilities (Fix #19 mapping: BLUE=boost, YELLOW=split, BLACK=bomb, PURPLE=ice)
 
-- [ ] Speed boost (tap mid-flight, L4+): clearly visible velocity jump, once.
-- [ ] Ice (L7+): frozen tint appears; frozen blocks take visibly more damage.
-- [ ] Split (L10+): tap splits into three; children can answer targets.
-- [ ] Bomb (L12+): detonates on first impact; blast throws blocks; answer
-      targets correctly survive blasts.
+- [ ] Speed boost (BLUE bird, tap/SPACE/TAP-button mid-flight, L4+): clearly
+      visible velocity jump + blue trail, once per launch.
+- [ ] Ice (PURPLE bird, L7+): mid-flight tap freezes nearby blocks (icy tint);
+      frozen blocks take visibly more damage; tint expires after ~6s.
+- [ ] Split (YELLOW bird, L10+): tap mid-flight splits into FIVE smaller
+      yellow birds in a fan; children share one answer-selection per shot.
+- [ ] Bomb (BLACK bird, L12+): mid-flight tap detonates; untriggered bombs
+      still explode on first impact; blast throws blocks; answer targets
+      correctly survive blasts (no answer awarded by blast damage).
+
+## Bird selection cards + ammunition (Fix #19)
+
+- [ ] Five cards bottom-left: RED/BLUE/YELLOW/BLACK/PURPLE with real artwork
+      and gold ×N badges (proposed full-roster inventory 3/2/2/1/1).
+- [ ] Selecting a card highlights it (gold glow + lift) and swaps the bird in
+      the slingshot WITHOUT consuming ammunition.
+- [ ] Launching consumes exactly one ammo unit and one shot; the badge pulses
+      and the card dims at ×0; a zeroed bird cannot be re-selected.
+- [ ] When the current bird hits zero, the next available bird auto-loads at
+      the re-arm; selection is locked during flight.
+- [ ] Keys 1–5 select birds on desktop; SPACE activates the flying ability;
+      the TAP button appears mid-flight on touch layouts.
 
 ## Scoring fairness
 
