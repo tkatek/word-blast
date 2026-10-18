@@ -506,6 +506,15 @@ export class ObjectFactory {
   onProjectileFirstImpact(projectile, otherBody) {
     if (projectile.wb.firstImpactDone || projectile.wb.consumed) return;
     projectile.wb.firstImpactDone = true;
+    // Fix #22 — audio hook: one bird-impact vocal per projectile (the flag
+    // above is the physics-side once-guarantee; AudioManager additionally
+    // cooldowns the vocal so the 5 split children cannot stack 5 voices).
+    const pv = this.velocityOf(projectile.body);
+    this.scene.audio.emit('bird-impact', {
+      x: projectile.x, y: projectile.y,
+      severity: Math.hypot(pv.x, pv.y) * 4,
+      typeKey: projectile.wb.typeKey
+    });
     const ability = projectile.wb.ability;
     if (ability === 'detonate') {
       // impact-based fallback (documented): only reachable when the player

@@ -279,8 +279,17 @@ export function drawResetIcon(g, cx, cy, r, color = PALETTE.cream, edge = 0x4d2e
 /* ------------------------------------------------------------------ */
 
 /**
- * Polished wooden game button: soft shadow, warm gradient slab, carved
- * edges, optional decorative leaves / icon, bold cream label.
+ * Polished wooden game button: soft shadow, wooden face (supplied artwork
+ * via `bgTexture` when available, otherwise the procedural gradient slab),
+ * carved edges, optional decorative leaves / icon, bold cream label.
+ *
+ * With `bgTexture` the face keeps the artwork's ASPECT: the button's height
+ * follows width / artAspect (pass no explicit height), the art is scaled
+ * uniformly (never stretched, never cropped) and is itself drawn at full
+ * source resolution — if the source is smaller than the button's device
+ * pixel size it is smoothly upscaled by the GPU (painted art tolerates the
+ * mild resample). Headless environments fall back to the procedural slab
+ * under the same texture key.
  *
  * Interaction: hover = brightness + slight grow (hand cursor), press =
  * scale compression, release-inside = click. setEnabled(false) silences
@@ -292,50 +301,69 @@ export class WoodButton {
   /**
    * @param {Phaser.Scene} scene
    * @param {object} o
-   * @param {number} o.x o.y o.width o.height
+   * @param {number} o.x o.y o.width [o.height]
    * @param {string} o.label
    * @param {'primary'|'secondary'|'danger'} [o.variant]
    * @param {'play'|'reset'|null} [o.icon]
    * @param {() => void} [o.onClick]
-   * @param {boolean} [o.leaves]   decorative corner leaves (primary look)
-   * @param {boolean} [o.shine]    periodic light sweep (WebGL, decorative)
+   * @param {boolean} [o.leaves]     decorative corner leaves (primary look)
+   * @param {boolean} [o.shine]      periodic light sweep (decorative)
+   * @param {string|null} [bgTexture] artwork face key (e.g. the supplied
+   *                                  wooden bar element for PLAY)
    */
   constructor(scene, o) {
     const {
-      x = 0, y = 0, width = 300, height = 92, label = '',
+      x = 0, y = 0, width = 300, height = null, label = '',
       variant = 'primary', icon = null, onClick = null,
-      leaves = false, shine = false, fontSize = null
+      leaves = false, shine = false, fontSize = null, bgTexture = null
     } = o;
     this.scene = scene;
+
+    // artwork face: height follows the art's aspect when not forced
+    let useArt = false, artScale = 1;
+    if (bgTexture && scene.textures.exists(bgTexture)) {
+      const src = scene.textures.get(bgTexture).getSourceImage();
+      const h = height || Math.round(width * (src.height / src.width));
+      this.height = h;
+      artScale = width / src.width;
+      useArt = true;
+    } else {
+      this.height = height || 92;
+    }
+    const btnH = this.height;
     this.width = width;
-    this.height = height;
     this.enabled = true;
     this._hover = false;
     this._onClick = onClick;
 
-    const r = Math.min(width, height) * 0.34;
+    const r = Math.min(width, btnH) * 0.34;
     const c = scene.add.container(x, y);
     this.container = c;
 
     // soft drop shadow (two stacked passes)
     const gShadow = scene.add.graphics();
     gShadow.fillStyle(0x000000, 0.10);
-    gShadow.fillRoundedRect(-width / 2 - 3, -height / 2 + 8, width + 6, height + 3, r + 4);
+    gShadow.fillRoundedRect(-width / 2 - 3, -btnH / 2 + 8, width + 6, btnH + 3, r + 4);
     gShadow.fillStyle(0x000000, 0.22);
-    gShadow.fillRoundedRect(-width / 2, -height / 2 + 5, width, height, r);
+    gShadow.fillRoundedRect(-width / 2, -btnH / 2 + 5, width, btnH, r);
 
-    // wooden slab
-    const gBody = scene.add.graphics();
-    drawWoodSlab(gBody, width, height, r, variant);
+    // face: supplied artwork (aspect preserved) or procedural slab
+    let face;
+    if (useArt) {
+      face = scene.add.image(0, 0, bgTexture).setScale(artScale);
+    } else {
+      face = scene.add.graphics();
+      drawWoodSlab(face, width, btnH, r, variant);
+    }
 
     // hover brightness overlay (faded in/out)
     const gHover = scene.add.graphics();
     gHover.fillStyle(0xffffff, 1);
-    gHover.fillRoundedRect(-width / 2 + 3, -height / 2 + 3, width - 6, height - 6, Math.max(4, r - 3));
+    gHover.fillRoundedRect(-width / 2 + 3, -btnH / 2 + 3, width - 6, btnH - 6, Math.max(4, r - 3));
     gHover.setAlpha(0);
     this._gHover = gHover;
 
-    c.add([gShadow, gBody, gHover]);
+    c.add([gShadow, face, gHover]);
 
     if (leaves) {
       const gl = scene.add.graphics();

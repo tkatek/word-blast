@@ -173,6 +173,17 @@ export class GameScene extends Phaser.Scene {
     this.setupOrientation();
     this.input.once('pointerdown', () => this.tryEnterLandscapeFullscreen());
 
+    // Fix #22 — scene audio: gameplay music (crossfades from the menu
+    // theme; idempotent so restarts/retries never double-play) + quiet
+    // forest ambience. Both stop fading out on scene shutdown below.
+    this.audio?.playMusic('music-game');
+    this.audio?.playAmbience('amb-forest');
+    this.events.once('shutdown', () => {
+      this.audio?.stopAmbience(500);
+      this.audio?.stopFlight();
+      this.audio?.stopStretch(0);
+    });
+
     // go
     this.stateMachine.set(STATES.LEVEL_READY);
     this.showToast(`LEVEL ${this.levelId} — ${this.level.name}`);
@@ -208,6 +219,8 @@ export class GameScene extends Phaser.Scene {
       onRestartLevel: () => this.restartLevel(),
       onExitToLevels: () => this.exitToLevelSelect(),
       onToggleSound: () => this.toggleSound(),
+      onToggleMusic: () => this.toggleMusic(),
+      onToggleSfx: () => this.toggleSfx(),
       onToggleReducedMotion: () => this.toggleReducedMotion()
     }, {
       markUi: () => { this.uiPointerConsumed = true; },
@@ -350,7 +363,11 @@ export class GameScene extends Phaser.Scene {
   /** Wooden cartoon button for the full-screen overlays. */
   overlayButton(container, label, y, onClick, color = 'green', w = 330) {
     const btn = woodButton(this, {
-      x: WORLD.WIDTH / 2, y, w, h: 58, label, color, size: 21, onClick,
+      x: WORLD.WIDTH / 2, y, w, h: 58, label, color, size: 21,
+      onClick: () => {
+        this.audio?.emit('ui-click'); // Fix #22 — polished click on every overlay action
+        onClick();
+      },
       markUi: () => { this.uiPointerConsumed = true; }
     });
     container.add(btn);
@@ -437,6 +454,7 @@ export class GameScene extends Phaser.Scene {
     this.stateMachine.set(STATES.QUESTION_READY);
     this.refreshHUD();
     this.slingshot.setEnabled(false); // no aiming during the introduction
+    this.audio.emit('question-ready', { index }); // Fix #22 — soft card whoosh
     this.card.present({
       index,
       total: this.level.questions.length,
@@ -532,7 +550,11 @@ export class GameScene extends Phaser.Scene {
     p.setAngularVelocity(0.08);
 
     this.stateMachine.set(STATES.PROJECTILE_FLYING);
-    this.audio.emit('launch');
+    // Fix #22 — audio hook: power 0..1 scales the release snap + bird cry.
+    this.audio.emit('launch', {
+      power: Math.min(1, Math.hypot(vx, vy) / SLINGSHOT.MAX_SPEED),
+      typeKey, x: o.x, y: o.y
+    });
     DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — SHOT #${shotId} launched (${typeKey}, v ${vx.toFixed(1)}/${vy.toFixed(1)}), shots left: ${this.shotsLeft}, ${typeKey} ammo left: ${this.birdInventory.count(typeKey)}`);
     if (this.tutorialHint && !this.save.data.tutorialDone) {
       this.save.setTutorialDone(true);
@@ -572,6 +594,7 @@ export class GameScene extends Phaser.Scene {
     if (s !== STATES.AIMING && s !== STATES.QUESTION_READY) return false;
     if (this.selectedProjectile === key) return true;
     this.selectedProjectile = key;
+    this.audio?.emit('bird-selected', { key }); // Fix #22 — card/keyboard selection pop
     if (this.stateMachine.is(STATES.AIMING)) this.slingshot.load(key);
     this.refreshHUD();
     return true;
@@ -806,6 +829,7 @@ export class GameScene extends Phaser.Scene {
     // No answer event → missed. Wrong answers are handled by the settle
     // watcher below (feedback already shown).
     if (this.currentShot.answered) return;
+    this.audio.emit('shot-missed'); // Fix #22 — soft whiff (audio only)
 
     // Lifecycle (Fix #6B): the miss is decided — play the shot's landing
     // animation and remove its visuals (bodies are swept at the next
@@ -963,7 +987,12 @@ export class GameScene extends Phaser.Scene {
       this.winTitle.setText('🏆 ALL 15 LEVELS COMPLETE!');
     }
     this.winOverlay.setVisible(true);
-    this.audio.emit('level-complete');
+    // Fix #22 — audio hook: stars drive the staggered chimes inside
+    // AudioManager; the all-levels finish gets its victory sting.
+    this.audio.emit('level-complete', {
+      stars,
+      allCompleted: this.stateMachine.is(STATES.GAME_COMPLETE)
+    });
     this.refreshHUD();
   }
 
@@ -1074,11 +1103,31 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('MenuScene');
   }
 
-  /** Sound on/off — persisted setting + audio bus switch (Fix #17). */
+  /** Sound on/off — persisted setting + engine-wide master gate (Fix #17/#22). */
   toggleSound() {
     const next = !this.save.data.settings.sound;
+    if (this.audio && typeof this.audio.setMasterEnabled === 'function') {
+      this.audio.setMasterEnabled(next);
+    } else if (this.audio) {
+      this.audio.enabled = next;
+    }
     this.save.setSetting('sound', next);
-    if (this.audio) this.audio.enabled = next;
+    this.audio?.emit('ui-click');
+    this.refreshHUD();
+  }
+
+  /** Fix #22 — pause-menu music toggle (music + ambience channels). */
+  toggleMusic() {
+    const next = this.save.data.settings.music !== false;
+    this.audio?.setMusicEnabled(!next);
+    this.audio?.emit('ui-click');
+    this.refreshHUD();
+  }
+
+  /** Fix #22 — pause-menu effects toggle (impact/ability/bird channels). */
+  toggleSfx() {
+    const next = this.save.data.settings.sfx !== false;
+    this.audio?.setSfxEnabled(!next);
     this.audio?.emit('ui-click');
     this.refreshHUD();
   }
@@ -1226,7 +1275,9 @@ export class GameScene extends Phaser.Scene {
       questionsCompleted: this.scoring.questionsCompleted,
       starThresholds: this.level.starThresholds,
       state: this.stateMachine.current,
-      soundOn: this.save.data.settings.sound
+      soundOn: this.save.data.settings.sound,
+      musicOn: this.save.data.settings.music !== false,   // Fix #22
+      sfxOn: this.save.data.settings.sfx !== false        // Fix #22
     });
     // Fix #19 — card row: roster + live ammunition + selection. Cards stay
     // interactive through the aiming cycle and dim behind terminal states.
@@ -1264,6 +1315,14 @@ export class GameScene extends Phaser.Scene {
 
   onStateChanged(next, prev) {
     DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — STATE ${prev} -> ${next}`);
+    // Fix #22 — every pause source (menu, portrait rotation, hidden tab)
+    // funnels through this one choke point: audio pauses with the game and
+    // resumes with it (music never duplicates — playMusic is idempotent).
+    if (next === STATES.PAUSED) {
+      this.audio?.emit('game-pause');
+    } else if (prev === STATES.PAUSED) {
+      this.audio?.emit('game-resume');
+    }
     // Fix #9 — every pause source (menu, portrait rotation, hidden tab)
     // funnels through here: freeze the card's visual timeline on entry and
     // thaw it on resume (the reading countdown is already update()-gated).
