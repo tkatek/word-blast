@@ -45,6 +45,11 @@ export class Slingshot {
     this.grabOffset = null;        // pointer→pouch offset while dragging
     this.snap = null;              // { from:{x,y}, t0, ms } — snap-back animation
     this.lastShotDots = null;      // Fix #7 — last completed shot's dots (reference)
+    // Motion-audio tracker: previous ACCEPTED pouch position + the scene
+    // clock reading it was taken at. Reset on grab/cancel/resize so no
+    // stale measurement can produce an artificial speed spike.
+    this._motionPrev = null;
+    this._motionPrevT = 0;
 
     this.renderer = new SlingshotRenderer(scene);
     // single canonical anchor — the artwork's handle plants into the flat
@@ -56,6 +61,9 @@ export class Slingshot {
     scene.input.on('pointerup', this.onPointerUp, this);
     scene.input.on('pointerupoutside', this.onPointerUp, this); // touch cancellation
     scene.events.on('update', this.onUpdate, this);
+    if (scene.scale && typeof scene.scale.on === 'function') {
+      scene.scale.on('resize', this.onScaleResize, this);
+    }
     scene.events.once('shutdown', this.destroy, this);
   }
 
@@ -65,9 +73,18 @@ export class Slingshot {
     this.scene.input.off('pointerup', this.onPointerUp, this);
     this.scene.input.off('pointerupoutside', this.onPointerUp, this);
     this.scene.events.off('update', this.onUpdate, this);
+    if (this.scene.scale && typeof this.scene.off === 'function') {
+      try { this.scene.scale.off('resize', this.onScaleResize, this); } catch { /* gone */ }
+    }
     // Fix #7 — scene shutdown destroys the graphics; drop the stored
     // reference so a stale array can never leak into another level.
     this.lastShotDots = null;
+    this._motionPrev = null;
+  }
+
+  /** A resize re-maps pointer→world coordinates: re-measure from scratch. */
+  onScaleResize() {
+    this._motionPrev = null;
   }
 
   /* ------------------------------------------------------------------ */
@@ -142,9 +159,11 @@ export class Slingshot {
     const p = this.pouchPoint();
     if (Math.hypot(pointer.worldX - p.x, pointer.worldY - p.y) <= GRAB_RADIUS) {
       this.dragging = true;
-      // Fix #22 — audio hook: the stretch sound starts only when the bird
-      // is ACTUALLY grabbed (never on every pointer move).
-      this.scene.audio?.emit('sling-stretch-start', { tension: 0 });
+      // Audio hook: ONE subtle leather contact on grab. Pressing and
+      // holding is silent — movement audio needs actual pouch motion
+      // (measured per-frame in onUpdate).
+      this.scene.audio?.emit('sling-grab');
+      this._motionPrev = null; // fresh drag: re-measure from this frame
       // Fix #6B: remember WHERE around the bird the player grabbed. The
       // pouch then follows pointer + offset, so the bird never teleports
       // to the pointer on the first move (fingers always press off-center
@@ -171,9 +190,6 @@ export class Slingshot {
     const dy = y - this.anchor.y;
     const l = Math.hypot(dx, dy);
     const clamped = Math.min(l, SLINGSHOT.MAX_DRAG);
-    // Fix #22 — audio hook: tension feed (0..1) drives the stretch loop's
-    // volume/pitch inside AudioManager — no sound spawns per move.
-    this.scene.audio?.emit('sling-stretch', { tension: clamped / SLINGSHOT.MAX_DRAG });
     const nx = l === 0 ? 0 : dx / l;
     const ny = l === 0 ? 0 : dy / l;
     if (this.preview) {
@@ -186,6 +202,10 @@ export class Slingshot {
       }
     }
     this.redraw();
+    // NOTE: no audio emission here — movement audio is driven per-frame
+    // from the accepted clamped pouch position in onUpdate, so pointer
+    // event bursts can never spawn sounds and a held pouch (no accepted
+    // movement) is silent even while the raw pointer jitters.
   }
 
   onPointerUp() {
@@ -226,8 +246,9 @@ export class Slingshot {
     if (!this.dragging) return;
     this.dragging = false;
     this.grabOffset = null;
-    // Fix #22 — audio hook: cancelled drag = smooth stretch stop + small
-    // elastic return sound. NEVER a launch sound (that is 'launch').
+    this._motionPrev = null;
+    // Audio hook: cancelled drag = smooth movement-audio fade + small
+    // leather/elastic return sound. NEVER a launch sound (that is 'launch').
     this.scene.audio?.emit('sling-cancel');
     this.startSnap(this.pouchPoint(), CANCEL_SNAP_MS);
     this.redraw();
@@ -284,7 +305,7 @@ export class Slingshot {
     this.snap = { from: { x: from.x, y: from.y }, t0: this.scene.time.now, ms };
   }
 
-  onUpdate() {
+  onUpdate(time) {
     if (this.snap) {
       // the last animation frame ends exactly AT rest — pin the preview
       // there so no sub-pixel residue from the overshoot survives (Fix #6B)
@@ -303,6 +324,31 @@ export class Slingshot {
     if (this.preview && !this.dragging && this.preview.rotation !== 0) {
       const r = this.preview.rotation * 0.82;
       this.preview.setRotation(Math.abs(r) < 0.008 ? 0 : r);
+    }
+    // Movement-audio measurement — runs only while a drag is live, from
+    // the ACCEPTED clamped pouch position (never the raw pointer):
+    //   movementSpeed = |pouch - previousPouch| / elapsedTime
+    //   tension       = |rest - pouch| / MAX_DRAG
+    //   towardRest    = pouch is getting closer to rest than the last frame
+    if (this.dragging) {
+      const p = this.pouchPoint();
+      const t = typeof time === 'number' ? time : this.scene.time.now;
+      if (this._motionPrev) {
+        const dt = Math.min(100, Math.max(8, t - this._motionPrevT)); // ms, spike-guarded
+        const dist = Math.hypot(p.x - this._motionPrev.x, p.y - this._motionPrev.y);
+        const speed = (dist / dt) * 1000; // px/s
+        const dNow = Math.hypot(p.x - this.anchor.x, p.y - this.anchor.y);
+        const dPrev = Math.hypot(this._motionPrev.x - this.anchor.x, this._motionPrev.y - this.anchor.y);
+        this.scene.audio?.emit('sling-stretch', {
+          tension: Math.min(1, dNow / SLINGSHOT.MAX_DRAG),
+          speed,
+          towardRest: dNow < dPrev - 0.5
+        });
+      }
+      this._motionPrev = { x: p.x, y: p.y };
+      this._motionPrevT = t;
+    } else {
+      this._motionPrev = null;
     }
   }
 

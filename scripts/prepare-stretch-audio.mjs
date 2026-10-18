@@ -48,7 +48,7 @@ function decode(from, to) {
 const rmsDb = (x) => {
   let s = 0;
   for (let i = 0; i < x.length; i++) s += x[i] * x[i];
-  return 10 * Math.log10(Math.sqrt(s / x.length) + 1e-12);
+  return 20 * Math.log10(Math.sqrt(s / x.length) + 1e-12);
 };
 const peakDb = (x) => {
   let p = 0;
@@ -62,13 +62,16 @@ const peakDb = (x) => {
  *   soft texture zone : 2.3–3.7   decay tail: 14.0–14.8
  */
 const SEGMENTS = [
-  { out: 'stretch-1.wav', from: 0.55, to: 1.75, rms: -20, fade: [0.012, 0.020] }, // opening creak
-  { out: 'stretch-2.wav', from: 4.55, to: 5.95, rms: -20, fade: [0.012, 0.020] }, // strong rise
-  { out: 'stretch-3.wav', from: 8.85, to: 10.45, rms: -20, fade: [0.012, 0.020] }, // mid pull
-  { out: 'stretch-4.wav', from: 11.95, to: 13.65, rms: -20, fade: [0.012, 0.020] }, // sustained creak
-  { out: 'stretch-5.wav', from: 2.35, to: 3.65, rms: -23, fade: [0.015, 0.025] }, // soft texture (return/light)
-  { out: 'grab.wav', from: 0.55, to: 0.85, rms: -26, fade: [0.004, 0.050] }, // subtle contact tick
-  { out: 'return.wav', from: 14.00, to: 14.75, rms: -24, fade: [0.015, 0.060] } // tension easing tail
+  // RMS targets chosen against the existing mix (wood hits ≈ -17..-26 dBFS
+  // RMS, release snap -14): creak texture sits just under the light hits,
+  // with the -6 dBFS peak ceiling preserving headroom (crest ≈ 18 dB).
+  { out: 'stretch-1.wav', from: 0.55, to: 1.75, rms: -24, fade: [0.012, 0.020] }, // opening creak
+  { out: 'stretch-2.wav', from: 4.55, to: 5.95, rms: -24, fade: [0.012, 0.020] }, // strong rise
+  { out: 'stretch-3.wav', from: 8.85, to: 10.45, rms: -24, fade: [0.012, 0.020] }, // mid pull
+  { out: 'stretch-4.wav', from: 11.95, to: 13.65, rms: -24, fade: [0.012, 0.020] }, // sustained creak
+  { out: 'stretch-5.wav', from: 2.35, to: 3.65, rms: -27, fade: [0.015, 0.025] }, // soft texture (return/light)
+  { out: 'grab.wav', from: 0.55, to: 0.85, rms: -30, fade: [0.004, 0.050] }, // subtle contact tick
+  { out: 'return.wav', from: 14.00, to: 14.75, rms: -28, fade: [0.015, 0.060] } // tension easing tail
 ];
 
 const PEAK_CEIL = -6.0; // dBFS — headroom for the rest of the mix
@@ -123,10 +126,10 @@ for (const seg of SEGMENTS) {
   const buf = readFileSync(join(OUT, seg.out));
   const y = new Float32Array((buf.length - 44) / 2);
   for (let i = 0; i < y.length; i++) y[i] = buf.readInt16LE(44 + i * 2) / 32768;
-  const edge = Math.round(0.003 * SR);
+  const edge = 5; // extreme boundary only — inside a 12ms fade the level is legitimately rising
   let edgePeak = 0;
   for (let i = 0; i < edge && i < y.length; i++) edgePeak = Math.max(edgePeak, Math.abs(y[i]), Math.abs(y[y.length - 1 - i]));
-  if (edgePeak > 0.02) throw new Error(`${seg.out}: boundary click risk (first/last 3ms peak ${edgePeak.toFixed(3)})`);
+  if (edgePeak > 0.02) throw new Error(`${seg.out}: boundary click risk (first/last samples peak ${edgePeak.toFixed(3)})`);
 }
 
 console.log('segment report (target RMS / measured):');

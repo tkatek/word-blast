@@ -173,15 +173,12 @@ export class GameScene extends Phaser.Scene {
     this.setupOrientation();
     this.input.once('pointerdown', () => this.tryEnterLandscapeFullscreen());
 
-    // Fix #22 — scene audio: gameplay music (crossfades from the menu
-    // theme; idempotent so restarts/retries never double-play) + quiet
-    // forest ambience. Both stop fading out on scene shutdown below.
-    this.audio?.playMusic('music-game');
-    this.audio?.playAmbience('amb-forest');
+    // Audio-repair — silence-first configuration: no gameplay music, no
+    // ambience loops. The scene is sound-effects-only; the single movement
+    // voice (leather stretch) is stopped on shutdown so nothing survives a
+    // level change or restart.
     this.events.once('shutdown', () => {
-      this.audio?.stopAmbience(500);
-      this.audio?.stopFlight();
-      this.audio?.stopStretch(0);
+      this.audio?.stopSlingMotion(0);
     });
 
     // go
