@@ -405,11 +405,13 @@ try {
   check('resume while stationary: no stretch sound restarts',
     resumedStill.max < SILENT, `maxRMS=${resumedStill.max.toExponential(2)}`);
 
-  // 10. question card transitions — wait until the card is DOCKED (a card
-  // mid-intro/reading ignores taps by design), then verify the phases.
+  // 10. question card transitions — the tap only opens when the game is in
+  // a safe state (AIMING/QUESTION_READY with the card docked); after the
+  // collapse shot the scene may still be in FEEDBACK, so wait for BOTH.
   await page.waitForFunction(() => {
+    const s = window.__WB__.state();
     const c = window.__WB__.cardInfo();
-    return c && c.phase === 'READY_TOP';
+    return (s === 'AIMING' || s === 'QUESTION_READY') && c && c.phase === 'READY_TOP';
   }, { timeout: 15000 });
   const cardBefore = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   const docked = await page.evaluate(() => {
@@ -417,12 +419,30 @@ try {
     return window.__WB__.worldToClient(c.x, c.y);
   });
   await page.mouse.click(docked.x, docked.y);
-  await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 4000 }).catch(() => {});
-  const openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
+  await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 3000 }).catch(() => {});
+  let openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
+  if (openedPhase !== 'EXPANDED') { // one retry for a state-boundary race
+    await page.waitForFunction(() => {
+      const s = window.__WB__.state();
+      const c = window.__WB__.cardInfo();
+      return (s === 'AIMING' || s === 'QUESTION_READY') && c && c.phase === 'READY_TOP';
+    }, { timeout: 8000 }).catch(() => {});
+    const c2 = await page.evaluate(() => {
+      const c = window.__WB__.cardInfo();
+      return window.__WB__.worldToClient(c.x, c.y);
+    });
+    await page.mouse.click(c2.x, c2.y);
+    await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 3000 }).catch(() => {});
+    openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
+  }
   const cardOpened = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   await sleep(900); // the open whoosh is a one-shot — let it finish
   const readingQuiet = await outputLevel(page, 1500);
-  await page.mouse.click(docked.x, docked.y); // close via the card tap zone
+  const expandedPt = await page.evaluate(() => {
+    const c = window.__WB__.cardInfo();
+    return window.__WB__.worldToClient(c.x, c.y);
+  });
+  await page.mouse.click(expandedPt.x, expandedPt.y); // close via the card tap zone
   await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'READY_TOP', { timeout: 4000 }).catch(() => {});
   const cardClosed = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   check('card: open/close transition phases worked',
@@ -489,25 +509,30 @@ try {
 
   // 12. master mute covers the custom path; unmute revives nothing.
   // Deterministic: set the engine state directly (toggleSound's parity
-  // with the saved setting is covered by the unit tests).
+  // with the saved setting is covered by the unit tests). The Phaser
+  // `.mute` property is shadowed by an own data field, so the REAL proof
+  // is the masterMuteNode gain + functional silence on the output tap.
   const preMute = await page.evaluate(() => ({
     enabled: window.__WB__.audio().enabled,
     sound: window.__WB__.save().data.settings.sound
   }));
-  const muted = await page.evaluate(async () => {
-    window.__WB__.game.registry.get('audio').setMasterEnabled(false);
+  const muted = await page.evaluate(() => {
+    const g = window.__WB__.game;
+    g.registry.get('audio').setMasterEnabled(false);
     return {
-      mute: window.__WB__.game.sound.mute,
+      gain: g.sound.masterMuteNode ? g.sound.masterMuteNode.gain.value : null,
       setting: window.__WB__.save().data.settings.sound
     };
   });
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').emit('ui-click'));
+  const mutedOutput = await outputLevel(page, 700); // click plays but must be silent
   await page.evaluate(() => window.__WB__.game.registry.get('audio').setMasterEnabled(true));
-  await sleep(1200); // let any in-flight one-shot (restart whoosh) finish
+  await sleep(1200); // let any in-flight one-shot finish
   const unmutedPlaying = await page.evaluate(() =>
     window.__WB__.game.sound.sounds.filter((s) => s.isPlaying).length);
   check('master mute silences the whole output path + persists',
-    muted.mute === true && muted.setting === false,
-    `pre=${JSON.stringify(preMute)} post=${JSON.stringify(muted)}`);
+    muted.gain === 0 && muted.setting === false && mutedOutput.max < SILENT,
+    `pre=${JSON.stringify(preMute)} post=${JSON.stringify(muted)} clickMax=${mutedOutput.max.toExponential(2)}`);
   check('unmute replays nothing old', unmutedPlaying === 0, `${unmutedPlaying} playing`);
 
   // 13. landscape-mobile emulation pass (device emulation, still desktop
