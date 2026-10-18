@@ -1,10 +1,10 @@
 /**
- * FIX #22 — audio system tests.
+ * Audio system tests (audio-repair — silence-first configuration).
  *
  * Part A: deterministic unit tests of the AudioManager playback engine
  *         against a fake Phaser sound manager + fake scene clock (no real
- *         audio device needed — routing, mixing, cooldowns, caps, ducking
- *         and settings are all verifiable synchronously).
+ *         audio device needed — routing, mixing, cooldowns, caps, motion
+ *         gating, ducking and settings are all verifiable synchronously).
  * Part B: headless integration — the REAL game boots, a real shot is fired
  *         and the semantic audio events must flow through the bus in the
  *         right order, surviving scene restarts without duplication.
@@ -45,9 +45,7 @@ function test(name, fn) {
   }
 }
 function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
-function eq(a, b, msg) {
-  if (a !== b) throw new Error(msg || `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
-}
+function eq(a, b, msg) { if (a !== b) throw new Error(msg || `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
 /* ================================================================== */
 /* Fake Phaser sound manager + fake scene                               */
@@ -136,6 +134,27 @@ function freshManager(save) {
   return { audio, scene, sound, save };
 }
 
+/** Simulate the per-frame motion feed from the Slingshot. */
+function motion(audio, { tension = 0.5, speed = 0, towardRest = false }) {
+  audio.updateSlingMotion(tension, speed, towardRest);
+}
+
+/** Drive `frames` motion frames at 60fps, advancing the engine clock. */
+function drive(audio, scene, t0, frames, m) {
+  let t = t0;
+  for (let i = 0; i < frames; i++) {
+    motion(audio, m);
+    t += 16;
+    pump(scene, t);
+  }
+  return t;
+}
+
+/** All live (non-destroyed, non-stopped) sounds the fake manager holds. */
+function liveSounds(sound) {
+  return sound.sounds.filter((s) => !s.destroyed && !s.stopped);
+}
+
 /* ================================================================== */
 /* A1 — Manifest ↔ disk integrity                                       */
 /* ================================================================== */
@@ -179,6 +198,19 @@ test('every wav under public/assets/audio is referenced by the manifest', () => 
   walk(join(ROOT, 'public', 'assets', 'audio'));
 });
 
+test('no music or ambience files ship (silence-first configuration)', () => {
+  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'music')), 'music/ directory must not exist');
+  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'ambience')), 'ambience/ directory must not exist');
+  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'birds', 'flight-loop.wav')), 'flight loop must not exist');
+  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'slingshot', 'stretch-loop.wav')), 'old stretch loop must not exist');
+});
+
+test('no manifest entry loops — every sound is a self-terminating one-shot', () => {
+  for (const [key, def] of Object.entries(AUDIO_MANIFEST)) {
+    eq(def.loop || false, false, `${key} must not be a loop`);
+  }
+});
+
 test('all wavs are well-formed RIFF/PCM (44-byte header, mono, 22050 Hz)', () => {
   for (const { file } of audioPreloadList()) {
     const buf = readFileSync(join(ROOT, 'public', 'assets', 'audio', file));
@@ -192,41 +224,97 @@ test('all wavs are well-formed RIFF/PCM (44-byte header, mono, 22050 Hz)', () =>
 });
 
 /* ================================================================== */
-/* A2 — Slingshot sound lifecycle                                       */
+/* A2 — Slingshot motion audio                                          */
 /* ================================================================== */
-console.log('\n== slingshot audio =========================================');
+console.log('\n== slingshot motion audio ==================================');
 
-test('stretch starts only above the tension threshold and tracks tension', () => {
-  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.emit('sling-stretch-start', { tension: 0.01 });
-  eq(sound.sounds.length, 0, 'tiny grab must not start the loop');
-  audio.emit('sling-stretch', { tension: 0.4 });
-  const loop = sound.sounds.find((s) => s.key === 'sling-stretch');
-  assert(loop && loop.isPlaying, 'stretch loop playing at tension 0.4');
-  audio.emit('sling-stretch', { tension: 0.95 });
-  assert(loop.volume > 0.7, `near-max tension loud enough (vol ${loop.volume.toFixed(2)})`);
-  assert(loop.detune > 0, 'tension raises pitch');
-  pump(scene, 2000);
+test('grab plays one subtle contact tick — pressing and holding is silent', () => {
+  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
+  audio.emit('sling-grab');
+  eq(sound.plays.filter((k) => k === 'sling-grab').length, 1, 'one contact tick');
+  eq(liveSounds(sound).filter((s) => s.isPlaying).length, 1, 'no other layer started');
 });
 
-test('cancel stops the loop and plays a soft return (never a launch)', () => {
+test('pouch MOVEMENT starts a leather segment (speed-driven, not tension)', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.emit('sling-stretch', { tension: 0.6 });
+  drive(audio, scene, 1100, 6, { tension: 0.4, speed: 420 });
+  const segs = liveSounds(sound).filter((s) => s.key.startsWith('sling-stretch-'));
+  eq(segs.length, 1, 'exactly one stretch segment audible');
+  assert(segs[0].isPlaying, 'segment playing');
+  assert(!segs[0].loop, 'segment is a one-shot, never a loop');
+  assert(segs[0].volume > 0.1, `movement audible (vol ${segs[0].volume.toFixed(2)})`);
+});
+
+test('tension WITHOUT movement never makes a sound (held fully-stretched = silent)', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  drive(audio, scene, 1100, 40, { tension: 1.0, speed: 0 }); // 640ms at full tension, still
+  drive(audio, scene, 1800, 40, { tension: 0.95, speed: 3 }); // tremor-level jitter
+  eq(liveSounds(sound).filter((s) => s.key.startsWith('sling-stretch')).length, 0,
+    'no stretch audio without real movement');
+});
+
+test('movement stopping fades the segment out promptly (pull-and-hold)', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  let t = drive(audio, scene, 1100, 6, { tension: 0.8, speed: 500 });
+  const seg = liveSounds(sound).find((s) => s.key.startsWith('sling-stretch-'));
+  assert(seg, 'segment started');
+  // hold still: EMA decays, STOP_HOLD elapses, fade completes
+  t = drive(audio, scene, t, 14, { tension: 0.8, speed: 0 });
+  t = drive(audio, scene, t, 12, { tension: 0.8, speed: 0 });
+  assert(!audio._sling.voice, 'engine released the voice');
+  assert(seg.destroyed || seg.stopped, 'segment stopped/destroyed after the fade');
+});
+
+test('moving again resumes naturally — one layer, no stacking', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  let t = drive(audio, scene, 1100, 6, { tension: 0.6, speed: 450 });
+  t = drive(audio, scene, t, 30, { tension: 0.6, speed: 0 }); // fade out fully
+  t = drive(audio, scene, t, 10, { tension: 0.6, speed: 400 }); // move again
+  const segs = liveSounds(sound).filter((s) => s.key.startsWith('sling-stretch-') && s.isPlaying);
+  eq(segs.length, 1, 'exactly one layer after resume (no stacking)');
+});
+
+test('a finished segment chains once while movement continues', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  let t = drive(audio, scene, 1100, 6, { tension: 0.5, speed: 500 });
+  const seg = liveSounds(sound).find((s) => s.key.startsWith('sling-stretch-'));
+  assert(seg, 'segment started');
+  seg.fire('ended'); // natural end while still moving
+  motion(audio, { tension: 0.5, speed: 500 });
+  pump(scene, t += 16);
+  const live = liveSounds(sound).filter((s) => s.key.startsWith('sling-stretch-') && s.isPlaying);
+  eq(live.length, 1, 'next segment chained, still exactly one voice');
+});
+
+test('pointer motion beyond the drag limit (clamped pouch still) stays silent', () => {
+  // the Slingshot emits speed measured on the CLAMPED pouch: when the
+  // pointer runs past MAX_DRAG the accepted position stops moving →
+  // speed 0 → no new segment, even at full tension.
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  drive(audio, scene, 1100, 30, { tension: 1.0, speed: 0 });
+  eq(liveSounds(sound).length, 0, 'excess pointer motion generated no audio');
+});
+
+test('cancel: movement audio fades, soft return plays, NEVER a launch sound', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  drive(audio, scene, 1100, 6, { tension: 0.6, speed: 450 });
   audio.emit('sling-cancel');
-  pump(scene, 2000);
-  const loop = sound.sounds.find((s) => s.key === 'sling-stretch');
-  assert(loop.stopped, 'stretch loop stopped');
-  assert(sound.plays.includes('sling-cancel'), 'elastic return sound played');
-  assert(!sound.plays.includes('sling-release') && !sound.plays.includes('birds/launch.wav'),
+  pump(scene, 3000);
+  assert(!audio._sling.voice, 'movement voice released');
+  assert(sound.plays.includes('sling-cancel'), 'soft leather return played');
+  assert(!sound.plays.includes('sling-release') && !sound.plays.includes('bird-launch'),
     'cancel must never trigger launch audio');
 });
 
-test('launch plays release + bird cry exactly once and starts the flight loop', () => {
-  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
+test('launch: exactly one snap + one brief whoosh, no flight loop, stretch stops', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  drive(audio, scene, 1100, 6, { tension: 0.9, speed: 500 });
   audio.emit('launch', { power: 0.9, typeKey: 'basic' });
+  pump(scene, 3000);
   eq(sound.plays.filter((k) => k === 'sling-release').length, 1, 'one release snap');
   eq(sound.plays.filter((k) => k === 'bird-launch').length, 1, 'one bird cry');
-  assert(sound.sounds.some((s) => s.key === 'bird-flight' && s.isPlaying), 'flight loop running');
+  eq(sound.sounds.filter((s) => s.loop).length, 0, 'no looping sound of any kind');
+  assert(!audio._sling.voice, 'stretch fully released on launch');
 });
 
 /* ================================================================== */
@@ -288,7 +376,7 @@ test('impact voice cap holds under a burst; strongest wins', () => {
     audio.emit(mats[i % mats.length], { severity: sev });
   }
   const impactVoices = sound.sounds.filter((s) => s.isPlaying && !s.loop).length;
-  assert(impactVoices <= 8, `impact voice cap (got ${impactVoices} simultaneous)`);
+  assert(impactVoices <= 6, `impact voice cap (got ${impactVoices} simultaneous)`);
   // a much stronger impact must displace a weaker active one
   pump(scene, 2230 + 200);
   audio.emit('hit-stone', { severity: 90 });
@@ -368,22 +456,14 @@ test('split / boost / freeze each play exactly one activation sound', () => {
 });
 
 /* ================================================================== */
-/* A5 — Learning feedback + music coordination                          */
+/* A5 — Learning feedback + speech ducking                              */
 /* ================================================================== */
-console.log('\n== feedback + music ========================================');
+console.log('\n== feedback + speech ducking ===============================');
 
-test('correct answer plays success once and ducks (never stops) music', () => {
-  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-game');
-  pump(scene, 2000); // ramp-in complete
-  const music = sound.sounds.find((s) => s.key === 'music-game');
-  assert(music && music.isPlaying, 'gameplay music playing');
-  const before = music.volume;
+test('correct answer plays success exactly once', () => {
+  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
   audio.emit('answer-correct');
   eq(sound.plays.filter((k) => k === 'ui-correct').length, 1, 'success jingle once');
-  pump(scene, 2600); // duck ramp applied; restore (t+1200ms) not due yet
-  assert(music.volume < before, `music ducked (v ${music.volume.toFixed(2)} < ${before.toFixed(2)})`);
-  assert(music.isPlaying, 'music still playing under feedback');
 });
 
 test('wrong answer plays gentle feedback; missed shot plays a quiet whiff', () => {
@@ -394,52 +474,50 @@ test('wrong answer plays gentle feedback; missed shot plays a quiet whiff', () =
   eq(sound.plays.filter((k) => k === 'ui-missed').length, 1);
 });
 
-test('level complete: star chimes match the star count, music fades out', () => {
+test('speech ducking lowers active sfx and restores them smoothly', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-game');
+  audio.emit('hit-wood', { severity: 40 });
+  const voice = sound.sounds.find((s) => s.isPlaying && s.key.startsWith('wood'));
+  assert(voice, 'impact voice live');
+  const before = voice.volume;
+  audio.duckForSpeech(true);
   pump(scene, 2000);
-  audio.emit('level-complete', { stars: 2 });
-  pump(scene, 3500);   // staggered chimes + fanfare + music fade-out
-  eq(sound.plays.filter((k) => k === 'ui-star').length, 2, 'two stars → two chimes');
-  eq(sound.plays.filter((k) => k === 'ui-complete').length, 1, 'fanfare once');
-  assert(!sound.plays.includes('music-victory'), 'no victory sting for a normal level');
+  assert(voice.volume < before * 0.6, `ducked (v ${voice.volume.toFixed(2)} < ${before.toFixed(2)})`);
+  audio.duckForSpeech(false);
+  pump(scene, 3000);
+  assert(Math.abs(voice.volume - before) < 0.02, `restored (v ${voice.volume.toFixed(2)})`);
 });
 
-test('level failed: gentle cue, music stops', () => {
+test('level complete: star chimes match the star count, no music track', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-game');
-  pump(scene, 2000);
+  audio.emit('level-complete', { stars: 2 });
+  pump(scene, 3500);
+  eq(sound.plays.filter((k) => k === 'ui-star').length, 2, 'two stars → two chimes');
+  eq(sound.plays.filter((k) => k === 'ui-complete').length, 1, 'fanfare once');
+  eq(sound.sounds.length, sound.sounds.filter((s) => !s.loop).length, 'no looping track started');
+});
+
+test('level failed: gentle cue once', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.emit('level-failed');
   pump(scene, 3200);
   eq(sound.plays.filter((k) => k === 'ui-failed').length, 1, 'failure cue once');
 });
 
-test('music switching is idempotent and crossfades instead of stacking', () => {
+test('game pause suspends all audio and kills the movement voice; resume is clean', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-menu');
-  pump(scene, 2000);
-  audio.playMusic('music-game'); // menu → gameplay
-  pump(scene, 3000);
-  const game = sound.sounds.filter((s) => s.key === 'music-game');
-  const menu = sound.sounds.filter((s) => s.key === 'music-menu');
-  eq(game.filter((s) => s.isPlaying).length, 1, 'gameplay music playing');
-  assert(menu.every((s) => !s.isPlaying), 'menu music faded out');
-  audio.playMusic('music-game'); // SAME key → no-op
-  eq(sound.sounds.filter((s) => s.key === 'music-game').length, 1, 'same-key restart refused');
-});
-
-test('game pause suspends all audio; resume continues without duplication', () => {
-  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-game');
-  pump(scene, 2500);
-  audio.emit('sling-stretch', { tension: 0.5 }); // have a loop running too
+  drive(audio, scene, 1100, 6, { tension: 0.5, speed: 450 });
+  const seg = liveSounds(sound).find((s) => s.key.startsWith('sling-stretch-'));
+  assert(seg, 'segment live');
   audio.emit('game-pause');
   eq(sound.pauseAllCount, 1, 'pauseAll issued');
-  const music = sound.sounds.find((s) => s.key === 'music-game');
-  assert(music.isPlaying, 'music instance survives (paused, not destroyed)');
+  assert(!audio._sling.voice, 'movement voice dropped on pause');
   audio.emit('game-resume');
   eq(sound.resumeAllCount, 1, 'resumeAll issued');
-  eq(sound.sounds.filter((s) => s.key === 'music-game').length, 1, 'no duplicate music channel');
+  // resume with a stationary pouch: nothing may restart
+  pump(scene, 5000);
+  eq(liveSounds(sound).filter((s) => s.key.startsWith('sling-stretch-')).length, 0,
+    'no stretch sound resurrected after resume');
 });
 
 /* ================================================================== */
@@ -447,39 +525,45 @@ test('game pause suspends all audio; resume continues without duplication', () =
 /* ================================================================== */
 console.log('\n== settings, persistence, robustness =======================');
 
-test('sfx mute silences impacts/abilities but not UI clicks', () => {
-  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
+test('sfx mute silences impacts/abilities/movement but not UI clicks', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.setSfxEnabled(false);
   audio.emit('hit-wood', { severity: 30 });
   audio.emit('boost');
-  eq(sound.plays.length, 0, 'sfx muted');
+  drive(audio, scene, 1100, 6, { tension: 0.6, speed: 500 });
+  eq(sound.plays.length, 0, 'sfx muted (incl. movement audio)');
   audio.emit('ui-click');
   eq(sound.plays.length, 1, 'ui channel unaffected');
 });
 
-test('music mute stops current music and remembers the request', () => {
-  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-game');
-  pump(scene, 2000);
+test('music toggle only persists the preference — nothing can play', () => {
+  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
   audio.setMusicEnabled(false);
-  pump(scene, 2500);
-  assert(sound.sounds.filter((s) => s.key === 'music-game').every((s) => !s.isPlaying), 'music stopped');
   audio.setMusicEnabled(true);
-  pump(scene, 3000);
-  assert(sound.sounds.some((s) => s.key === 'music-game' && s.isPlaying), 'music restored');
+  eq(audio.mutes.music, false, 'preference stored');
+  eq(sound.sounds.length, 0, 'no music exists to start in this build');
 });
 
-test('master mute silences everything; unmute revives desired music', () => {
+test('an OLD save with music ON cannot resurrect background audio', () => {
+  const legacy = { version: 1, settings: { sound: true, music: true, ambience: true } };
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt(legacy)));
+  audio.unlock(); // the classic resurrection path: gesture → unlock → retry music
+  pump(scene, 3000);
+  eq(sound.sounds.length, 0, 'silence preserved (no tracks shipped, none restarted)');
+  assert(!('music' in audio) || typeof audio.playMusic !== 'function', 'no music API to misuse');
+});
+
+test('master mute silences everything; unmute replays NOTHING old', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
-  audio.playMusic('music-menu');
-  pump(scene, 2000);
+  audio.emit('ui-click');
+  const voicesBefore = sound.sounds.length; // the click (fakes never auto-end)
   audio.setMasterEnabled(false);
   eq(sound.mute, true, 'manager muted');
   assert(!audio.enabled, 'bus disabled');
   audio.setMasterEnabled(true);
   pump(scene, 2600);
   eq(sound.mute, false, 'manager unmuted');
-  assert(sound.sounds.some((s) => s.key === 'music-menu' && s.isPlaying), 'desired music replayed');
+  eq(sound.sounds.length, voicesBefore, 'unmute started no new sound');
 });
 
 test('new settings persist through the SaveManager and reload', () => {
@@ -531,7 +615,6 @@ test('missing assets never crash — plays are dropped and counted', () => {
   audio.emit('launch', { power: 1 });
   audio.emit('hit-wood', { severity: 30 });
   audio.emit('explode', { x: 1, y: 1 });
-  audio.playMusic('music-game');
   eq(sound.plays.length, 0, 'nothing played');
   assert((audio.stats.dropped['sling-release'] || 0) + (audio.stats.dropped['explosion'] || 0) >= 1,
     'drops counted for diagnostics');
@@ -589,6 +672,7 @@ async function headless() {
 
   await h.gotoLevel(1);
   await h.waitForState('AIMING');
+  h.api.setAutoPause(false); // headless tab can blur mid-run → never auto-pause
 
   test('question flow emits question-ready through the real path', () => {
     const audio = h.game.registry.get('audio');
@@ -596,10 +680,19 @@ async function headless() {
       'question-ready on the bus');
   });
 
+  await testAsync('a settled level emits no further audio events on its own', async () => {
+    const audio = h.game.registry.get('audio');
+    // settle first: the previous test's shot may still be resolving → let
+    // the question advance / re-arm finish before the idle window.
+    await h.waitForState('AIMING', 12000);
+    audio.clearLog();
+    await new Promise((r) => setTimeout(r, 1500));
+    eq(audio.eventLog.length, 0, 'silent bus with no input (silence-first)');
+  });
+
   await testAsync('a real shot emits launch → impacts in order', async () => {
     const audio = h.game.registry.get('audio');
     audio.clearLog();
-    h.api.setAutoPause(false);
     h.fire(16, -11); // lob toward the answer towers
     await h.waitForState('PHYSICS_RESOLVING', 9000);
     await h.waitFor(() => {
@@ -632,7 +725,7 @@ async function headless() {
   test('audio stats stay sane after real gameplay (no runaway voices)', () => {
     const audio = h.game.registry.get('audio');
     const info = audio.audioDebugInfo();
-    assert(info.activeVoices <= 14, `voice count bounded (${info.activeVoices})`);
+    assert(info.activeVoices <= 10, `voice count bounded (${info.activeVoices})`);
     assert(info.attached, 'engine still attached');
   });
 

@@ -14,40 +14,53 @@ import { ViewportController } from './systems/Viewport.js';
 import { installOrientationGate, refreshOrientationGate } from './systems/OrientationGate.js';
 import { installDebugAPI } from './dev/DebugAPI.js';
 
-export const game = new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: 'game',
-  width: WORLD.WIDTH,
-  height: WORLD.HEIGHT,
-  backgroundColor: COLORS.SKY,
-  scale: {
-    // NONE: the ViewportController is the single owner of the canvas size —
-    // it tracks the real visible viewport (toolbar/notch aware) × DPR so the
-    // game fills the window edge-to-edge with zero letterboxing. Scenes
-    // frame the 1280×720 world with a camera zoom (systems/Viewport.js).
-    mode: Phaser.Scale.NONE,
-    autoCenter: Phaser.Scale.NO_CENTER
-  },
-  physics: {
-    default: 'matter',
-    matter: {
-      gravity: { y: PHYSICS.GRAVITY_Y },
-      enableSleeping: PHYSICS.ENABLE_SLEEPING,
-      debug: false
-    }
-  },
-  fps: {
-    // setTimeout-based loop: keeps running when the canvas is occluded
-    // (rAF stops), which headless testing and some embedded webviews need.
-    forceSetTimeOut: true,
-    target: 60
-  },
-  input: {
-    activePointers: 3,   // multi-touch friendly
-    touch: { capture: true }
-  },
-  scene: [BootScene, MenuScene, LevelSelectScene, GameScene]
-});
+// Boot watchdog handshake (Fix: Live Server blank screen): if Phaser cannot
+// initialize, surface the failure via the index.html error overlay instead of
+// leaving an empty sky-colored page; on success retire the loading chip.
+function createGame() {
+  try {
+    return new Phaser.Game({
+      type: Phaser.AUTO,
+      parent: 'game',
+      width: WORLD.WIDTH,
+      height: WORLD.HEIGHT,
+      backgroundColor: COLORS.SKY,
+      scale: {
+        // NONE: the ViewportController is the single owner of the canvas size —
+        // it tracks the real visible viewport (toolbar/notch aware) × DPR so the
+        // game fills the window edge-to-edge with zero letterboxing. Scenes
+        // frame the 1280×720 world with a camera zoom (systems/Viewport.js).
+        mode: Phaser.Scale.NONE,
+        autoCenter: Phaser.Scale.NO_CENTER
+      },
+      physics: {
+        default: 'matter',
+        matter: {
+          gravity: { y: PHYSICS.GRAVITY_Y },
+          enableSleeping: PHYSICS.ENABLE_SLEEPING,
+          debug: false
+        }
+      },
+      fps: {
+        // setTimeout-based loop: keeps running when the canvas is occluded
+        // (rAF stops), which headless testing and some embedded webviews need.
+        forceSetTimeOut: true,
+        target: 60
+      },
+      input: {
+        activePointers: 3,   // multi-touch friendly
+        touch: { capture: true }
+      },
+      scene: [BootScene, MenuScene, LevelSelectScene, GameScene]
+    });
+  } catch (err) {
+    window.__wbBoot?.fail('Phaser failed to initialize: ' + (err?.message || err));
+    throw err;
+  }
+}
+
+export const game = createGame();
+game.events.once('ready', () => window.__wbBoot?.ok());
 
 // Fix #2 — full-bleed responsive viewport + landscape-only gate for phones.
 export const viewport = new ViewportController(game, { onChange: refreshOrientationGate });

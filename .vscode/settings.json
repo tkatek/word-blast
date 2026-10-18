@@ -1,0 +1,22 @@
+{
+  // WORD BLAST — Live Server must serve the COMPILED game (Vite build output),
+  // never the uncompiled project root: the root index.html imports bare ES
+  // module specifiers ('phaser'), which only resolve after `npm run build`.
+  // Workflow: `npm run watch` (or `npm run build`) -> "Go Live".
+  // NOTE: changes here require toggling Live Server off/on once.
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.host": "127.0.0.1",
+  "liveServer.settings.root": "/dist",
+  // Full page reloads (not hot-injection): the game is a full-screen canvas.
+  "liveServer.settings.fullReload": true,
+  // Debounce: vite build --watch rewrites several files in a burst; wait for
+  // the burst to finish before reloading so a rebuild never serves half-written files.
+  "liveServer.settings.wait": 600,
+  // Never trigger reloads for editor/sourcemap noise.
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**/*",
+    "**/*.map"
+  ],
+  "liveServer.settings.donotShowInfoMsg": true,
+  "liveServer.settings.donotVerifySources": true
+}
