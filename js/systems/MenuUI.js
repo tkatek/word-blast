@@ -295,7 +295,7 @@ export class WoodButton {
     const {
       x = 0, y = 0, width = 300, height = 92, label = '',
       variant = 'primary', icon = null, onClick = null,
-      leaves = false, shine = false
+      leaves = false, shine = false, fontSize = null
     } = o;
     this.scene = scene;
     this.width = width;
@@ -337,11 +337,12 @@ export class WoodButton {
       c.add(gl);
     }
 
-    // icon + label, centred as one group
+    // icon + label, centred as one group (auto-shrink keeps long labels
+    // inside the slab instead of riding over the rounded edges)
     const style = {
       fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif',
       fontStyle: 'bold',
-      fontSize: variant === 'primary' ? Math.round(height * 0.44) + 'px' : '23px',
+      fontSize: fontSize || (variant === 'primary' ? Math.round(height * 0.44) + 'px' : '23px'),
       color: PALETTE.cream,
       stroke: PALETTE.creamStroke,
       strokeThickness: variant === 'primary' ? 6 : 4
@@ -349,19 +350,28 @@ export class WoodButton {
     const text = menuText(scene, 0, 2, label, style);
     const iconSize = variant === 'primary' ? height * 0.4 : 24;
     const gap = icon ? iconSize * 0.5 : 0;
+    const minPad = 22;
+    let groupScale = 1;
     const totalW = (icon ? iconSize + gap : 0) + text.width;
-    const textX = icon ? -totalW / 2 + iconSize + gap + text.width / 2 : 0;
+    if (totalW > width - minPad * 2) groupScale = (width - minPad * 2) / totalW;
+    const scaledTotal = totalW * groupScale;
+    const textX = icon ? -scaledTotal / 2 + (iconSize + gap) * groupScale + (text.width * groupScale) / 2 : 0;
     text.setX(textX);
+    if (groupScale !== 1) text.setScale(groupScale);
     c.add(text);
     this.label = text;
 
     if (icon === 'play') {
       const gi = scene.add.graphics();
-      drawPlayIcon(gi, -totalW / 2 + iconSize / 2, 2, iconSize);
+      const icx = -scaledTotal / 2 + (iconSize * groupScale) / 2;
+      const icy = 2;
+      drawPlayIcon(gi, icx, icy, iconSize * groupScale);
       c.add(gi);
     } else if (icon === 'reset') {
       const gi = scene.add.graphics();
-      drawResetIcon(gi, -totalW / 2 + iconSize / 2, 2, iconSize * 0.52);
+      const icx = -scaledTotal / 2 + (iconSize * groupScale) / 2;
+      const icy = 2;
+      drawResetIcon(gi, icx, icy, iconSize * groupScale * 0.52);
       c.add(gi);
     }
 
@@ -385,25 +395,29 @@ export class WoodButton {
     });
   }
 
-  /** Periodic light sweep across the slab (decorative, WebGL only). */
+  /**
+   * Periodic light sweep (decorative): a small additive glint glides along
+   * the slab's top edge, its path CLAMPED to the button bounds — no mask
+   * needed (a GeometryMask source must stay off the display list; a live
+   * graphics inside the container would render as a white slab on top of
+   * the button, which is exactly what Fix #21's visual pass caught).
+   */
   _addShine() {
-    if (!this.scene.renderer.gl) return;
     const { width: w, height: h } = this;
-    const shine = this.scene.add.graphics();
-    shine.fillStyle(0xffffff, 0.22);
-    shine.fillPoints([
-      { x: -13, y: -h / 2 }, { x: 13, y: -h / 2 },
-      { x: -5, y: h / 2 }, { x: -31, y: h / 2 }
-    ], true);
-    const maskG = this.scene.add.graphics();
-    maskG.fillStyle(0xffffff, 1);
-    maskG.fillRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6);
-    shine.setMask(maskG.createGeometryMask());
-    shine.x = -w;
-    this.container.add([shine, maskG]);
+    const glint = this.scene.add.image(-w / 2 + 20, -h / 2 + h * 0.28, 'p-spark')
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setTint(0xfff8dc)
+      .setScale(0.85)
+      .setAlpha(0.8);
+    this.container.add(glint);
     this.scene.tweens.add({
-      targets: shine, x: w, duration: 900, ease: 'Sine.easeInOut',
-      repeat: -1, repeatDelay: 2500
+      targets: glint,
+      x: w / 2 - 20,
+      duration: 950,
+      ease: 'Sine.easeInOut',
+      repeat: -1,
+      repeatDelay: 2500,
+      onRepeat: () => glint.setX(-w / 2 + 20)
     });
   }
 
@@ -535,12 +549,13 @@ export class ConfirmDialog {
     }));
 
     this.cancelBtn = new WoodButton(scene, {
-      x: -152, y: H / 2 - 62, width: 196, height: 58,
+      x: -165, y: H / 2 - 62, width: 190, height: 58,
       label: cancelLabel, variant: 'secondary', onClick: () => this._act(onCancel)
     });
     this.confirmBtn = new WoodButton(scene, {
-      x: 152, y: H / 2 - 62, width: 264, height: 58,
-      label: confirmLabel, variant: 'danger', icon: 'reset', onClick: () => this._act(onConfirm)
+      x: 160, y: H / 2 - 62, width: 300, height: 58,
+      label: confirmLabel, variant: 'danger', icon: 'reset',
+      fontSize: '21px', onClick: () => this._act(onConfirm)
     });
     panel.add(this.cancelBtn.container);
     panel.add(this.confirmBtn.container);

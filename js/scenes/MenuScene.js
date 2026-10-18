@@ -111,11 +111,12 @@ export class MenuScene extends Phaser.Scene {
 
   /**
    * Cover-fit the background to the VISIBLE view: one uniform scale, never
-   * stretched, never tiled — the painted bird is never duplicated. When the
-   * view is wider than the art's 16:9 the vertical crop keeps slightly more
-   * of the foreground (42% of the excess off the top) so the bird, grass
-   * and lake survive; side crops on taller views are centred, which keeps
-   * the bird (left ~20% of the art) clear down to 4:3 aspects.
+   * stretched, never tiled — the painted bird is never duplicated. Two crop
+   * biases keep the art's hero elements safe: horizontal crops (taller
+   * views, 4:3 tablets) keep only 22% of the excess off the LEFT so the
+   * painted red bird stays clear of the edge; vertical crops (wider views)
+   * keep slightly more of the foreground (42% off the top) so the bird,
+   * grass and lake survive.
    */
   fitBackground(view) {
     if (!this.bgImage) return;
@@ -123,9 +124,10 @@ export class MenuScene extends Phaser.Scene {
     const scale = Math.max(view.width / src.width, view.height / src.height);
     const dw = src.width * scale;
     const dh = src.height * scale;
+    const leftCut = Math.max(0, dw - view.width) * 0.22;
     const topCut = Math.max(0, dh - view.height) * 0.42;
     this.bgImage.setScale(scale);
-    this.bgImage.setPosition(view.x + view.width / 2, view.y - topCut + dh / 2);
+    this.bgImage.setPosition(view.x - leftCut + dw / 2, view.y - topCut + dh / 2);
   }
 
   /* ---------------------------------------------------------------- */

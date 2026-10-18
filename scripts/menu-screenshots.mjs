@@ -97,6 +97,12 @@ async function waitForProgressText(page, needle, timeout = 8000) {
   return progressTexts(page);
 }
 
+/** Menu active → entrance fully settled (PLAY armed), THEN match texts. */
+async function gotoMenuSettled(page) {
+  await page.waitForFunction(() => window.__WB__ && window.__WB__.menu() && window.__WB__.menu().active, { timeout: 90000 });
+  await sleep(1500); // entrance choreography (~0.95 s) + camera fade-in
+}
+
 /* ------------------------------------------------------------------ */
 
 async function runDesktopPass() {
@@ -133,7 +139,7 @@ async function runDesktopPass() {
       for (let i = 1; i <= 6; i++) s.recordLevelResult(i, 1000 + i, 2 + (i % 2));
     });
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => window.__WB__ && window.__WB__.menu() && window.__WB__.menu().active, { timeout: 90000 });
+    await gotoMenuSettled(page);
     const saved = await waitForProgressText(page, { levels: '6/15', stars: '15/45' });
     check('saved progress displayed after return',
       saved.levels.includes('6/15') && saved.stars.includes('15/45'),
@@ -159,7 +165,7 @@ async function runDesktopPass() {
     /* 5 — confirmed reset */
     await clickWorld(page, 640, 566);            // RESET SAVE again
     await sleep(600);
-    await clickWorld(page, 792, 458);            // RESET PROGRESS
+    await clickWorld(page, 800, 458);            // RESET PROGRESS
     const afterReset = await waitForProgressText(page, { levels: '0/15', stars: '0/45' });
     const savedAfterReset = await page.evaluate(() => JSON.parse(localStorage.getItem('wordblast.save')));
     check('confirmed reset clears progress (UI + storage)',
