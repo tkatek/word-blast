@@ -20,6 +20,9 @@ import { hudPreloadList, ensureHudArtFallback } from '../systems/HudArt.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
 
+/** Audio preload keys — for the loaderror filter above (Fix #22). */
+const AUDIO_KEYS = new Set(audioPreloadList().map((e) => e.key));
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('BootScene');
