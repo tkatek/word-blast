@@ -26,7 +26,8 @@ import Phaser from 'phaser';
  *  scripts/prepare-menu-assets.mjs from the supplied images). */
 export const MENU_ART = {
   background: { key: 'menu-bg', file: 'background.webp' },
-  logo: { key: 'menu-logo', file: 'logo.webp' }
+  logo: { key: 'menu-logo', file: 'logo.webp' },
+  playButton: { key: 'menu-play-btn', file: 'play-button.webp' }
 };
 
 /** Loader list for MenuScene.preload (mirrors hudPreloadList). */
@@ -49,7 +50,7 @@ export function isFallbackTexture(key) {
  * stand-in (never on top of the real artwork).
  */
 export function ensureMenuArtFallback(scene, key) {
-  if (key !== MENU_ART.background.key && key !== MENU_ART.logo.key) return;
+  if (!Object.values(MENU_ART).some((a) => a.key === key)) return;
   if (scene.textures.exists(key)) return;
   const g = scene.add.graphics();
 
@@ -69,6 +70,14 @@ export function ensureMenuArtFallback(scene, key) {
     g.fillRect(0, Math.round(H * 0.8), W, Math.round(H * 0.2));
     g.fillStyle(0xdad7cd, 1);
     g.fillCircle(W * 0.78, H * 0.16, 46);
+    g.generateTexture(key, W, H);
+  } else if (key === MENU_ART.playButton.key) {
+    // wooden bar face, same 628×143 (4.39:1) as the supplied element
+    const W = 628, H = 143;
+    g.save();
+    g.translateCanvas(W / 2, H / 2); // drawWoodSlab is centred on origin
+    drawWoodSlab(g, W - 6, H - 6, 26, 'primary');
+    g.restore();
     g.generateTexture(key, W, H);
   } else {
     // transparent wooden plaque, same 1774×887 aspect as the real logo

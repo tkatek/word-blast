@@ -571,7 +571,17 @@ export class ObjectFactory {
     if (dmg < 4) return;
 
     this.damageBlock(victim, dmg, 'impact', { x: -nx, y: -ny, closing });
-    this.scene.audio.emit(`hit-${victim.wb.material}`);
+    // Fix #22 — audio hook: the SAME severity the damage model computed
+    // drives impact loudness/layer choice. Resting/grazing contact already
+    // returned above; the pair cooldown above dedupes sustained contact.
+    this.scene.audio.emit(`hit-${victim.wb.material}`, {
+      severity: dmg,
+      x: victim.x,
+      y: victim.y,
+      material: victim.wb.material,
+      otherKind: otherSide.isStatic ? 'terrain' : (other && other.wb ? other.wb.kind : 'body'),
+      otherMaterial: other && other.wb ? other.wb.material : null
+    });
   }
 
   damageBlock(block, dmg, source, dir) {
@@ -587,7 +597,11 @@ export class ObjectFactory {
     const mat = block.wb.material;
     const pos = { x: block.x, y: block.y };
     this.remove(block);
-    this.scene.audio.emit(`break-${mat}`);
+    // Fix #22 — audio hook: destruction fires EXACTLY ONCE per body (the
+    // removed guard above is the physics-side idempotency).
+    this.scene.audio.emit(`break-${mat}`, {
+      x: pos.x, y: pos.y, severity: dmg, frozen
+    });
     if (mat === 'pig') {
       this.scene.fx?.pigPop(pos.x, pos.y);
     } else {
@@ -676,6 +690,11 @@ export class ObjectFactory {
 
   explode(x, y) {
     this.scene.fx?.explosion(x, y);
+    // Fix #22 — audio hook: single emission per actual blast. The bomb's
+    // own detonation sites also emit 'explode' — AudioManager dedupes by
+    // time+distance, so a bomb + its chain never double-boom; spaced TNT
+    // chains stay audible but rate-limited.
+    this.scene.audio.emit('explode', { x, y, source: 'blast' });
     for (const block of [...this.blocks]) {
       if (block.wb.removed) continue;
       const dx = block.x - x;

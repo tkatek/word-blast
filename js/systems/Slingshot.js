@@ -142,6 +142,9 @@ export class Slingshot {
     const p = this.pouchPoint();
     if (Math.hypot(pointer.worldX - p.x, pointer.worldY - p.y) <= GRAB_RADIUS) {
       this.dragging = true;
+      // Fix #22 — audio hook: the stretch sound starts only when the bird
+      // is ACTUALLY grabbed (never on every pointer move).
+      this.scene.audio?.emit('sling-stretch-start', { tension: 0 });
       // Fix #6B: remember WHERE around the bird the player grabbed. The
       // pouch then follows pointer + offset, so the bird never teleports
       // to the pointer on the first move (fingers always press off-center
@@ -168,6 +171,9 @@ export class Slingshot {
     const dy = y - this.anchor.y;
     const l = Math.hypot(dx, dy);
     const clamped = Math.min(l, SLINGSHOT.MAX_DRAG);
+    // Fix #22 — audio hook: tension feed (0..1) drives the stretch loop's
+    // volume/pitch inside AudioManager — no sound spawns per move.
+    this.scene.audio?.emit('sling-stretch', { tension: clamped / SLINGSHOT.MAX_DRAG });
     const nx = l === 0 ? 0 : dx / l;
     const ny = l === 0 ? 0 : dy / l;
     if (this.preview) {
@@ -208,6 +214,10 @@ export class Slingshot {
       // velocity just handed to the physics) so the kept dots are the arc
       // the player actually shot, never a recomputation.
       this.captureShotReference(this.computeDots(p, vx, vy, this.loadedType));
+    } else {
+      // launch refused (no shots / no ammo) — treat exactly like a dud:
+      // stop the stretch sound, small return sound, NO launch audio.
+      this.scene.audio?.emit('sling-cancel');
     }
   }
 
@@ -216,6 +226,9 @@ export class Slingshot {
     if (!this.dragging) return;
     this.dragging = false;
     this.grabOffset = null;
+    // Fix #22 — audio hook: cancelled drag = smooth stretch stop + small
+    // elastic return sound. NEVER a launch sound (that is 'launch').
+    this.scene.audio?.emit('sling-cancel');
     this.startSnap(this.pouchPoint(), CANCEL_SNAP_MS);
     this.redraw();
   }
