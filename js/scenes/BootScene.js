@@ -16,6 +16,7 @@ import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
 import { ensureQuestionCardTexture } from '../systems/QuestionCard.js';
 import { preloadList, TOWER_ASSETS } from '../data/tower-assets.js';
 import { birdPreloadList } from '../data/birds.js';
+import { hudPreloadList, ensureHudArtFallback } from '../systems/HudArt.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
 
@@ -64,6 +65,16 @@ export class BootScene extends Phaser.Scene {
       (import.meta.env.BASE_URL || '/') + 'assets/images/ui/question-card.png'
     );
 
+    // Supplied blank wooden HUD artwork (top bar): frames only — every
+    // label, icon and counter is a separate game object drawn by GameHUD.
+    // If a PNG is unreachable, a procedural stand-in with the SAME measured
+    // geometry is generated under the same key so the HUD layout never
+    // breaks (headless test environments).
+    const HUDBASE = (import.meta.env.BASE_URL || '/') + 'assets/images/ui/hud/';
+    for (const { key, file } of hudPreloadList()) {
+      this.load.image(key, HUDBASE + file);
+    }
+
     this.load.on('loaderror', (file) => {
       if (file.key === SLINGSHOT.ART.KEY) {
         // artwork unreachable (e.g. headless test env): draw a wooden Y with
@@ -79,6 +90,11 @@ export class BootScene extends Phaser.Scene {
       }
       if (file.key.startsWith('bird-')) {
         console.warn(`[Boot] bird artwork missing (${file.key}) — circle fallback`);
+        return;
+      }
+      if (file.key.startsWith('hud-')) {
+        console.warn(`[Boot] HUD artwork missing (${file.key}) — procedural fallback`);
+        ensureHudArtFallback(this, file.key);
         return;
       }
       if (!file.src.includes('/tower/')) return;

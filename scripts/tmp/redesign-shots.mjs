@@ -34,8 +34,10 @@ async function gotoGame(page, levelId = 12) {
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
   const booted = async () => {
     for (let i = 0; i < 60; i++) {
-      const ok = await page.evaluate(() =>
-        !!(window.__WB__ && window.__WB__.scene() && window.__WB__.save() !== null)).catch(() => false);
+      const ok = await page.evaluate(() => {
+        const wb = window.__WB__;
+        return !!(wb && wb.game && wb.game.registry.get('levels') && wb.game.registry.get('save'));
+      }).catch(() => false);
       if (ok) return true;
       await sleep(1000);
     }

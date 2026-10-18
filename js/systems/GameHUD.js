@@ -1,29 +1,33 @@
 /**
- * GameHUD — the cartoon top interface (Fix #17).
+ * GameHUD — the top gameplay interface over the supplied wooden artwork.
  *
- * One reusable component renders the whole top HUD and the pause menu:
- *   LEFT    round pause button + wooden level plaque (LEVEL n + name)
- *   CENTER  wooden pill: clock + MM:SS countdown | question n/total | 3 stars
- *   RIGHT   hearts pill | shots pill (live bird icon) | score pill | sound
+ *   LEFT    round pause button + level plaque (LEVEL n + name, "LV n" on phones)
+ *   CENTER  three-compartment panel: Q n/total | clock + MM:SS | stars
+ *   RIGHT   hearts panel | shots panel (bird portrait + ×N) | score | sound
  *
- * Design contract with the scene:
+ * Design contract with the scene (unchanged since Fix #17):
  *   - The HUD OWNS NO gameplay state. The scene pushes one snapshot object
  *     through sync() (from its single refreshHUD() funnel) plus per-frame
  *     setTimer() from the authoritative LevelTimer. Counters, star progress
  *     and the score count-up are presentation-only.
- *   - All artwork is procedural (no binary assets): warm wood, parchment,
- *     gold trim, drawn once into TextureManager and reused across scene
- *     restarts (guarded by textures.exists).
- *   - Layout lives in the fixed 1280×720 world. The Viewport system always
- *     frames the ENTIRE world on every device (desktop / tablet / phone
- *     landscape), so one generous layout is readable everywhere: main
- *     counters are 20-26 world px, which stays >10 CSS px even at phone
- *     zoom (~0.54). Nothing needs to move or re-group on resize.
- *   - The HUD occupies y <= 76; the question card starts at y 84, leaving
- *     it room to animate in below without overlap.
+ *   - Decorative frames are the supplied blank artwork
+ *     (public/assets/images/ui/hud — HudArt.js registry). Icons, counters
+ *     and labels are separate game objects drawn on top; nothing is baked
+ *     into the images. Panel geometry (inner windows, compartment bounds)
+ *     comes from pixel measurements of the artwork, never eyeballed.
+ *   - Layout lives in the fixed 1280×720 world and is computed by ONE pure
+ *     function (HudLayout.computeHudLayout) per device class — desktop /
+ *     tablet share the full row, phones get a compact row with enlarged
+ *     touch hit-boxes. The Viewport always frames the whole world, so the
+ *     layout never re-flows on resize.
+ *   - The HUD renders through its OWN camera: the gameplay camera's impact
+ *     shake/flash never reaches it (cameras.main ignores the HUD tree).
+ *     Both cameras share the same fit-view framing.
+ *   - The HUD band stays above y 76 (78 on phones) — below the question
+ *     card's top resting spot (y 86), so the existing dock needs no change.
+ *     `barBottom` exposes the occupied band for future coordination.
  *   - Every interactive element calls markUiPointer() on pointerdown so the
- *     scene's global tap-to-activate-ability handler can ignore UI taps
- *     (Phaser emits GameObject pointerdown before the scene-level event).
+ *     scene's global tap-to-activate-ability handler can ignore UI taps.
  *
  * Reduced-motion (save settings) disables the pulses and count-up tweens;
  * instant state swaps remain.
@@ -32,6 +36,9 @@ import Phaser from 'phaser';
 import { WORLD, HUD } from '../config.js';
 import { DebugLog } from './DebugLog.js';
 import { projectileVisual } from '../data/birds.js';
+import { HUD_ART, ensureAllHudArt } from './HudArt.js';
+import { computeHudLayout } from './HudLayout.js';
+import { computeFitView } from './Viewport.js';
 
 export const HUD_DEPTH = { BAR: 50, MENU: 120 };
 
@@ -68,6 +75,7 @@ const BTN_COLORS = {
 
 /* ------------------------------------------------------------------ */
 /* Procedural textures (generated once; survive scene restarts)        */
+/* Icons and menu chrome only — panel frames come from the artwork.    */
 /* ------------------------------------------------------------------ */
 const TEX = {
   wood: 'wbhud-wood',
@@ -119,7 +127,7 @@ export function ensureHudTextures(scene) {
     g.generateTexture(key, w, h);
   };
 
-  /* --- panel tiles (nine-sliced, slice = 24) ---------------------- */
+  /* --- menu panel tiles (nine-sliced, slice = 24) -------------------- */
   tex(TEX.wood, 72, 72, () => {
     g.fillStyle(PAL.woodEdge, 1); g.fillRoundedRect(0, 0, 72, 72, 10);
     g.fillStyle(PAL.woodDark, 1); g.fillRoundedRect(3, 3, 66, 66, 8);
@@ -141,7 +149,7 @@ export function ensureHudTextures(scene) {
     g.fillStyle(PAL.parchEdge, 0.35); g.fillRoundedRect(10, 50, 52, 12, 6);
   });
 
-  /* --- menu button tiles (nine-sliced, slice = 18) ----------------- */
+  /* --- menu button tiles (nine-sliced, slice = 18) ------------------- */
   for (const [name, [edge, body, light]] of Object.entries(BTN_COLORS)) {
     tex(btnTex(name), 64, 64, () => {
       g.fillStyle(edge, 1); g.fillRoundedRect(0, 0, 64, 64, 14);
@@ -242,7 +250,7 @@ export function ensureHudTextures(scene) {
     g.fillPoints(starPoints(24, 24, 9.5, 4), true);
   });
 
-  /* --- round wooden button ------------------------------------------- */
+  /* --- round wooden button (pause menu / legacy fallback) ------------ */
   tex(TEX.round, 96, 96, () => {
     g.fillStyle(PAL.woodEdge, 1); g.fillCircle(48, 48, 47);
     g.fillStyle(PAL.woodDark, 1); g.fillCircle(48, 48, 44);
@@ -270,6 +278,21 @@ export function chunkyText(scene, x, y, str, size, fill, stroke = 0x4d3218, stro
   });
   if (strokeW > 0) t.setStroke(`#${stroke.toString(16).padStart(6, '0')}`, strokeW);
   t.setShadow(0, 2, 'rgba(35,22,8,0.45)', 2, false, true);
+  return t;
+}
+
+/**
+ * Ink-on-parchment text for the light-centred panels: dark fill, no
+ * stroke, barely-there shadow (heavy shadows read as blur at HUD sizes).
+ */
+function inkText(scene, x, y, str, size, fill = PAL.textDark) {
+  const t = scene.add.text(x, y, str, {
+    fontFamily: 'Arial, Helvetica, sans-serif',
+    fontSize: `${size}px`,
+    fontStyle: 'bold',
+    color: fill
+  });
+  t.setShadow(0, 1, 'rgba(255,247,224,0.5)', 1, false, true);
   return t;
 }
 
@@ -329,6 +352,13 @@ export class GameHUD {
     this.save = opts.save || null;
 
     ensureHudTextures(scene);
+    const missing = ensureAllHudArt(scene);
+    if (missing.length) {
+      console.warn('[HUD] artwork missing — procedural stand-ins used for: ' + missing.join(', '));
+    }
+
+    const device = scene.registry.get('device') || { type: 'desktop' };
+    this.layout = computeHudLayout(device.type);
 
     // presentation-only caches
     this.displayScore = 0;
@@ -338,11 +368,13 @@ export class GameHUD {
     this.starLit = [false, false, false];
     this.star1Progress = -1;
     this.heartAnim = null;         // { index, until }
+    this.lastShotsLeft = -1;       // shots-decrease pulse guard
     this.pauseOpenState = false;
 
     this.root = scene.add.container(0, 0).setDepth(HUD_DEPTH.BAR);
     this.buildBar();
     this.buildPauseMenu();
+    this.setupUiCamera();
 
     scene.events.once('shutdown', () => this.destroy());
   }
@@ -351,96 +383,202 @@ export class GameHUD {
     return !!(this.save && this.save.data && this.save.data.settings && this.save.data.settings.reducedMotion);
   }
 
+  /** Lowest world-y the HUD artwork reaches (question-card dock queries it). */
+  get barBottom() {
+    return this.layout.bandBottom;
+  }
+
   /* ---------------------------------------------------------------- */
   /* Top bar                                                           */
   /* ---------------------------------------------------------------- */
   buildBar() {
     const s = this.scene;
-    const CY = 42; // vertical center of the HUD row (bar occupies y<=76)
+    const L = this.layout;
+    const E = L.elements;
+    const TY = L.type;
 
-    /* LEFT — round pause button + level plaque --------------------- */
-    this.pauseBtn = s.add.container(50, CY);
-    const pauseBg = s.add.image(0, 0, TEX.round).setDisplaySize(56, 56);
-    const pauseIco = s.add.image(0, 0, TEX.pauseIcon).setDisplaySize(24, 24);
+    /* LEFT — round pause button ------------------------------------- */
+    this.pauseBtn = s.add.container(E.pause.x, E.pause.y);
+    const pauseBg = s.add.image(0, 0, HUD_ART.pauseBtn.key)
+      .setDisplaySize(E.pause.w, E.pause.h);
+    const pauseIco = s.add.image(0, 0, TEX.pauseIcon)
+      .setDisplaySize(E.pause.w * HUD_ART.pauseBtn.iconDisk * 0.82,
+        E.pause.h * HUD_ART.pauseBtn.iconDisk * 0.82);
     this.pauseBtn.add([pauseBg, pauseIco]);
-    this.pauseBtn.setSize(56, 56).setInteractive({ useHandCursor: true });
-    this.pauseBtn.on('pointerover', () => this.pauseBtn.setScale(1.06));
-    this.pauseBtn.on('pointerout', () => this.pauseBtn.setScale(1));
+    this.pauseBtn.bg = pauseBg;
+    this.pauseBtn.setSize(E.pause.hit, E.pause.hit).setInteractive({ useHandCursor: true });
+    this.pauseBtn.on('pointerover', () => pauseBg.setTint(0xfff1d6));
+    this.pauseBtn.on('pointerout', () => { pauseBg.clearTint(); this.pauseBtn.setScale(1); });
     this.pauseBtn.on('pointerdown', () => { this.pauseBtn.setScale(0.94); this.markUi(); });
     this.pauseBtn.on('pointerup', () => {
-      this.pauseBtn.setScale(1.06);
+      this.pauseBtn.setScale(1);
       this.actions.onPause && this.actions.onPause();
     });
 
-    this.levelPanel = woodPanel(s, 216, CY, 256, 62);
-    this.levelTitle = chunkyText(s, 106, 13, 'LEVEL 1', 20, PAL.textLight, 0x3a2410, 3.5);
-    this.levelName = chunkyText(s, 106, 41, '', 15, PAL.parchLight, 0x4d3218, 2);
+    /* LEVEL plaque --------------------------------------------------- */
+    this.levelPanel = s.add.image(E.level.x, E.level.y, HUD_ART.level.key)
+      .setDisplaySize(E.level.w, E.level.h);
+    const li = HUD_ART.level.inner;
+    const lx0 = E.level.x - E.level.w / 2 + li.x0 * E.level.w;
+    const lx1 = E.level.x - E.level.w / 2 + li.x1 * E.level.w;
+    const ly0 = E.level.y - E.level.h / 2 + li.y0 * E.level.h;
+    const ly1 = E.level.y + E.level.h / 2 - (1 - li.y1) * E.level.h;
+    const lMidX = (lx0 + lx1) / 2;
+    const lWinH = ly1 - ly0;
+    if (TY.levelShort) {
+      this.levelTitle = inkText(s, lMidX, E.level.y, 'LV 1', TY.levelMain).setOrigin(0.5);
+      this.levelName = s.add.text(0, -40, '', { fontSize: '1px' }).setVisible(false);
+    } else {
+      // two lines share the measured parchment window with tight leading
+      this.levelTitle = inkText(s, lMidX, E.level.y - lWinH * 0.21, 'LEVEL 1', TY.levelMain)
+        .setOrigin(0.5);
+      this.levelName = inkText(s, lMidX, E.level.y + lWinH * 0.25, '', TY.levelTitle, '#6b4a26')
+        .setOrigin(0.5);
+    }
+    this.levelTitleMaxW = (lx1 - lx0) - 6;
 
-    /* CENTER — timer | question | stars ----------------------------- */
-    this.centerPill = s.add.container(640, CY);
-    const pillW = 300, pillH = 58, x0 = -pillW / 2;
-    const pill = woodPanel(s, 0, 0, pillW, pillH);
-    const clock = s.add.image(x0 + 26, 0, TEX.clock).setDisplaySize(32, 32);
-    this.timerText = chunkyText(s, x0 + 46, 1, '00:00', 23, PAL.textLight, 0x3a2410, 4)
+    /* CENTER — Q | clock MM:SS | stars ------------------------------- */
+    this.progressPanel = s.add.image(E.progress.x, E.progress.y, HUD_ART.progress.key)
+      .setDisplaySize(E.progress.w, E.progress.h);
+
+    const qc = L.cells.question;
+    this.questionText = inkText(s, qc.cx, qc.cy, 'Q 1/4', TY.question).setOrigin(0.5);
+
+    const tc = L.cells.timer;
+    const clock = s.add.image(tc.x0 + TY.timerIcon / 2 + 1, tc.cy, TEX.clock)
+      .setDisplaySize(TY.timerIcon, TY.timerIcon);
+    this.timerText = inkText(s, tc.x0 + TY.timerIcon + 5, tc.cy, '00:00', TY.timer)
       .setOrigin(0, 0.5);
-    const div1 = s.add.rectangle(x0 + 122, 0, 3, 30, PAL.woodEdge, 0.55);
-    this.questionText = chunkyText(s, x0 + 155, 1, 'Q 1/4', 19, PAL.parchLight, 0x4d3218, 3)
-      .setOrigin(0.5);
-    const div2 = s.add.rectangle(x0 + 205, 0, 3, 30, PAL.woodEdge, 0.55);
+    // reserve the full MM:SS width so the ticking clock never shifts the HUD
+    this.timerText.setFixedSize(Math.ceil(TY.timer * 0.62 * 5) + 4, Math.ceil(TY.timer * 1.25));
+    this.timerGroup = s.add.container(0, 0, [clock, this.timerText]);
+
+    const sc = L.cells.stars;
     this.starIcons = [];
-    for (let i = 0; i < 3; i++) {
-      const empty = s.add.image(0, 0, TEX.starEmpty).setDisplaySize(23, 23);
-      const full = s.add.image(0, 0, TEX.star).setDisplaySize(23, 23).setVisible(false);
-      const g = s.add.container(x0 + 224 + i * 27, 0, [empty, full]);
+    const starN = TY.starCount;
+    if (starN === 1) {
+      // phone: one summary star doubles as the question-progress dial
+      const empty = s.add.image(0, 0, TEX.starEmpty).setDisplaySize(TY.stars, TY.stars);
+      const full = s.add.image(0, 0, TEX.star).setDisplaySize(TY.stars, TY.stars).setVisible(false);
+      const g = s.add.container(sc.cx, sc.cy, [empty, full]);
       this.starIcons.push({ empty, full, group: g });
+    } else {
+      const gap = Math.max(1, (sc.w - starN * TY.stars) / (starN - 1));
+      const total = starN * TY.stars + (starN - 1) * gap;
+      for (let i = 0; i < starN; i++) {
+        const empty = s.add.image(0, 0, TEX.starEmpty).setDisplaySize(TY.stars, TY.stars);
+        const full = s.add.image(0, 0, TEX.star).setDisplaySize(TY.stars, TY.stars).setVisible(false);
+        const g = s.add.container(sc.cx - total / 2 + TY.stars / 2 + i * (TY.stars + gap), sc.cy,
+          [empty, full]);
+        this.starIcons.push({ empty, full, group: g });
+      }
     }
-    this.centerPill.add([pill, clock, div1, this.timerText, this.questionText, div2, ...this.starIcons.map((x) => x.group)]);
 
-    /* RIGHT — hearts | shots | score | sound ------------------------ */
-    this.heartsPanel = woodPanel(s, 874, CY, 132, 58);
+    /* RIGHT — hearts | shots | score | sound -------------------------- */
+    this.heartsPanel = s.add.image(E.hearts.x, E.hearts.y, HUD_ART.hearts.key)
+      .setDisplaySize(E.hearts.w, E.hearts.h);
+    const hi = HUD_ART.hearts.inner;
+    const hx0 = E.hearts.x - E.hearts.w / 2 + hi.x0 * E.hearts.w;
+    const hx1 = E.hearts.x - E.hearts.w / 2 + hi.x1 * E.hearts.w;
     this.heartIcons = [];
+    const hGap = Math.max(4, (hx1 - hx0 - 3 * TY.hearts) / 4);
     for (let i = 0; i < 3; i++) {
-      this.heartIcons.push(s.add.image(836 + i * 38, CY, TEX.heart).setDisplaySize(28, 28));
+      this.heartIcons.push(
+        s.add.image(hx0 + hGap + TY.hearts / 2 + i * (TY.hearts + hGap), E.hearts.y, TEX.heart)
+          .setDisplaySize(TY.hearts, TY.hearts)
+      );
     }
 
-    this.shotsPanel = woodPanel(s, 998, CY, 100, 58);
-    this.shotsBird = s.add.image(972, CY, TEX.coin); // texture swapped in sync()
-    this.shotsText = chunkyText(s, 992, CY, '×0', 21, PAL.textLight, 0x3a2410, 3.5)
+    this.shotsPanel = s.add.image(E.shots.x, E.shots.y, HUD_ART.shots.key)
+      .setDisplaySize(E.shots.w, E.shots.h);
+    const si = HUD_ART.shots.inner;
+    const sx0 = E.shots.x - E.shots.w / 2 + si.x0 * E.shots.w;
+    const sx1 = E.shots.x - E.shots.w / 2 + si.x1 * E.shots.w;
+    this.shotsBird = s.add.image(sx0 + TY.shotsIcon / 2 + 2, E.shots.y, TEX.coin);
+    this.shotsText = inkText(s, sx0 + TY.shotsIcon + 6, E.shots.y, '×0', TY.shots)
       .setOrigin(0, 0.5);
+    this.shotsMaxX = sx1;
 
-    this.scorePanel = woodPanel(s, 1131, CY, 150, 58);
-    this.scoreCoin = s.add.image(1073, CY, TEX.coin).setDisplaySize(28, 28);
-    this.scoreText = chunkyText(s, 1092, CY, '0', 21, PAL.gold, 0x3a2410, 3.5)
-      .setOrigin(0, 0.5);
+    this.scorePanel = s.add.image(E.score.x, E.score.y, HUD_ART.score.key)
+      .setDisplaySize(E.score.w, E.score.h);
+    const ci = HUD_ART.score.inner;
+    const cx0 = E.score.x - E.score.w / 2 + ci.x0 * E.score.w;
+    this.scoreCoin = s.add.image(cx0 + TY.scoreIcon / 2 + 2, E.score.y, TEX.coin)
+      .setDisplaySize(TY.scoreIcon, TY.scoreIcon);
+    this.scoreText = chunkyText(s, cx0 + TY.scoreIcon + 6, E.score.y, '0', TY.score,
+      '#ffe9b3', 0x3a2410, 2.5).setOrigin(0, 0.5);
+    // reserve the widest live score ("888,888") so counting never jiggles
+    this.scoreText.setFixedSize(Math.ceil(TY.score * 0.64 * 7) + 4, Math.ceil(TY.score * 1.3));
 
-    this.soundBtn = s.add.container(1235, CY);
-    this.soundBg = s.add.image(0, 0, TEX.round).setDisplaySize(44, 44);
-    this.soundIco = s.add.image(0, 0, TEX.soundOn).setDisplaySize(26, 26);
+    this.soundBtn = s.add.container(E.sound.x, E.sound.y);
+    this.soundBg = s.add.image(0, 0, HUD_ART.soundBtn.key)
+      .setDisplaySize(E.sound.w, E.sound.h);
+    this.soundIco = s.add.image(0, 0, TEX.soundOn)
+      .setDisplaySize(E.sound.w * HUD_ART.soundBtn.iconDisk * 0.88,
+        E.sound.h * HUD_ART.soundBtn.iconDisk * 0.88);
     this.soundBtn.add([this.soundBg, this.soundIco]);
-    this.soundBtn.setSize(44, 44).setInteractive({ useHandCursor: true });
-    this.soundBtn.on('pointerover', () => this.soundBtn.setScale(1.08));
-    this.soundBtn.on('pointerout', () => this.soundBtn.setScale(1));
+    this.soundBtn.setSize(E.sound.hit, E.sound.hit).setInteractive({ useHandCursor: true });
+    this.soundBtn.on('pointerover', () => this.soundBg.setTint(0xfff1d6));
+    this.soundBtn.on('pointerout', () => { this.soundBg.clearTint(); this.soundBtn.setScale(1); });
     this.soundBtn.on('pointerdown', () => { this.soundBtn.setScale(0.94); this.markUi(); });
     this.soundBtn.on('pointerup', () => {
-      this.soundBtn.setScale(1.08);
+      this.soundBtn.setScale(1);
       this.actions.onToggleSound && this.actions.onToggleSound();
     });
 
     /* dev-only state chip (never shown to players) */
-    this.stateChip = s.add.text(690, 78, '', {
+    this.stateChip = s.add.text(WORLD.WIDTH / 2 + 50, L.bandBottom + 4, '', {
       fontFamily: 'monospace', fontSize: '13px', color: 'rgba(255,255,255,0.65)'
     });
     this.stateChip.setVisible(DebugLog.enabled);
 
     this.root.add([
-      this.pauseBtn, this.levelPanel, this.levelTitle, this.levelName,
-      this.centerPill,
+      this.pauseBtn,
+      this.levelPanel, this.levelTitle, this.levelName,
+      this.progressPanel, this.questionText, this.timerGroup,
+      ...this.starIcons.map((x) => x.group),
       this.heartsPanel, ...this.heartIcons,
       this.shotsPanel, this.shotsBird, this.shotsText,
       this.scorePanel, this.scoreCoin, this.scoreText,
       this.soundBtn,
       this.stateChip
     ]);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* UI camera — the HUD never shakes with the gameplay camera          */
+  /* ---------------------------------------------------------------- */
+  setupUiCamera() {
+    const s = this.scene;
+    this.uiCam = s.cameras.add(0, 0, s.scale.width, s.scale.height);
+    // gameplay camera: never render the HUD tree (shake/flash stay outside)
+    s.cameras.main.ignore(this.root);
+    s.cameras.main.ignore(this.menu);
+    // UI camera: render ONLY the HUD tree — hide everything already on the
+    // display list and everything added later (birds, towers, overlays…).
+    const uiOwn = new Set([this.root, this.menu]);
+    s.children.each((child) => {
+      if (!uiOwn.has(child)) this.uiCam.ignore(child);
+    });
+    this.onUiChildAdded = (child) => {
+      if (!uiOwn.has(child)) this.uiCam.ignore(child);
+    };
+    // DisplayList is NOT an EventEmitter — adds are announced on the scene's
+    // own event bus as 'addedtoscene'
+    s.events.on('addedtoscene', this.onUiChildAdded);
+    this.onUiScaleResize = () => this.reframeUiCamera();
+    s.scale.on('resize', this.onUiScaleResize);
+    this.reframeUiCamera();
+  }
+
+  /** Mirror the gameplay camera's whole-world fit framing (no shake). */
+  reframeUiCamera() {
+    if (!this.uiCam) return;
+    const s = this.scene;
+    const view = computeFitView(s.scale.gameSize.width, s.scale.gameSize.height);
+    this.uiCam.setSize(s.scale.width, s.scale.height);
+    this.uiCam.setZoom(view.zoom);
+    this.uiCam.centerOn(WORLD.WIDTH / 2, WORLD.HEIGHT / 2);
   }
 
   /* ---------------------------------------------------------------- */
@@ -541,16 +679,23 @@ export class GameHUD {
    * }
    */
   sync(snap) {
-    this.levelTitle.setText(`LEVEL ${snap.levelId}`);
-    this.levelName.setText(snap.levelName || '');
+    this.setLevelTexts(snap.levelId, snap.levelName);
 
     this.questionText.setText(`Q ${snap.questionIndex + 1}/${snap.questionTotal}`);
 
-    // shots — live bird artwork of the selected projectile
+    // shots — live bird artwork of the selected projectile, aspect kept
     this.shotsText.setText(`×${snap.shotsLeft}`);
     const visual = projectileVisual(snap.projectileKey, this.scene.textures, 15);
     if (this.shotsBird.texture.key !== visual.texture) this.shotsBird.setTexture(visual.texture);
-    this.shotsBird.setDisplaySize(32, 32);
+    const frame = this.scene.textures.getFrame(visual.texture);
+    const win = HUD_ART.shots.inner;
+    const winH = (win.y1 - win.y0 - 0.03) * this.layout.elements.shots.h;
+    const boxW = this.shotsMaxX - this.shotsText.x;
+    const k = Math.min(this.layout.type.shotsIcon / frame.height, winH / frame.height,
+      boxW / frame.width);
+    this.shotsBird.setDisplaySize(frame.width * k, frame.height * k);
+    if (snap.shotsLeft < this.lastShotsLeft && this.lastShotsLeft >= 0) this.pulseShots();
+    this.lastShotsLeft = snap.shotsLeft;
 
     // hearts (skip the one mid loss-animation — it swaps itself)
     for (let i = 0; i < this.heartIcons.length; i++) {
@@ -581,6 +726,22 @@ export class GameHUD {
     this.stateChip.setText(`STATE ${snap.state}`).setVisible(DebugLog.enabled);
   }
 
+  /** LEVEL label + title, shrunk to the plaque's measured window. */
+  setLevelTexts(levelId, name) {
+    const short = this.layout.type.levelShort;
+    this.levelTitle.setText(short ? `LV ${levelId}` : `LEVEL ${levelId}`);
+    if (short) return;
+    const t = this.levelName;
+    let size = this.layout.type.levelTitle;
+    const maxW = this.levelTitleMaxW;
+    for (;;) {
+      t.setStyle({ fontSize: `${size}px` });
+      t.setText(name || '');
+      if (t.width <= maxW || size <= 8.5) break;
+      size -= 0.5;
+    }
+  }
+
   setScore(target) {
     this.scoreTarget = target;
     if (this.reducedMotion) {
@@ -590,7 +751,9 @@ export class GameHUD {
     }
     if (target === this.displayScore) return;
     const from = this.displayScore;
-    const tween = { v: from };
+    this.scene.tweens.killTweensOf(this.scoreTweenObj || (this.scoreTweenObj = { v: from }));
+    const tween = this.scoreTweenObj;
+    tween.v = from;
     this.scene.tweens.add({
       targets: tween,
       v: target,
@@ -601,19 +764,22 @@ export class GameHUD {
         this.scoreText.setText(formatScore(tween.v));
       },
       onComplete: () => {
-        this.displayScore = target;
-        this.scoreText.setText(formatScore(target));
+        // never restore an outdated value if a newer target arrived mid-tween
+        this.displayScore = this.scoreTarget;
+        this.scoreText.setText(formatScore(this.scoreTarget));
       }
     });
   }
 
   setStars(lit, q1Progress) {
-    for (let i = 0; i < 3; i++) {
+    const shown = this.starIcons.length;
+    for (let i = 0; i < shown; i++) {
       const was = this.starLit[i];
       const now = !!lit[i];
       this.starIcons[i].full.setVisible(now);
       if (now && !was && !this.reducedMotion) {
         const g = this.starIcons[i].group;
+        this.scene.tweens.killTweensOf(g);
         this.scene.tweens.add({
           targets: g, scale: 1.45, duration: 160, yoyo: true, ease: 'Quad.out'
         });
@@ -621,6 +787,7 @@ export class GameHUD {
       this.starLit[i] = now;
     }
     // star 1 doubles as a question-progress dial while the level runs
+    // (the phone's single star IS this dial)
     const p = Math.max(0, Math.min(1, q1Progress));
     if (p !== this.star1Progress) {
       this.star1Progress = p;
@@ -642,17 +809,27 @@ export class GameHUD {
     const low = total <= HUD.LOW_TIME_MS;
     if (low !== this.timerLowActive) {
       this.timerLowActive = low;
-      this.timerText.setColor(low ? '#ff8fa0' : PAL.textLight);
+      this.timerText.setColor(low ? '#c1121f' : PAL.textDark);
+      this.scene.tweens.killTweensOf(this.timerText);
+      this.timerText.setScale(1);
       if (low && !this.reducedMotion) {
         this.scene.tweens.add({
-          targets: this.centerPill, scale: 1.035, duration: 520,
+          targets: this.timerText, scaleX: 1.07, scaleY: 1.07, duration: 480,
           yoyo: true, repeat: -1, ease: 'Sine.inOut'
         });
-      } else {
-        this.scene.tweens.killTweensOf(this.centerPill);
-        this.centerPill.setScale(1);
       }
     }
+  }
+
+  /** Brief pulse of the shots counter right after a launch. */
+  pulseShots() {
+    if (this.reducedMotion) return;
+    this.scene.tweens.killTweensOf(this.shotsText);
+    this.shotsText.setScale(1);
+    this.scene.tweens.add({
+      targets: this.shotsText, scaleX: 1.3, scaleY: 1.3, duration: 110,
+      yoyo: true, ease: 'Quad.out'
+    });
   }
 
   /** Animate one heart being lost (the authoritative value already moved). */
@@ -717,8 +894,12 @@ export class GameHUD {
 
   destroy() {
     const s = this.scene;
-    s.tweens.killTweensOf([this.menu, this.centerPill, ...this.heartIcons,
+    s.tweens.killTweensOf([this.menu, this.timerText, this.shotsText, ...this.heartIcons,
       ...this.starIcons.map((x) => x.group)]);
+    if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);
+    if (this.onUiScaleResize) s.scale.off('resize', this.onUiScaleResize);
+    if (this.uiCam) s.cameras.remove(this.uiCam);
+    this.uiCam = null;
     this.root?.destroy();
     this.menu?.destroy();
     this.root = this.menu = null;

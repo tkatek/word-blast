@@ -1,4020 +1,3971 @@
 {
- "world": {
-  "width": 1280,
-  "height": 720,
-  "groundY": 428
- },
- "levels": [
-  {
-   "id": 1,
-   "name": "First Shot",
-   "cefr": "A1",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic"
-   ],
-   "starThresholds": {
-    "two": 3450,
-    "three": 5150
-   },
-   "questions": [
-    {
-     "questionId": "q01_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 204
-       },
-       {
-        "x": 1080,
-        "y": 319
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L1Q0-p0",
-        "a": "wood_beam_v",
-        "x": 887,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p1",
-        "a": "wood_beam_v",
-        "x": 763,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p2",
-        "a": "wood_beam_h",
-        "x": 825,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p3",
-        "a": "wood_crate_panel",
-        "x": 1080,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L1Q0-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L1Q0-g0",
-        "a": "pig_small",
-        "x": 825,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q01_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 635,
-        "y": 304
-       },
-       {
-        "x": 815,
-        "y": 204
-       },
-       {
-        "x": 1050,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L1Q1-p0",
-        "a": "wood_beam_v",
-        "x": 877,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L1Q1-p1",
-        "a": "wood_beam_v",
-        "x": 753,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L1Q1-p2",
-        "a": "wood_beam_h",
-        "x": 815,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L1Q1-p3",
-        "a": "wood_crate_cross",
-        "x": 635,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L1Q1-g0",
-        "a": "pig_small",
-        "x": 815,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q01_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 655,
-        "y": 304
-       },
-       {
-        "x": 905,
-        "y": 304
-       },
-       {
-        "x": 1131,
-        "y": 235
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L1Q2-p0",
-        "a": "wood_beam_v",
-        "x": 775,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L1Q2-p1",
-        "a": "wood_triangle",
-        "x": 775,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L1Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 905,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L1Q2-p3",
-        "a": "wood_crate_panel",
-        "x": 1167,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L1Q2-p4",
-        "a": "wood_crate_panel",
-        "x": 1095,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L1Q2-p5",
-        "a": "wood_crate_cross",
-        "x": 1131,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L1Q2-p6",
-        "a": "wood_crate_cross",
-        "x": 655,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q01_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1110,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L1Q3-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L1Q3-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L1Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L1Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 4
-   }
+  "world": {
+    "width": 1280,
+    "height": 720,
+    "groundY": 428
   },
-  {
-   "id": 2,
-   "name": "Everyday Words",
-   "cefr": "A1",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic"
-   ],
-   "starThresholds": {
-    "two": 3450,
-    "three": 5150
-   },
-   "questions": [
+  "levels": [
     {
-     "questionId": "q02_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 635,
-        "y": 304
-       },
-       {
-        "x": 812,
-        "y": 204
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
+      "id": 1,
+      "name": "First Shot",
+      "cefr": "A1",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic"
       ],
-      "pieces": [
-       {
-        "id": "L2Q0-p0",
-        "a": "wood_beam_v",
-        "x": 750,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q0-p1",
-        "a": "wood_beam_v",
-        "x": 874,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q0-p2",
-        "a": "wood_beam_h",
-        "x": 812,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L2Q0-p3",
-        "a": "wood_crate_cross",
-        "x": 635,
-        "y": 386,
-        "rot": 0
-       }
+      "starThresholds": {
+        "two": 3450,
+        "three": 5150
+      },
+      "questions": [
+        {
+          "questionId": "q01_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 204
+              },
+              {
+                "x": 1080,
+                "y": 319
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L1Q0-p0",
+                "a": "wood_beam_v",
+                "x": 887,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L1Q0-p1",
+                "a": "wood_beam_v",
+                "x": 763,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L1Q0-p2",
+                "a": "wood_beam_h",
+                "x": 825,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L1Q0-p3",
+                "a": "wood_crate_panel",
+                "x": 1080,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L1Q0-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L1Q0-g0",
+                "a": "pig_small",
+                "x": 825,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q01_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 815,
+                "y": 204
+              },
+              {
+                "x": 1050,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L1Q1-p0",
+                "a": "wood_beam_v",
+                "x": 877,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L1Q1-p1",
+                "a": "wood_beam_v",
+                "x": 753,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L1Q1-p2",
+                "a": "wood_beam_h",
+                "x": 815,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L1Q1-p3",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L1Q1-g0",
+                "a": "pig_small",
+                "x": 815,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q01_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 905,
+                "y": 304
+              },
+              {
+                "x": 1131,
+                "y": 235
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L1Q2-p0",
+                "a": "wood_beam_v",
+                "x": 775,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L1Q2-p1",
+                "a": "wood_triangle",
+                "x": 775,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L1Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 905,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L1Q2-p3",
+                "a": "wood_crate_panel",
+                "x": 1167,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L1Q2-p4",
+                "a": "wood_crate_panel",
+                "x": 1095,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L1Q2-p5",
+                "a": "wood_crate_cross",
+                "x": 1131,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L1Q2-p6",
+                "a": "wood_crate_cross",
+                "x": 655,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q01_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1110,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L1Q3-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L1Q3-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L1Q3-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L1Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
       ],
-      "pigs": [
-       {
-        "id": "L2Q0-g0",
-        "a": "pig_small",
-        "x": 812,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
+      "birdAmmo": {
+        "basic": 4
+      }
     },
     {
-     "questionId": "q02_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1150,
-        "y": 386
-       }
+      "id": 2,
+      "name": "Everyday Words",
+      "cefr": "A1",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic"
       ],
-      "pieces": [
-       {
-        "id": "L2Q1-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q1-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L2Q1-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L2Q1-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
+      "starThresholds": {
+        "two": 3450,
+        "three": 5150
+      },
+      "questions": [
+        {
+          "questionId": "q02_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 812,
+                "y": 204
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L2Q0-p0",
+                "a": "wood_beam_v",
+                "x": 750,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p1",
+                "a": "wood_beam_v",
+                "x": 874,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p2",
+                "a": "wood_beam_h",
+                "x": 812,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L2Q0-g0",
+                "a": "pig_small",
+                "x": 812,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q02_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1150,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L2Q1-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q1-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L2Q1-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L2Q1-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q02_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 830,
+                "y": 204
+              },
+              {
+                "x": 1130,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L2Q2-p0",
+                "a": "wood_beam_v",
+                "x": 768,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q2-p1",
+                "a": "wood_beam_v",
+                "x": 892,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q2-p2",
+                "a": "wood_beam_h",
+                "x": 830,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L2Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 655,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L2Q2-g0",
+                "a": "pig_small",
+                "x": 830,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q02_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 665,
+                "y": 304
+              },
+              {
+                "x": 841,
+                "y": 204
+              },
+              {
+                "x": 1120,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L2Q3-p0",
+                "a": "wood_beam_v",
+                "x": 779,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q3-p1",
+                "a": "wood_beam_v",
+                "x": 903,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q3-p2",
+                "a": "wood_beam_h",
+                "x": 841,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L2Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 665,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L2Q3-g0",
+                "a": "pig_small",
+                "x": 841,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        }
       ],
-      "pigs": [],
-      "moving": []
-     }
+      "birdAmmo": {
+        "basic": 4
+      }
     },
     {
-     "questionId": "q02_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 655,
-        "y": 304
-       },
-       {
-        "x": 830,
-        "y": 204
-       },
-       {
-        "x": 1130,
-        "y": 386
-       }
+      "id": 3,
+      "name": "Simple Sentences",
+      "cefr": "A1",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic"
       ],
-      "pieces": [
-       {
-        "id": "L2Q2-p0",
-        "a": "wood_beam_v",
-        "x": 768,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q2-p1",
-        "a": "wood_beam_v",
-        "x": 892,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q2-p2",
-        "a": "wood_beam_h",
-        "x": 830,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L2Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 655,
-        "y": 386,
-        "rot": 0
-       }
+      "starThresholds": {
+        "two": 3450,
+        "three": 5150
+      },
+      "questions": [
+        {
+          "questionId": "q03_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 902,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L3Q0-p0",
+                "a": "wood_beam_v",
+                "x": 772,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L3Q0-p1",
+                "a": "wood_triangle",
+                "x": 772,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L3Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 902,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L3Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 655,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q03_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1136,
+                "y": 319
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L3Q1-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L3Q1-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L3Q1-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L3Q1-p3",
+                "a": "wood_crate_panel",
+                "x": 1136,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L3Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q03_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 816,
+                "y": 204
+              },
+              {
+                "x": 1100,
+                "y": 235
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L3Q2-p0",
+                "a": "wood_beam_v",
+                "x": 754,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L3Q2-p1",
+                "a": "wood_beam_v",
+                "x": 878,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L3Q2-p2",
+                "a": "wood_beam_h",
+                "x": 816,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L3Q2-p3",
+                "a": "wood_crate_panel",
+                "x": 1064,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L3Q2-p4",
+                "a": "wood_crate_panel",
+                "x": 1136,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L3Q2-p5",
+                "a": "wood_crate_cross",
+                "x": 1100,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L3Q2-p6",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L3Q2-g0",
+                "a": "pig_small",
+                "x": 816,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q03_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1120,
+                "y": 304
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L3Q3-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L3Q3-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L3Q3-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L3Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 1120,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L3Q3-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
       ],
-      "pigs": [
-       {
-        "id": "L2Q2-g0",
-        "a": "pig_small",
-        "x": 830,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
+      "birdAmmo": {
+        "basic": 4
+      }
     },
     {
-     "questionId": "q02_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 665,
-        "y": 304
-       },
-       {
-        "x": 841,
-        "y": 204
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
+      "id": 4,
+      "name": "Grammar Basics",
+      "cefr": "A1",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic",
+        "speed"
       ],
-      "pieces": [
-       {
-        "id": "L2Q3-p0",
-        "a": "wood_beam_v",
-        "x": 779,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q3-p1",
-        "a": "wood_beam_v",
-        "x": 903,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L2Q3-p2",
-        "a": "wood_beam_h",
-        "x": 841,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L2Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 665,
-        "y": 386,
-        "rot": 0
-       }
+      "starThresholds": {
+        "two": 3450,
+        "three": 5150
+      },
+      "questions": [
+        {
+          "questionId": "q04_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L4Q0-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L4Q0-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L4Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L4Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q04_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 901,
+                "y": 304
+              },
+              {
+                "x": 1120,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L4Q1-p0",
+                "a": "wood_beam_v",
+                "x": 771,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L4Q1-p1",
+                "a": "wood_triangle",
+                "x": 771,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L4Q1-p2",
+                "a": "wood_crate_cross",
+                "x": 901,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L4Q1-p3",
+                "a": "wood_crate_cross",
+                "x": 655,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q04_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 808,
+                "y": 204
+              },
+              {
+                "x": 1120,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L4Q2-p0",
+                "a": "wood_beam_v",
+                "x": 746,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L4Q2-p1",
+                "a": "wood_beam_v",
+                "x": 870,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L4Q2-p2",
+                "a": "wood_beam_h",
+                "x": 808,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L4Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L4Q2-g0",
+                "a": "pig_small",
+                "x": 808,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q04_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 625,
+                "y": 388
+              },
+              {
+                "x": 810,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 388
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L4Q3-p0",
+                "a": "wood_crate_cross",
+                "x": 810,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
       ],
-      "pigs": [
-       {
-        "id": "L2Q3-g0",
-        "a": "pig_small",
-        "x": 841,
-        "y": 400
-       }
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 3
+      }
+    },
+    {
+      "id": 5,
+      "name": "Beginner Challenge",
+      "cefr": "A1+",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic",
+        "speed"
       ],
-      "moving": []
-     }
+      "starThresholds": {
+        "two": 3450,
+        "three": 5150
+      },
+      "questions": [
+        {
+          "questionId": "q05_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 821,
+                "y": 204
+              },
+              {
+                "x": 1080,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L5Q0-p0",
+                "a": "wood_beam_v",
+                "x": 883,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q0-p1",
+                "a": "wood_beam_v",
+                "x": 759,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q0-p2",
+                "a": "wood_beam_h",
+                "x": 821,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L5Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L5Q0-g0",
+                "a": "pig_small",
+                "x": 821,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q05_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 665,
+                "y": 304
+              },
+              {
+                "x": 844,
+                "y": 204
+              },
+              {
+                "x": 1080,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L5Q1-p0",
+                "a": "wood_beam_v",
+                "x": 906,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q1-p1",
+                "a": "wood_beam_v",
+                "x": 782,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q1-p2",
+                "a": "wood_beam_h",
+                "x": 844,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L5Q1-p3",
+                "a": "wood_crate_cross",
+                "x": 665,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L5Q1-g0",
+                "a": "pig_small",
+                "x": 844,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q05_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 665,
+                "y": 304
+              },
+              {
+                "x": 843,
+                "y": 204
+              },
+              {
+                "x": 1120,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L5Q2-p0",
+                "a": "wood_beam_v",
+                "x": 781,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q2-p1",
+                "a": "wood_beam_v",
+                "x": 905,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q2-p2",
+                "a": "wood_beam_h",
+                "x": 843,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L5Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 665,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L5Q2-g0",
+                "a": "pig_small",
+                "x": 843,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q05_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 625,
+                "y": 304
+              },
+              {
+                "x": 805,
+                "y": 204
+              },
+              {
+                "x": 1150,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L5Q3-p0",
+                "a": "wood_beam_v",
+                "x": 743,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q3-p1",
+                "a": "wood_beam_v",
+                "x": 867,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L5Q3-p2",
+                "a": "wood_beam_h",
+                "x": 805,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L5Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 625,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L5Q3-g0",
+                "a": "pig_small",
+                "x": 805,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 3
+      }
+    },
+    {
+      "id": 6,
+      "name": "Past Tense",
+      "cefr": "A2",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic",
+        "speed"
+      ],
+      "starThresholds": {
+        "two": 3450,
+        "three": 5150
+      },
+      "questions": [
+        {
+          "questionId": "q06_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1106,
+                "y": 204
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L6Q0-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p3",
+                "a": "wood_beam_v",
+                "x": 1168,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p4",
+                "a": "wood_beam_v",
+                "x": 1044,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p5",
+                "a": "wood_beam_h",
+                "x": 1106,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L6Q0-g0",
+                "a": "pig_small",
+                "x": 1106,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q06_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L6Q1-p0",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p1",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q06_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L6Q2-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L6Q2-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L6Q2-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L6Q2-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L6Q2-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q06_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1093,
+                "y": 235
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L6Q3-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p4",
+                "a": "wood_crate_panel",
+                "x": 1129,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p5",
+                "a": "wood_crate_panel",
+                "x": 1057,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p6",
+                "a": "wood_crate_cross",
+                "x": 1093,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L6Q3-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 3
+      }
+    },
+    {
+      "id": 7,
+      "name": "Sentence Completion",
+      "cefr": "A2",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q07_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1106,
+                "y": 172
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L7Q0-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p3",
+                "a": "glass_column",
+                "x": 1182,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p4",
+                "a": "glass_column",
+                "x": 1030,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p5",
+                "a": "glass_beam_h",
+                "x": 1106,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p6",
+                "a": "stone_block_s",
+                "x": 1106,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L7Q0-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q07_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1105,
+                "y": 235
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L7Q1-p0",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p1",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p4",
+                "a": "wood_crate_panel",
+                "x": 1069,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p5",
+                "a": "wood_crate_panel",
+                "x": 1141,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p6",
+                "a": "wood_crate_cross",
+                "x": 1105,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L7Q1-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q07_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 625,
+                "y": 388
+              },
+              {
+                "x": 810,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 388
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L7Q2-p0",
+                "a": "wood_crate_cross",
+                "x": 810,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q07_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1120,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L7Q3-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "ice": 2
+      }
+    },
+    {
+      "id": 8,
+      "name": "Word Order",
+      "cefr": "A2",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q08_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 965,
+                "y": 254
+              },
+              {
+                "x": 1111,
+                "y": 142
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L8Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 965,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L8Q0-p3",
+                "a": "glass_column",
+                "x": 1051,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q0-p4",
+                "a": "glass_column",
+                "x": 1171,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q0-p5",
+                "a": "glass_beam_h",
+                "x": 1111,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L8Q0-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q08_1-xl1",
+                "a": "wood_beam_h",
+                "x": 965,
+                "y": 319,
+                "rot": 0
+              },
+              {
+                "id": "q08_1-xl2",
+                "a": "glass_column",
+                "x": 1111,
+                "y": 226,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L8Q0-g0",
+                "a": "pig_small",
+                "x": 1111,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q08_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 890,
+                "y": 180
+              },
+              {
+                "x": 1106,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L8Q1-p0",
+                "a": "glass_column",
+                "x": 955,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q1-p1",
+                "a": "glass_column",
+                "x": 825,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q1-p2",
+                "a": "glass_beam_h",
+                "x": 890,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L8Q1-p7",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q08_2-xl1",
+                "a": "wood_beam_h",
+                "x": 890,
+                "y": 245,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L8Q1-g0",
+                "a": "pig_small",
+                "x": 750,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q08_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 688,
+                "y": 319
+              },
+              {
+                "x": 1010,
+                "y": 386
+              },
+              {
+                "x": 1110,
+                "y": 252
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L8Q2-p0",
+                "a": "wood_crate_panel",
+                "x": 724,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p1",
+                "a": "wood_crate_panel",
+                "x": 652,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "q08_3-xl1",
+                "a": "wood_crate_cross",
+                "x": 1110,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q08_3-xl2",
+                "a": "wood_beam_h",
+                "x": 1110,
+                "y": 319,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q08_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 890,
+                "y": 180
+              },
+              {
+                "x": 1111,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L8Q3-p0",
+                "a": "glass_column",
+                "x": 825,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p1",
+                "a": "glass_column",
+                "x": 955,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p2",
+                "a": "glass_beam_h",
+                "x": 890,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p7",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q08_4-xl1",
+                "a": "wood_beam_h",
+                "x": 890,
+                "y": 245,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L8Q3-g0",
+                "a": "pig_small",
+                "x": 1111,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "ice": 2
+      }
+    },
+    {
+      "id": 9,
+      "name": "Grammar Decisions",
+      "cefr": "A2",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q09_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1106,
+                "y": 204
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L9Q0-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p4",
+                "a": "wood_beam_v",
+                "x": 1044,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p5",
+                "a": "wood_beam_v",
+                "x": 1168,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p6",
+                "a": "wood_beam_h",
+                "x": 1106,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L9Q0-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L9Q0-g0",
+                "a": "pig_small",
+                "x": 1106,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q09_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1150,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L9Q1-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": [
+              {
+                "m": "stone",
+                "x": 520,
+                "y": 330,
+                "w": 56,
+                "h": 120,
+                "axis": "y",
+                "range": 70,
+                "speed": 0.8,
+                "phase": 3.632068583218129
+              }
+            ]
+          }
+        },
+        {
+          "questionId": "q09_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 665,
+                "y": 235
+              },
+              {
+                "x": 880,
+                "y": 386
+              },
+              {
+                "x": 1120,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L9Q2-p0",
+                "a": "wood_crate_panel",
+                "x": 629,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p1",
+                "a": "wood_crate_panel",
+                "x": 701,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 665,
+                "y": 317,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q09_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 700,
+                "y": 230
+              },
+              {
+                "x": 950,
+                "y": 386
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L9Q3-p0",
+                "a": "glass_column",
+                "x": 760,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q3-p1",
+                "a": "glass_column",
+                "x": 640,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q3-p2",
+                "a": "glass_beam_h",
+                "x": 700,
+                "y": 305,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L9Q3-g0",
+                "a": "pig_small",
+                "x": 700,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "ice": 2
+      }
+    },
+    {
+      "id": 10,
+      "name": "Intermediate Challenge",
+      "cefr": "A2+",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice",
+        "split"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q10_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1140,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L10Q0-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L10Q0-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L10Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L10Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q10_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1106,
+                "y": 235
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L10Q1-p0",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p1",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p4",
+                "a": "wood_crate_panel",
+                "x": 1142,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p5",
+                "a": "wood_crate_panel",
+                "x": 1070,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p6",
+                "a": "wood_crate_cross",
+                "x": 1106,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L10Q1-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q10_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 681,
+                "y": 230
+              },
+              {
+                "x": 930,
+                "y": 386
+              },
+              {
+                "x": 1140,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L10Q2-p0",
+                "a": "glass_column",
+                "x": 621,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L10Q2-p1",
+                "a": "glass_column",
+                "x": 741,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L10Q2-p2",
+                "a": "glass_beam_h",
+                "x": 681,
+                "y": 305,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L10Q2-g0",
+                "a": "pig_small",
+                "x": 681,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q10_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1130,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L10Q3-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L10Q3-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L10Q3-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L10Q3-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L10Q3-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "ice": 2,
+        "split": 2
+      }
+    },
+    {
+      "id": 11,
+      "name": "Complex Sentences",
+      "cefr": "B1",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice",
+        "split"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q11_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1100,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L11Q0-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L11Q0-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L11Q0-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L11Q0-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q0-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q11_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1130,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L11Q1-p0",
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L11Q1-p1",
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L11Q1-p2",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L11Q1-p3",
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q1-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q1-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L11Q1-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q11_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 870,
+                "y": 144
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L11Q2-p0",
+                "a": "stone_block_l",
+                "x": 870,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L11Q2-p1",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L11Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L11Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L11Q2-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q11_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1110,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L11Q3-p0",
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L11Q3-p1",
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L11Q3-p2",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L11Q3-p3",
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q3-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q3-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L11Q3-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "ice": 2,
+        "split": 2
+      }
+    },
+    {
+      "id": 12,
+      "name": "Meaning and Context",
+      "cefr": "B1",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice",
+        "split",
+        "bomb"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q12_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 870,
+                "y": 144
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L12Q0-p0",
+                "a": "stone_block_l",
+                "x": 870,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L12Q0-p1",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L12Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L12Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L12Q0-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q12_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1150,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L12Q1-p0",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L12Q1-p1",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L12Q1-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L12Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q12_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L12Q2-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L12Q2-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L12Q2-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L12Q2-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q2-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q12_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 870,
+                "y": 144
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L12Q3-p0",
+                "a": "stone_block_l",
+                "x": 870,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L12Q3-p1",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L12Q3-p2",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L12Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L12Q3-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "split": 2,
+        "bomb": 1,
+        "ice": 1
+      }
+    },
+    {
+      "id": 13,
+      "name": "Reading and Reasoning",
+      "cefr": "B1",
+      "shotsPerQuestion": 4,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice",
+        "split",
+        "bomb"
+      ],
+      "starThresholds": {
+        "two": 3200,
+        "three": 4900
+      },
+      "questions": [
+        {
+          "questionId": "q13_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 705,
+                "y": 304
+              },
+              {
+                "x": 890,
+                "y": 180
+              },
+              {
+                "x": 1118,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L13Q0-p0",
+                "a": "glass_column",
+                "x": 825,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q0-p1",
+                "a": "glass_column",
+                "x": 955,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q0-p2",
+                "a": "glass_beam_h",
+                "x": 890,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L13Q0-p6",
+                "a": "wood_crate_cross",
+                "x": 705,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q13_1-xl1",
+                "a": "wood_beam_h",
+                "x": 890,
+                "y": 245,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": [
+              {
+                "m": "stone",
+                "x": 520,
+                "y": 330,
+                "w": 56,
+                "h": 120,
+                "axis": "y",
+                "range": 70,
+                "speed": 0.8,
+                "phase": 1.860404014711842
+              }
+            ]
+          }
+        },
+        {
+          "questionId": "q13_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 890,
+                "y": 180
+              },
+              {
+                "x": 1100,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L13Q1-p0",
+                "a": "glass_column",
+                "x": 825,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q1-p1",
+                "a": "glass_column",
+                "x": 955,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q1-p2",
+                "a": "glass_beam_h",
+                "x": 890,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L13Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q13_2-xl1",
+                "a": "wood_beam_h",
+                "x": 890,
+                "y": 245,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q13_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 885,
+                "y": 144
+              },
+              {
+                "x": 1118,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L13Q2-p0",
+                "a": "stone_block_l",
+                "x": 885,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L13Q2-p1",
+                "a": "wood_crate_cross",
+                "x": 885,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L13Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 885,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L13Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L13Q2-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q13_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 890,
+                "y": 180
+              },
+              {
+                "x": 1118,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L13Q3-p0",
+                "a": "glass_column",
+                "x": 825,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p1",
+                "a": "glass_column",
+                "x": 955,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p2",
+                "a": "glass_beam_h",
+                "x": 890,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p4",
+                "a": "wood_crate_cross",
+                "x": 635,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "q13_4-xl1",
+                "a": "wood_beam_h",
+                "x": 890,
+                "y": 245,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "split": 2,
+        "bomb": 1,
+        "ice": 1
+      }
+    },
+    {
+      "id": 14,
+      "name": "Advanced Grammar",
+      "cefr": "B1+",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice",
+        "split",
+        "bomb"
+      ],
+      "starThresholds": {
+        "two": 3000,
+        "three": 4400
+      },
+      "questions": [
+        {
+          "questionId": "q14_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1130,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L14Q0-p0",
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p1",
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p2",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p3",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p4",
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q14_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 870,
+                "y": 144
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L14Q1-p0",
+                "a": "stone_block_l",
+                "x": 870,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L14Q1-p1",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L14Q1-p2",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L14Q1-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L14Q1-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q14_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L14Q2-p0",
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q2-p1",
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q2-p2",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L14Q2-p3",
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q2-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q2-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L14Q2-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q14_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1090,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L14Q3-p0",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q3-p1",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q3-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L14Q3-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q3-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "split": 2,
+        "bomb": 1,
+        "ice": 1
+      }
+    },
+    {
+      "id": 15,
+      "name": "Final Challenge",
+      "cefr": "B1+",
+      "shotsPerQuestion": 3,
+      "projectiles": [
+        "basic",
+        "speed",
+        "ice",
+        "split",
+        "bomb"
+      ],
+      "starThresholds": {
+        "two": 3000,
+        "three": 4400
+      },
+      "questions": [
+        {
+          "questionId": "q15_1",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1080,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L15Q0-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L15Q0-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L15Q0-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L15Q0-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q0-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q15_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1140,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L15Q1-p0",
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p1",
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p2",
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q15_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 870,
+                "y": 144
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L15Q2-p0",
+                "a": "stone_block_l",
+                "x": 870,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L15Q2-p1",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L15Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L15Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L15Q2-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q15_4",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 870,
+                "y": 144
+              },
+              {
+                "x": 1160,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L15Q3-p0",
+                "a": "stone_block_l",
+                "x": 870,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L15Q3-p1",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 310,
+                "rot": 0
+              },
+              {
+                "id": "L15Q3-p2",
+                "a": "wood_crate_cross",
+                "x": 870,
+                "y": 226,
+                "rot": 0
+              },
+              {
+                "id": "L15Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L15Q3-g0",
+                "a": "pig_angry",
+                "x": 980,
+                "y": 395
+              }
+            ],
+            "moving": []
+          }
+        }
+      ],
+      "birdAmmo": {
+        "basic": 3,
+        "speed": 2,
+        "split": 2,
+        "bomb": 1,
+        "ice": 1
+      }
     }
-   ],
-   "birdAmmo": {
-    "basic": 4
-   }
-  },
-  {
-   "id": 3,
-   "name": "Simple Sentences",
-   "cefr": "A1",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic"
-   ],
-   "starThresholds": {
-    "two": 3450,
-    "three": 5150
-   },
-   "questions": [
-    {
-     "questionId": "q03_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 655,
-        "y": 304
-       },
-       {
-        "x": 902,
-        "y": 304
-       },
-       {
-        "x": 1130,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L3Q0-p0",
-        "a": "wood_beam_v",
-        "x": 772,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L3Q0-p1",
-        "a": "wood_triangle",
-        "x": 772,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L3Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 902,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L3Q0-p3",
-        "a": "wood_crate_cross",
-        "x": 655,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q03_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1136,
-        "y": 319
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L3Q1-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L3Q1-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L3Q1-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L3Q1-p3",
-        "a": "wood_crate_panel",
-        "x": 1136,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L3Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q03_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 635,
-        "y": 304
-       },
-       {
-        "x": 816,
-        "y": 204
-       },
-       {
-        "x": 1100,
-        "y": 235
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L3Q2-p0",
-        "a": "wood_beam_v",
-        "x": 754,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L3Q2-p1",
-        "a": "wood_beam_v",
-        "x": 878,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L3Q2-p2",
-        "a": "wood_beam_h",
-        "x": 816,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L3Q2-p3",
-        "a": "wood_crate_panel",
-        "x": 1064,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L3Q2-p4",
-        "a": "wood_crate_panel",
-        "x": 1136,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L3Q2-p5",
-        "a": "wood_crate_cross",
-        "x": 1100,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L3Q2-p6",
-        "a": "wood_crate_cross",
-        "x": 635,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L3Q2-g0",
-        "a": "pig_small",
-        "x": 816,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q03_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1120,
-        "y": 304
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L3Q3-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L3Q3-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L3Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L3Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 1120,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L3Q3-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 4
-   }
-  },
-  {
-   "id": 4,
-   "name": "Grammar Basics",
-   "cefr": "A1",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic",
-    "speed"
-   ],
-   "starThresholds": {
-    "two": 3450,
-    "three": 5150
-   },
-   "questions": [
-    {
-     "questionId": "q04_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1130,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L4Q0-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L4Q0-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L4Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L4Q0-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q04_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 655,
-        "y": 304
-       },
-       {
-        "x": 901,
-        "y": 304
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L4Q1-p0",
-        "a": "wood_beam_v",
-        "x": 771,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L4Q1-p1",
-        "a": "wood_triangle",
-        "x": 771,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L4Q1-p2",
-        "a": "wood_crate_cross",
-        "x": 901,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L4Q1-p3",
-        "a": "wood_crate_cross",
-        "x": 655,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q04_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 635,
-        "y": 304
-       },
-       {
-        "x": 808,
-        "y": 204
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L4Q2-p0",
-        "a": "wood_beam_v",
-        "x": 746,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L4Q2-p1",
-        "a": "wood_beam_v",
-        "x": 870,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L4Q2-p2",
-        "a": "wood_beam_h",
-        "x": 808,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L4Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 635,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L4Q2-g0",
-        "a": "pig_small",
-        "x": 808,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q04_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 625,
-        "y": 388
-       },
-       {
-        "x": 700,
-        "y": 304
-       },
-       {
-        "x": 1130,
-        "y": 388
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L4Q3-p0",
-        "a": "wood_crate_cross",
-        "x": 700,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 3
-   }
-  },
-  {
-   "id": 5,
-   "name": "Beginner Challenge",
-   "cefr": "A1+",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic",
-    "speed"
-   ],
-   "starThresholds": {
-    "two": 3450,
-    "three": 5150
-   },
-   "questions": [
-    {
-     "questionId": "q05_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 821,
-        "y": 204
-       },
-       {
-        "x": 1080,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L5Q0-p0",
-        "a": "wood_beam_v",
-        "x": 883,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q0-p1",
-        "a": "wood_beam_v",
-        "x": 759,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q0-p2",
-        "a": "wood_beam_h",
-        "x": 821,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L5Q0-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L5Q0-g0",
-        "a": "pig_small",
-        "x": 821,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q05_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 665,
-        "y": 304
-       },
-       {
-        "x": 844,
-        "y": 204
-       },
-       {
-        "x": 1080,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L5Q1-p0",
-        "a": "wood_beam_v",
-        "x": 906,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q1-p1",
-        "a": "wood_beam_v",
-        "x": 782,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q1-p2",
-        "a": "wood_beam_h",
-        "x": 844,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L5Q1-p3",
-        "a": "wood_crate_cross",
-        "x": 665,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L5Q1-g0",
-        "a": "pig_small",
-        "x": 844,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q05_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 665,
-        "y": 304
-       },
-       {
-        "x": 843,
-        "y": 204
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L5Q2-p0",
-        "a": "wood_beam_v",
-        "x": 781,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q2-p1",
-        "a": "wood_beam_v",
-        "x": 905,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q2-p2",
-        "a": "wood_beam_h",
-        "x": 843,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L5Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 665,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L5Q2-g0",
-        "a": "pig_small",
-        "x": 843,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q05_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 625,
-        "y": 304
-       },
-       {
-        "x": 805,
-        "y": 204
-       },
-       {
-        "x": 1150,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L5Q3-p0",
-        "a": "wood_beam_v",
-        "x": 743,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q3-p1",
-        "a": "wood_beam_v",
-        "x": 867,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L5Q3-p2",
-        "a": "wood_beam_h",
-        "x": 805,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L5Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 625,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L5Q3-g0",
-        "a": "pig_small",
-        "x": 805,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 3
-   }
-  },
-  {
-   "id": 6,
-   "name": "Past Tense",
-   "cefr": "A2",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic",
-    "speed"
-   ],
-   "starThresholds": {
-    "two": 3450,
-    "three": 5150
-   },
-   "questions": [
-    {
-     "questionId": "q06_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1106,
-        "y": 204
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L6Q0-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p3",
-        "a": "wood_beam_v",
-        "x": 1168,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p4",
-        "a": "wood_beam_v",
-        "x": 1044,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p5",
-        "a": "wood_beam_h",
-        "x": 1106,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L6Q0-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L6Q0-g0",
-        "a": "pig_small",
-        "x": 1106,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q06_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L6Q1-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q1-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L6Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L6Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q06_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L6Q2-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L6Q2-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q06_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1093,
-        "y": 235
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L6Q3-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p4",
-        "a": "wood_crate_panel",
-        "x": 1129,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p5",
-        "a": "wood_crate_panel",
-        "x": 1057,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p6",
-        "a": "wood_crate_cross",
-        "x": 1093,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L6Q3-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 3
-   }
-  },
-  {
-   "id": 7,
-   "name": "Sentence Completion",
-   "cefr": "A2",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q07_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1106,
-        "y": 172
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L7Q0-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p3",
-        "a": "glass_column",
-        "x": 1182,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p4",
-        "a": "glass_column",
-        "x": 1030,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p5",
-        "a": "glass_beam_h",
-        "x": 1106,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p6",
-        "a": "stone_block_s",
-        "x": 1106,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L7Q0-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q07_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1105,
-        "y": 235
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L7Q1-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p4",
-        "a": "wood_crate_panel",
-        "x": 1069,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p5",
-        "a": "wood_crate_panel",
-        "x": 1141,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p6",
-        "a": "wood_crate_cross",
-        "x": 1105,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L7Q1-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q07_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 625,
-        "y": 388
-       },
-       {
-        "x": 700,
-        "y": 304
-       },
-       {
-        "x": 1130,
-        "y": 388
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L7Q2-p0",
-        "a": "wood_crate_cross",
-        "x": 700,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q07_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L7Q3-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L7Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "ice": 2
-   }
-  },
-  {
-   "id": 8,
-   "name": "Word Order",
-   "cefr": "A2",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q08_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1111,
-        "y": 230
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L8Q0-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L8Q0-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L8Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L8Q0-p3",
-        "a": "glass_column",
-        "x": 1051,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q0-p4",
-        "a": "glass_column",
-        "x": 1171,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q0-p5",
-        "a": "glass_beam_h",
-        "x": 1111,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L8Q0-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L8Q0-g0",
-        "a": "pig_small",
-        "x": 1111,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q08_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1106,
-        "y": 204
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L8Q1-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p4",
-        "a": "wood_beam_v",
-        "x": 1044,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p5",
-        "a": "wood_beam_v",
-        "x": 1168,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p6",
-        "a": "wood_beam_h",
-        "x": 1106,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L8Q1-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L8Q1-g0",
-        "a": "pig_small",
-        "x": 1106,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q08_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 688,
-        "y": 235
-       },
-       {
-        "x": 900,
-        "y": 386
-       },
-       {
-        "x": 1110,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L8Q2-p0",
-        "a": "wood_crate_panel",
-        "x": 724,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L8Q2-p1",
-        "a": "wood_crate_panel",
-        "x": 652,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L8Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 688,
-        "y": 317,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q08_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1111,
-        "y": 230
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L8Q3-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p4",
-        "a": "glass_column",
-        "x": 1051,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p5",
-        "a": "glass_column",
-        "x": 1171,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p6",
-        "a": "glass_beam_h",
-        "x": 1111,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L8Q3-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L8Q3-g0",
-        "a": "pig_small",
-        "x": 1111,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "ice": 2
-   }
-  },
-  {
-   "id": 9,
-   "name": "Grammar Decisions",
-   "cefr": "A2",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q09_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1106,
-        "y": 204
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L9Q0-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p4",
-        "a": "wood_beam_v",
-        "x": 1044,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p5",
-        "a": "wood_beam_v",
-        "x": 1168,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p6",
-        "a": "wood_beam_h",
-        "x": 1106,
-        "y": 269,
-        "rot": 0
-       },
-       {
-        "id": "L9Q0-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L9Q0-g0",
-        "a": "pig_small",
-        "x": 1106,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q09_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1150,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L9Q1-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L9Q1-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L9Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L9Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L9Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": [
-       {
-        "m": "stone",
-        "x": 520,
-        "y": 330,
-        "w": 56,
-        "h": 120,
-        "axis": "y",
-        "range": 70,
-        "speed": 0.8,
-        "phase": 3.632068583218129
-       }
-      ]
-     }
-    },
-    {
-     "questionId": "q09_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 665,
-        "y": 235
-       },
-       {
-        "x": 880,
-        "y": 386
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L9Q2-p0",
-        "a": "wood_crate_panel",
-        "x": 629,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L9Q2-p1",
-        "a": "wood_crate_panel",
-        "x": 701,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L9Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 665,
-        "y": 317,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q09_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 700,
-        "y": 230
-       },
-       {
-        "x": 950,
-        "y": 386
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L9Q3-p0",
-        "a": "glass_column",
-        "x": 760,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L9Q3-p1",
-        "a": "glass_column",
-        "x": 640,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L9Q3-p2",
-        "a": "glass_beam_h",
-        "x": 700,
-        "y": 305,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L9Q3-g0",
-        "a": "pig_small",
-        "x": 700,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "ice": 2
-   }
-  },
-  {
-   "id": 10,
-   "name": "Intermediate Challenge",
-   "cefr": "A2+",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice",
-    "split"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q10_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 895,
-        "y": 304
-       },
-       {
-        "x": 1140,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L10Q0-p0",
-        "a": "wood_beam_v",
-        "x": 765,
-        "y": 361,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p1",
-        "a": "wood_triangle",
-        "x": 765,
-        "y": 256,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 895,
-        "y": 386,
-        "rot": 0
-       },
-       {
-        "id": "L10Q0-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q10_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1106,
-        "y": 235
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L10Q1-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p4",
-        "a": "wood_crate_panel",
-        "x": 1142,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p5",
-        "a": "wood_crate_panel",
-        "x": 1070,
-        "y": 393.5,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p6",
-        "a": "wood_crate_cross",
-        "x": 1106,
-        "y": 317,
-        "rot": 0
-       },
-       {
-        "id": "L10Q1-p7",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q10_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 681,
-        "y": 230
-       },
-       {
-        "x": 930,
-        "y": 386
-       },
-       {
-        "x": 1140,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L10Q2-p0",
-        "a": "glass_column",
-        "x": 621,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L10Q2-p1",
-        "a": "glass_column",
-        "x": 741,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L10Q2-p2",
-        "a": "glass_beam_h",
-        "x": 681,
-        "y": 305,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L10Q2-g0",
-        "a": "pig_small",
-        "x": 681,
-        "y": 400
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q10_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1130,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L10Q3-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L10Q3-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L10Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L10Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L10Q3-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "ice": 2,
-    "split": 2
-   }
-  },
-  {
-   "id": 11,
-   "name": "Complex Sentences",
-   "cefr": "B1",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice",
-    "split"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q11_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1100,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L11Q0-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q0-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q0-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L11Q0-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q0-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q11_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 815,
-        "y": 102
-       },
-       {
-        "x": 1130,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L11Q1-p0",
-        "a": "glass_column",
-        "x": 761,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p1",
-        "a": "glass_column",
-        "x": 869,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p2",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p3",
-        "a": "glass_block_s",
-        "x": 783,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p4",
-        "a": "glass_block_s",
-        "x": 847,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p5",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 177,
-        "rot": 0
-       },
-       {
-        "id": "L11Q1-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q11_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L11Q2-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L11Q2-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L11Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L11Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L11Q2-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q11_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 815,
-        "y": 102
-       },
-       {
-        "x": 1110,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L11Q3-p0",
-        "a": "glass_column",
-        "x": 761,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p1",
-        "a": "glass_column",
-        "x": 869,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p2",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p3",
-        "a": "glass_block_s",
-        "x": 783,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p4",
-        "a": "glass_block_s",
-        "x": 847,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p5",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 177,
-        "rot": 0
-       },
-       {
-        "id": "L11Q3-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "ice": 2,
-    "split": 2
-   }
-  },
-  {
-   "id": 12,
-   "name": "Meaning and Context",
-   "cefr": "B1",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice",
-    "split",
-    "bomb"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q12_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L12Q0-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L12Q0-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L12Q0-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L12Q0-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L12Q0-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q12_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1150,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L12Q1-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L12Q1-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L12Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L12Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L12Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q12_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L12Q2-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L12Q2-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q12_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L12Q3-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L12Q3-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L12Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L12Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L12Q3-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "split": 2,
-    "bomb": 1,
-    "ice": 1
-   }
-  },
-  {
-   "id": 13,
-   "name": "Reading and Reasoning",
-   "cefr": "B1",
-   "shotsPerQuestion": 4,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice",
-    "split",
-    "bomb"
-   ],
-   "starThresholds": {
-    "two": 3200,
-    "three": 4900
-   },
-   "questions": [
-    {
-     "questionId": "q13_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 815,
-        "y": 102
-       },
-       {
-        "x": 1120,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L13Q0-p0",
-        "a": "glass_column",
-        "x": 761,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L13Q0-p1",
-        "a": "glass_column",
-        "x": 869,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L13Q0-p2",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L13Q0-p3",
-        "a": "glass_block_s",
-        "x": 783,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L13Q0-p4",
-        "a": "glass_block_s",
-        "x": 847,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L13Q0-p5",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 177,
-        "rot": 0
-       },
-       {
-        "id": "L13Q0-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": [
-       {
-        "m": "stone",
-        "x": 520,
-        "y": 330,
-        "w": 56,
-        "h": 120,
-        "axis": "y",
-        "range": 70,
-        "speed": 0.8,
-        "phase": 1.860404014711842
-       }
-      ]
-     }
-    },
-    {
-     "questionId": "q13_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1100,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L13Q1-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L13Q1-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L13Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L13Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L13Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q13_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L13Q2-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L13Q2-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L13Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L13Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L13Q2-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q13_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1140,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L13Q3-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L13Q3-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L13Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L13Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L13Q3-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "split": 2,
-    "bomb": 1,
-    "ice": 1
-   }
-  },
-  {
-   "id": 14,
-   "name": "Advanced Grammar",
-   "cefr": "B1+",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice",
-    "split",
-    "bomb"
-   ],
-   "starThresholds": {
-    "two": 3000,
-    "three": 4400
-   },
-   "questions": [
-    {
-     "questionId": "q14_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 815,
-        "y": 102
-       },
-       {
-        "x": 1130,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L14Q0-p0",
-        "a": "glass_column",
-        "x": 869,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p1",
-        "a": "glass_column",
-        "x": 761,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p2",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p3",
-        "a": "glass_block_s",
-        "x": 847,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p4",
-        "a": "glass_block_s",
-        "x": 783,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p5",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 177,
-        "rot": 0
-       },
-       {
-        "id": "L14Q0-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q14_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L14Q1-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L14Q1-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L14Q1-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q14_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 815,
-        "y": 102
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L14Q2-p0",
-        "a": "glass_column",
-        "x": 761,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q2-p1",
-        "a": "glass_column",
-        "x": 869,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q2-p2",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L14Q2-p3",
-        "a": "glass_block_s",
-        "x": 783,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L14Q2-p4",
-        "a": "glass_block_s",
-        "x": 847,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L14Q2-p5",
-        "a": "glass_beam_h",
-        "x": 815,
-        "y": 177,
-        "rot": 0
-       },
-       {
-        "id": "L14Q2-p6",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q14_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1090,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L14Q3-p0",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p1",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L14Q3-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "split": 2,
-    "bomb": 1,
-    "ice": 1
-   }
-  },
-  {
-   "id": 15,
-   "name": "Final Challenge",
-   "cefr": "B1+",
-   "shotsPerQuestion": 3,
-   "projectiles": [
-    "basic",
-    "speed",
-    "ice",
-    "split",
-    "bomb"
-   ],
-   "starThresholds": {
-    "two": 3000,
-    "three": 4400
-   },
-   "questions": [
-    {
-     "questionId": "q15_1",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1080,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L15Q0-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L15Q0-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L15Q0-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L15Q0-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L15Q0-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q15_2",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 825,
-        "y": 172
-       },
-       {
-        "x": 1140,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L15Q1-p0",
-        "a": "glass_column",
-        "x": 749,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L15Q1-p1",
-        "a": "glass_column",
-        "x": 901,
-        "y": 384,
-        "rot": 0
-       },
-       {
-        "id": "L15Q1-p2",
-        "a": "glass_beam_h",
-        "x": 825,
-        "y": 305,
-        "rot": 0
-       },
-       {
-        "id": "L15Q1-p3",
-        "a": "stone_block_s",
-        "x": 825,
-        "y": 241,
-        "rot": 0
-       },
-       {
-        "id": "L15Q1-p4",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q15_3",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L15Q2-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L15Q2-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L15Q2-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L15Q2-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L15Q2-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    },
-    {
-     "questionId": "q15_4",
-     "layout": {
-      "targets": [
-       {
-        "x": 645,
-        "y": 304
-       },
-       {
-        "x": 870,
-        "y": 144
-       },
-       {
-        "x": 1160,
-        "y": 386
-       }
-      ],
-      "pieces": [
-       {
-        "id": "L15Q3-p0",
-        "a": "stone_block_l",
-        "x": 870,
-        "y": 390,
-        "rot": 0
-       },
-       {
-        "id": "L15Q3-p1",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 310,
-        "rot": 0
-       },
-       {
-        "id": "L15Q3-p2",
-        "a": "wood_crate_cross",
-        "x": 870,
-        "y": 226,
-        "rot": 0
-       },
-       {
-        "id": "L15Q3-p3",
-        "a": "wood_crate_cross",
-        "x": 645,
-        "y": 386,
-        "rot": 0
-       }
-      ],
-      "pigs": [
-       {
-        "id": "L15Q3-g0",
-        "a": "pig_angry",
-        "x": 980,
-        "y": 395
-       }
-      ],
-      "moving": []
-     }
-    }
-   ],
-   "birdAmmo": {
-    "basic": 3,
-    "speed": 2,
-    "split": 2,
-    "bomb": 1,
-    "ice": 1
-   }
-  }
- ]
+  ]
 }

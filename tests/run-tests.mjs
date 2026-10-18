@@ -731,6 +731,81 @@ test('hearts reset to full for a new level / explicit restart', () => {
   assert(!h.empty);
 });
 
+/* ------------------------------------------------------------------ */
+/* HUD top-bar layout (supplied artwork integration)                   */
+/* ------------------------------------------------------------------ */
+import { computeHudLayout } from '../js/systems/HudLayout.js';
+import { HUD_ART, hudPreloadList } from '../js/systems/HudArt.js';
+import { QUESTION_CARD } from '../js/config.js';
+
+test('HUD artwork registry exposes all seven panel/button assets', () => {
+  const list = hudPreloadList();
+  eq(list.length, 7);
+  const byKey = Object.fromEntries(Object.values(HUD_ART).map((a) => [a.key, a]));
+  for (const { key, file } of list) {
+    const art = byKey[key];
+    assert(art, `registry entry for ${key}`);
+    assert(file.endsWith('.png'), `file ${file}`);
+    assert(art.aspect > 0.9 && art.aspect < 6, `aspect ${art.aspect} for ${key}`);
+  }
+  // measured geometry sanity: cells tile in order with real dividers
+  const p = HUD_ART.progress;
+  assert(p.cells.question.x1 < p.cells.timer.x0, 'question cell before timer cell');
+  assert(p.cells.timer.x1 < p.cells.stars.x0, 'timer cell before stars cell');
+  assert(Math.abs((p.cells.question.x1 - p.cells.question.x0)
+    - (p.cells.stars.x1 - p.cells.stars.x0)) < 0.01, 'side cells symmetric');
+  assert(p.cells.timer.x0 - p.cells.question.x1 > 0.02, 'divider 1 exists');
+  assert(p.cells.stars.x0 - p.cells.timer.x1 > 0.02, 'divider 2 exists');
+});
+
+for (const deviceType of ['desktop', 'tablet', 'mobile']) {
+  test(`HUD layout (${deviceType}) fits the world and clears the question card`, () => {
+    const L = computeHudLayout(deviceType);
+    const E = L.elements;
+    // whole row inside the world with margins
+    assert(L.rowLeft >= 8 && L.rowRight <= WORLD.WIDTH - 8,
+      `row ${L.rowLeft.toFixed(1)}..${L.rowRight.toFixed(1)}`);
+    // elements ordered left→right with breathing gaps
+    const order = [E.pause, E.level, E.progress, E.hearts, E.shots, E.score, E.sound];
+    for (let i = 1; i < order.length; i++) {
+      const gap = (order[i].x - order[i].w / 2) - (order[i - 1].x + order[i - 1].w / 2);
+      assert(gap >= 9, `gap ${i} = ${gap.toFixed(1)}`);
+    }
+    // band stays below the question card's top resting spot with a gap
+    assert(L.bandBottom <= 80, `bandBottom ${L.bandBottom}`);
+    const cardTop = QUESTION_CARD.TOP.y
+      - (QUESTION_CARD.TOP.width * QUESTION_CARD.ART.ASPECT) / 2;
+    assert(L.bandBottom + 4 <= cardTop, `band ${L.bandBottom} vs card top ${cardTop.toFixed(0)}`);
+    // panels keep their measured aspect (never stretched)
+    const byKey2 = Object.fromEntries(Object.values(HUD_ART).map((a) => [a.key, a]));
+    for (const name of ['level', 'progress', 'hearts', 'shots', 'score']) {
+      const el = E[name];
+      const art = byKey2[`hud-${name}-panel`];
+      assert(art, `art for ${name}`);
+      assert(Math.abs(el.w / el.h - art.aspect) < 0.01, `${name} aspect ${el.w / el.h}`);
+    }
+    // compartments: timer sits in the wide middle cell
+    assert(L.cells.timer.w > L.cells.question.w, 'timer in the wide middle cell');
+    assert(L.cells.timer.w > L.cells.stars.w, 'timer in the wide middle cell');
+    // readable typography at every device class
+    assert(L.type.timer >= 19, `timer ${L.type.timer}`);
+    assert(L.type.shots >= 14, `shots ${L.type.shots}`);
+    assert(L.type.score >= 14, `score ${L.type.score}`);
+  });
+}
+
+test('HUD phone layout enlarges touch targets to >= 44 CSS px', () => {
+  const L = computeHudLayout('mobile');
+  // phone landscape zoom ≈ min(vw/1280, vh/720); worst case 667×375 → 0.521
+  const zoom = Math.min(667 / 1280, 375 / 720);
+  for (const name of ['pause', 'sound']) {
+    const css = L.elements[name].hit * zoom;
+    assert(css >= 44, `${name} hit ${css.toFixed(1)} CSS px`);
+  }
+  const D = computeHudLayout('desktop');
+  assert(D.elements.pause.hit === D.elements.pause.w, 'desktop hit == visible');
+});
+
 console.log('\n== summary ==================================================');
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) {

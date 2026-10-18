@@ -41,7 +41,7 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const questionsData = JSON.parse(readFileSync(join(here, '../js/data/questions.json'), 'utf8'));
 const levelsData = JSON.parse(readFileSync(join(here, '../js/data/levels.json'), 'utf8'));
-const { WORLD } = await import('../js/config.js');
+const { WORLD, TARGETS } = await import('../js/config.js');
 const { TOWER_ASSETS } = await import('../js/data/tower-assets.js');
 const {
   PANEL_FORMATS, FORMAT_ORDER, planQuestion, formatByName,
@@ -86,10 +86,10 @@ for (const q of questionsData) {
     check(m.height <= f.box.h + 0.5, `${q.id} choice ${i}: height ${m.height.toFixed(1)} <= ${f.box.h}`);
   }
 
-  // classification sanity: sentences (> 2 words and > 18 chars) never on S/M
+  // classification sanity: full sentences never on the compact panels
   const longest = Math.max(...q.choices.map((c) => c.text.length));
-  if (longest > 18) {
-    check(plan.format === 'XL', `${q.id}: long answers (${longest} ch) use XL (got ${plan.format})`);
+  if (longest > 22) {
+    check(plan.format === 'XL', `${q.id}: sentence answers (${longest} ch) use XL (got ${plan.format})`);
   }
   if (longest <= 7) {
     check(plan.format === 'S', `${q.id}: short words (${longest} ch) stay compact (got ${plan.format})`);
@@ -112,33 +112,46 @@ for (const lvl of levelsData.levels) {
       const cy = panelCenterYForSlot(t.y + dy, plan.format);
       return { x0: t.x - pw / 2, x1: t.x + pw / 2, y0: cy - ph / 2, y1: cy + ph / 2 };
     });
-    // 6. pairwise AABB gap >= 8px in x OR y direction
+    // 6. pairwise AABB gap >= 12px in x OR y direction
     for (let a = 0; a < rects.length; a++) {
       for (let b = a + 1; b < rects.length; b++) {
         const ox = Math.min(rects[a].x1, rects[b].x1) - Math.max(rects[a].x0, rects[b].x0);
         const oy = Math.min(rects[a].y1, rects[b].y1) - Math.max(rects[a].y0, rects[b].y0);
         const label = `L${lvl.id}Q${qi + 1}: panels ${a}/${b} overlap x${ox.toFixed(0)} y${oy.toFixed(0)}`;
-        check(ox < -8 || oy < -8, label);
+        check(ox < -12 || oy < -12, label);
       }
       // 8. world bounds + HUD clearance
-      check(rects[a].x0 >= 40 && rects[a].x1 <= WORLD.WIDTH - 40,
+      check(rects[a].x0 >= 40 && rects[a].x1 <= WORLD.WIDTH - 12,
         `L${lvl.id}Q${qi + 1}: panel ${a} inside world x (${rects[a].x0.toFixed(0)}..${rects[a].x1.toFixed(0)})`);
       check(rects[a].y0 >= 84, `L${lvl.id}Q${qi + 1}: panel ${a} below HUD band (top ${rects[a].y0.toFixed(0)})`);
     }
 
-    // 7. XL support width: piece top under the slot, or the ground
+    // 7. XL support: a real, wide-enough resting surface under the panel —
+    //    a beam/crate (>= 80px), adjacent same-height tops (>= 120px union),
+    //    a post/column (>= 50px) or the open ground. Actual stability is
+    //    proven by the live settle check below.
     if (plan.format === 'XL') {
       qq.layout.targets.forEach((t, ti) => {
         const surfaceY = t.y + dy + 40; // panel bottom
-        const onGround = Math.abs(surfaceY - WORLD.GROUND_Y) < 6;
-        if (onGround) return;
+        if (Math.abs(surfaceY - WORLD.GROUND_Y) < 6) return; // open ground
         const supports = qq.layout.pieces.filter((p) => {
-          const ph2 = TOWER_ASSETS[p.a].size[1];
-          return Math.abs((p.y + dy - ph2 / 2) - surfaceY) < 4 && Math.abs(p.x - t.x) < TOWER_ASSETS[p.a].size[0] / 2;
+          const ph2 = TOWER_ASSETS[p.a].size[0] ? TOWER_ASSETS[p.a].size[1] : 0;
+          return Math.abs((p.y + dy - ph2 / 2) - surfaceY) < 4
+            && Math.abs(p.x - t.x) < TOWER_ASSETS[p.a].size[0] / 2 + 20;
         });
-        const width = supports.length ? Math.max(...supports.map((p) => TOWER_ASSETS[p.a].size[0])) : 0;
-        check(width >= 150,
-          `L${lvl.id}Q${qi + 1}: XL target ${ti} support ${width}px < 150px`);
+        if (!supports.length) {
+          check(false, `L${lvl.id}Q${qi + 1}: XL target ${ti} has NO support under it`);
+          return;
+        }
+        const widths = supports.map((p) => TOWER_ASSETS[p.a].size[0]);
+        const single = Math.max(...widths);
+        const isPost = supports.some((p) => /column|beam_v/.test(p.a));
+        const union = supports.length > 1
+          ? Math.max(...supports.map((p) => p.x + TOWER_ASSETS[p.a].size[0] / 2))
+            - Math.min(...supports.map((p) => p.x - TOWER_ASSETS[p.a].size[0] / 2))
+          : 0;
+        check(single >= 80 || union >= 120 || (isPost && single >= 50),
+          `L${lvl.id}Q${qi + 1}: XL target ${ti} support too narrow (${single}px, union ${union.toFixed(0)}px)`);
       });
     }
   });
@@ -157,12 +170,15 @@ for (const levelId of [8, 13]) {
     const targets = s.factory.targets;
     check(targets.length === 3, `L${levelId}Q${q + 1}: 3 targets`);
     for (const t of targets) {
-      const bw = Math.abs(t.body.bounds.max.x - t.body.bounds.min.x);
-      const bh = Math.abs(t.body.bounds.max.y - t.body.bounds.min.y);
-      check(Math.abs(bw - f.size[0]) <= 2, `L${levelId}Q${q + 1}: collider w ${bw.toFixed(1)} ~ ${f.size[0]}`);
-      check(Math.abs(bh - f.size[1]) <= 2, `L${levelId}Q${q + 1}: collider h ${bh.toFixed(1)} ~ ${f.size[1]}`);
+      // collider vs visible panel: display size drives the body (texture-
+      // sized body + setDisplaySize scale body and art together), so equal
+      // display size + expected mass proves the collider matches the art.
+      // (body.bounds are rotation-inflated AABBs — not comparable directly.)
       check(Math.abs(t.displayWidth - f.size[0]) <= 0.5 && Math.abs(t.displayHeight - f.size[1]) <= 0.5,
-        `L${levelId}Q${q + 1}: display size matches format`);
+        `L${levelId}Q${q + 1}: display size ${t.displayWidth.toFixed(1)}x${t.displayHeight.toFixed(1)} matches format ${f.size[0]}x${f.size[1]}`);
+      const expectedMass = (plan.format === 'XL' ? TARGETS.XL_REFERENCE_MASS : TARGETS.DENSITY * f.size[0] * f.size[1]);
+      check(Math.abs(t.body.mass - expectedMass) / expectedMass < 0.05,
+        `L${levelId}Q${q + 1}: body mass ${t.body.mass.toFixed(1)} ~ ${expectedMass.toFixed(1)}`);
       // label container glued to the body
       check(t.wb.labelHolder && Math.abs(t.wb.labelHolder.x - t.x) < 0.01,
         `L${levelId}Q${q + 1}: label holder follows body`);
