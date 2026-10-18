@@ -233,7 +233,13 @@ try {
   /* ================= desktop 1280×720 ================= */
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
-  page.on('pageerror', (e) => console.log('  [pageerror]', e.message));
+  const seenErr = new Set();
+  page.on('pageerror', (e) => {
+    const key = (e.stack || e.message).split('\n').slice(0, 3).join('|');
+    if (seenErr.has(key)) return;
+    seenErr.add(key);
+    console.log('  [pageerror]', (e.stack || e.message).split('\n').slice(0, 6).join('\n           '));
+  });
   await gotoAiming(page, 1);
   console.log('\n== A. aiming: bright dotted arc while dragging ==');
   await mouseDrag(page, { x: 115, y: 432 }, { hold: true });
@@ -326,7 +332,13 @@ try {
   console.log('\n== G. mobile landscape: touch controls drive the same flow ==');
   const m = await browser.newPage();
   await m.setViewport({ width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  m.on('pageerror', (e) => console.log('  [pageerror]', e.message));
+  const seenErrM = new Set();
+  m.on('pageerror', (e) => {
+    const key = (e.stack || e.message).split('\n').slice(0, 3).join('|');
+    if (seenErrM.has(key)) return;
+    seenErrM.add(key);
+    console.log('  [pageerror]', (e.stack || e.message).split('\n').slice(0, 6).join('\n           '));
+  });
   await gotoAiming(m, 1);
   await touchDrag(m, { x: 110, y: 435 }, { hold: true });
   const dotsG = await liveDots(m);

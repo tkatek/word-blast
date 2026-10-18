@@ -79,12 +79,16 @@ export function ensureCardTextures(scene) {
   g.fillRoundedRect(m + 7, m + CARD.BODY - 18, CARD.BODY - 14, 11, 6);
   g.generateTexture(TEX.idle, S, S);
 
-  /* selected: brighter body + double gold border + soft outer glow */
+  /* selected: brighter body + double gold border + soft outer glow.
+     Glow rings stay INSIDE the (W−BODY)/2 texture margin — Phaser clips
+     generateTexture at its bounds, so any ring outside it just vanishes. */
   g.clear();
   for (let i = 3; i >= 1; i--) {                              // glow rings
-    g.lineStyle(5 + i * 3, 0xffd166, 0.16 / i * 2);
-    g.strokeRoundedRect(m - i * 3.5, m - i * 3.5, CARD.BODY + i * 7, CARD.BODY + i * 7, 14 + i * 2);
+    g.lineStyle(4 + i * 2, 0xffd166, 0.6 / i);
+    g.strokeRoundedRect(m - i * 2.4, m - i * 2.4, CARD.BODY + i * 4.8, CARD.BODY + i * 4.8, 13 + i * 1.5);
   }
+  g.lineStyle(2.5, 0xfff7e0, 0.95);                           // hot inner rim
+  g.strokeRoundedRect(m - 1, m - 1, CARD.BODY + 2, CARD.BODY + 2, 14);
   g.fillStyle(0x9c6b1f, 1);                                   // gold edge
   g.fillRoundedRect(m - 2, m - 2, CARD.BODY + 4, CARD.BODY + 4, 15);
   g.fillStyle(0xfff7e0, 1);                                   // bright body
@@ -186,11 +190,12 @@ export class BirdSelector {
       color: '#fff6e5'
     }).setOrigin(0.5).setAlpha(0.9);
     hotkey.setStroke('#4d3218', 3);
-    const badge = s.add.image(CARD.BODY / 2 - 2, -CARD.BODY / 2 + 2, TEX.badge).setDisplaySize(27, 27);
+    const badge = s.add.image(CARD.BODY / 2 - 2, -CARD.BODY / 2 + 2, TEX.badge).setDisplaySize(29, 29);
     const badgeNum = s.add.text(CARD.BODY / 2 - 2, -CARD.BODY / 2 + 1.5, '0', {
-      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '14px', fontStyle: 'bold',
-      color: '#5c3a1e'
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '15px', fontStyle: 'bold',
+      color: '#ffffff'
     }).setOrigin(0.5);
+    badgeNum.setStroke('#7a4d12', 3);
     card.add([shadow, frame, portrait, hotkey, badge, badgeNum]);
 
     const rec = {
@@ -201,8 +206,8 @@ export class BirdSelector {
 
     card.setSize(CARD.BODY, CARD.BODY);
     card.setInteractive({ useHandCursor: true });
-    card.on('pointerover', () => { if (this.enabled) card.y = CARD.Y - 3; });
-    card.on('pointerout', () => { card.y = CARD.Y; });
+    card.on('pointerover', () => { if (this.enabled) rec.card.y = CARD.Y - 4; });
+    card.on('pointerout', () => { rec.card.y = CARD.Y + (rec.isSelected ? -4 : 0); });
     card.on('pointerdown', () => {
       this.markUi();
       if (!this.enabled) return;
@@ -248,6 +253,7 @@ export class BirdSelector {
       const count = Math.max(0, ammo[key] ?? 0);
       const available = inRoster && count > 0;
       const isSelected = key === selected && available;
+      rec.isSelected = isSelected;
 
       rec.frame.setTexture(isSelected ? TEX.selected : available ? TEX.idle : TEX.off);
       rec.portrait.setTint(available ? 0xffffff : 0x8a8a8a);
@@ -256,6 +262,10 @@ export class BirdSelector {
       rec.badge.setAlpha(available || inRoster ? 1 : 0.5);
       rec.card.setAlpha(this.enabled ? 1 : 0.65);
       rec.portrait.setScale(isSelected ? 1.12 : 1);
+      // the selected card lifts slightly out of the row (hover state)
+      if (!this.scene.tweens.isTweening(rec.card)) {
+        rec.card.y = CARD.Y + (isSelected ? -4 : 0);
+      }
 
       // gentle breathing pulse on the selected card's glow (skipped in
       // reduced motion)

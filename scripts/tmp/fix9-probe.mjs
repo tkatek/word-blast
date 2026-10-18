@@ -28,7 +28,7 @@ const browser = await puppeteer.launch({
 try {
   const page = await browser.newPage();
   for (let attempt = 1; attempt <= 4; attempt++) {
-    await page.goto('http://localhost:8081/', { waitUntil: 'domcontentloaded' });
+    await page.goto('http://localhost:8092/', { waitUntil: 'domcontentloaded' });
     await poll(page, () => window.__WB__ && window.__WB__.cardInfo ? true : null, 30000, 100);
     await safeEval(page, () => window.__WB__.setAutoPause(false));
     await safeEval(page, () => window.__WB__.gotoLevel(1));

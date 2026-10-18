@@ -47,10 +47,24 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
 
 async function gotoGameScene(page, levelId = 12) {
   await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  // __WB__ exists once main.js ran, but the shared managers land in the
-  // registry only when BootScene.create() finished — wait for those first.
-  await page.waitForFunction(() => window.__WB__ && window.__WB__.scene()
-    && window.__WB__.save() !== null, { timeout: 45000 });
+  // Cold starts under software rendering can be slow on a busy machine:
+  // one full reload retry before giving up on the boot wait.
+  const booted = async () => {
+    try {
+      // __WB__ exists once main.js ran, but the shared managers land in the
+      // registry only when BootScene.create() finished — wait for those.
+      await page.waitForFunction(() => window.__WB__ && window.__WB__.scene()
+        && window.__WB__.save() !== null, { timeout: 90000 });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (!await booted()) {
+    console.log('  (boot wait timed out — reloading once)');
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+    if (!await booted()) throw new Error('game never finished booting');
+  }
   // scene.start() boots GameScene synchronously — if a concurrent rebuild
   // left the registry briefly incomplete the evaluate throws; retry a few
   // times before giving up (the wait below re-checks the real state).
@@ -66,7 +80,7 @@ async function gotoGameScene(page, levelId = 12) {
   await page.waitForFunction(() => {
     const s = window.__WB__ && window.__WB__.scene();
     return s && s.prepared && s.stateMachine && s.stateMachine.current === 'AIMING';
-  }, { timeout: 45000 });
+  }, { timeout: 90000 });
   await page.evaluate(() => window.__WB__.setAutoPause(false));
   await sleep(700); // arming + entrance tweens settle
 }
