@@ -137,6 +137,8 @@ export class BootScene extends Phaser.Scene {
       const audio = new AudioManager();
       this.registry.set('audio', audio);
       audio.attach(this);
+      this.registry.set('questions', questionManager);
+      this.registry.set('levels', levelManager);
       this.registry.set('bootTime', this.time.now);
 
       if (levelManager.validation.warnings.length) {
