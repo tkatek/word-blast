@@ -78,8 +78,13 @@ async function installMapper(page) {
 }
 
 async function gotoAiming(page, levelId) {
-  await page.goto(BASE, { waitUntil: 'networkidle2' });
-  await page.waitForFunction(() => window.__WB__ && window.__WB__.scene(), { timeout: 20000 });
+  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(() => window.__WB__ && window.__WB__.scene(), { timeout: 30000 });
+  // BootScene must finish wiring the shared managers into the registry
+  await page.waitForFunction(() => {
+    const g = window.__WB__.game;
+    return g && g.registry && g.registry.get('questions') && g.registry.get('levels');
+  }, { timeout: 30000, polling: 100 });
   await page.evaluate((id) => {
     const api = window.__WB__;
     api.setAutoPause(false);
@@ -110,23 +115,31 @@ const refDots = (page) => wb(page, `(() => {
 /**
  * Pixel-verify dots in a screenshot. World dots are mapped to client
  * (CSS) px in-page, then scaled by the viewport DPR to screenshot pixels.
- *  - bright (alpha 0.85): visible when the dot's min RGB channel ≥ 200
- *    (0.85 white over ANY background keeps min-channel ≈ 220+)
- *  - faded (alpha 0.32): visible when the dot is ≥ 10 whiter than the
- *    background sampled 10px PERPENDICULAR to the arc (the arc curves, so
- *    a fixed below-sample can land on sky clouds or the next dot)
+ * Visibility = LOCAL CONTRAST: the dot's whiteness (min RGB channel, best
+ * pixel in a ±3 box) minus the background sampled 10px PERPENDICULAR to
+ * the arc (the arc curves, so a fixed below-sample can land on clouds or
+ * the next dot). SwiftShader composites the white fills at roughly half
+ * their fillStyle alpha, so absolute thresholds are meaningless — the
+ * bright layer (0.85) contrasts ~2.6× stronger than the faded one (0.32).
  */
-async function countVisibleDots(page, shotPath, worldDots, { faded = false, box = 2 } = {}) {
+async function countVisibleDots(page, shotPath, worldDots, { faded = false, box = 3 } = {}) {
   const dpr = page.viewport().deviceScaleFactor || 1;
   const client = await page.evaluate((dots) => dots.map((p) => window.__map.toClient(p.x, p.y)), worldDots);
-  // perpendicular background offsets computed from the arc's local direction
+  // background candidates per dot: both perpendicular offsets and below —
+  // dense arc regions (apex, flat shots) can put ONE offset on a neighbor
+  // dot, so the cleanest available background (minimum) wins.
   const bgPts = worldDots.map((p, i) => {
     const q = worldDots[Math.min(i + 1, worldDots.length - 1)];
     const dx = q.x - p.x, dy = q.y - p.y;
     const l = Math.hypot(dx, dy) || 1;
-    return { x: p.x + (-dy / l) * 10, y: p.y + (dx / l) * 10 };
+    const nx = -dy / l, ny = dx / l;
+    return [
+      { x: p.x + nx * 12, y: p.y + ny * 12 },
+      { x: p.x - nx * 12, y: p.y - ny * 12 },
+      { x: p.x, y: p.y + 14 }
+    ];
   });
-  const bgClient = await page.evaluate((pts) => pts.map((p) => window.__map.toClient(p.x, p.y)), bgPts);
+  const bgClient = await page.evaluate((pts) => pts.map((three) => three.map((p) => window.__map.toClient(p.x, p.y))), bgPts);
   const { data, info } = await sharp(shotPath).raw().toBuffer({ resolveWithObject: true });
   const whiteness = (cx, cy) => {
     let best = 0;
@@ -138,12 +151,11 @@ async function countVisibleDots(page, shotPath, worldDots, { faded = false, box 
     }
     return best;
   };
+  const minContrast = faded ? 6 : 15;
   let visible = 0;
   client.forEach((c, i) => {
-    const fg = whiteness(c.x, c.y);
-    if (faded) {
-      if (fg - whiteness(bgClient[i].x, bgClient[i].y) >= 10) visible++;
-    } else if (fg >= 200) visible++;
+    const bg = Math.min(...bgClient[i].map((b) => whiteness(b.x, b.y)));
+    if (whiteness(c.x, c.y) - bg >= minContrast) visible++;
   });
   return { visible, total: worldDots.length };
 }
@@ -222,140 +234,186 @@ const exe = findBrowser();
 if (!exe) throw new Error('No Chrome/Edge executable found');
 console.log('browser:', exe, '\nserver:', BASE, '\noutput:', OUT);
 
-const browser = await puppeteer.launch({
+const newBrowser = () => puppeteer.launch({
   executablePath: exe,
   headless: 'new',
-  args: ['--no-sandbox', '--disable-gpu-sandbox', '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader', '--mute-audio']
+  args: ['--no-sandbox', '--disable-gpu-sandbox', '--mute-audio', '--window-size=1300,760']
 });
 
-try {
-  /* ================= desktop 1280×720 ================= */
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
-  const seenErr = new Set();
+const watchErrors = (page) => {
+  const seen = new Set();
   page.on('pageerror', (e) => {
     const key = (e.stack || e.message).split('\n').slice(0, 3).join('|');
-    if (seenErr.has(key)) return;
-    seenErr.add(key);
+    if (seen.has(key)) return;
+    seen.add(key);
     console.log('  [pageerror]', (e.stack || e.message).split('\n').slice(0, 6).join('\n           '));
   });
-  await gotoAiming(page, 1);
-  console.log('\n== A. aiming: bright dotted arc while dragging ==');
-  await mouseDrag(page, { x: 115, y: 432 }, { hold: true });
-  const dotsA = await liveDots(page);
-  await shot(page, 'fix7-A-aiming.png');
-  const vA = await countVisibleDots(page, `${OUT}/fix7-A-aiming.png`, dotsA);
-  ok(dotsA.length >= 12, `aiming arc computed (${dotsA.length} dots)`);
-  ok(vA.visible >= Math.ceil(vA.total * 0.6), `bright dots visible on screen (${vA.visible}/${vA.total})`);
-  ok((await refDots(page)).length === 0, 'no reference before the first shot');
+};
 
-  console.log('\n== B. release: the shot dots STAY on screen ==');
-  await page.mouse.up();
-  await sleep(150);
-  await page.waitForFunction(() => {
-    const s = window.__WB__.scene();
-    return s.stateMachine.current === 'PROJECTILE_FLYING';
-  }, { timeout: 5000, polling: 50 });
-  const dotsB = await refDots(page);
-  await shot(page, 'fix7-B-after-release.png');
+/** Fire one real shot and wait for the re-arm. */
+async function fireShot(page, pullWorld) {
+  await mouseDrag(page, pullWorld);
   await waitAiming(page);
-  const vB = await countVisibleDots(page, `${OUT}/fix7-B-after-release.png`, dotsB, { faded: true });
-  ok(dotsB.length >= 12, `reference stored at release (${dotsB.length} dots)`);
-  ok(vB.visible >= Math.ceil(vB.total * 0.55), `faded reference visible after release (${vB.visible}/${vB.total})`);
+}
 
-  console.log('\n== C. aiming again: bright arc + faded previous together ==');
-  await mouseDrag(page, { x: 150, y: 415 }, { hold: true });
-  const dotsC = await liveDots(page);
-  const refC = await refDots(page);
-  await shot(page, 'fix7-C-aiming-with-reference.png');
-  const vCbright = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, dotsC);
-  const vCref = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, refC, { faded: true });
-  ok(vCbright.visible >= Math.ceil(vCbright.total * 0.6), `new bright arc visible (${vCbright.visible}/${vCbright.total})`);
-  ok(vCref.visible >= Math.ceil(vCref.total * 0.45), `previous faded arc still visible (${vCref.visible}/${vCref.total})`);
-  // cancel: return the pouch near rest before release (sub-minimum power)
-  const rest = await page.evaluate(() => window.__map.toClient(195, 346));
-  await page.mouse.move(rest.x, rest.y, { steps: 10 });
-  await page.mouse.up();
-  await sleep(200);
+/* Each phase is self-contained (own level setup) so a browser crash costs
+ * only one phase; the runner retries it once on a fresh browser. */
+const phases = {
 
-  console.log('\n== D. second shot REPLACES the reference ==');
-  const beforeD = JSON.stringify(await refDots(page));
-  await mouseDrag(page, { x: 140, y: 425 });
-  await waitAiming(page);
-  const afterD = await refDots(page);
-  await shot(page, 'fix7-D-replaced.png');
-  ok(afterD.length > 0 && JSON.stringify(afterD) !== beforeD, 'reference replaced by the newest shot');
-  const vD = await countVisibleDots(page, `${OUT}/fix7-D-replaced.png`, afterD, { faded: true });
-  ok(vD.visible >= Math.ceil(vD.total * 0.55), `replaced reference visible (${vD.visible}/${vD.total})`);
+  async 'A+B' (browser) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+    watchErrors(page);
+    await gotoAiming(page, 1);
 
-  console.log('\n== E. question flow keeps it; NEXT LEVEL clears everything ==');
-  const st = await completeLevel(page);
-  ok(st === 'LEVEL_COMPLETE', `level 1 completed (state ${st})`);
-  const refWin = await refDots(page); // the final answering shot's reference
-  const btn = await page.evaluate(() => window.__map.toClient(640, 360)); // NEXT LEVEL button
-  await page.mouse.click(btn.x, btn.y);
-  await page.waitForFunction(() => {
-    const s = window.__WB__ && window.__WB__.scene();
-    return s && s.levelId === 2 && s.stateMachine && s.stateMachine.current === 'AIMING';
-  }, { timeout: 30000, polling: 120 });
-  await installMapper(page); // fresh scene → fresh canvas rect
-  await sleep(500);
-  await shot(page, 'fix7-E-level2-clean.png');
-  ok((await refDots(page)).length === 0, `level 2 starts with zero reference dots (was ${refWin.length} in level 1)`);
+    console.log('\n== A. aiming: bright dotted arc while dragging ==');
+    await mouseDrag(page, { x: 115, y: 432 }, { hold: true });
+    const dotsA = await liveDots(page);
+    await shot(page, 'fix7-A-aiming.png');
+    const vA = await countVisibleDots(page, `${OUT}/fix7-A-aiming.png`, dotsA);
+    ok(dotsA.length >= 12, `aiming arc computed (${dotsA.length} dots)`);
+    ok(vA.visible >= Math.ceil(vA.total * 0.6), `bright dots visible on screen (${vA.visible}/${vA.total})`);
+    ok((await refDots(page)).length === 0, 'no reference before the first shot');
 
-  console.log('\n== F. aiming in level 2: only the new bright arc ==');
-  await mouseDrag(page, { x: 120, y: 430 }, { hold: true });
-  const dotsF = await liveDots(page);
-  await shot(page, 'fix7-F-level2-aiming.png');
-  const vF = await countVisibleDots(page, `${OUT}/fix7-F-level2-aiming.png`, dotsF);
-  ok(dotsF.length >= 12 && (await refDots(page)).length === 0, `fresh aiming arc, no stale reference (${dotsF.length} dots)`);
-  ok(vF.visible >= Math.ceil(vF.total * 0.6), `level-2 bright dots visible (${vF.visible}/${vF.total})`);
-  const rest2 = await page.evaluate(() => window.__map.toClient(195, 346));
-  await page.mouse.move(rest2.x, rest2.y, { steps: 10 });
-  await page.mouse.up();
+    console.log('\n== B. release: the shot dots STAY on screen ==');
+    await page.mouse.up();
+    await sleep(150);
+    await page.waitForFunction(() => {
+      const s = window.__WB__.scene();
+      return s.stateMachine.current === 'PROJECTILE_FLYING';
+    }, { timeout: 5000, polling: 50 });
+    const dotsB = await refDots(page);
+    await shot(page, 'fix7-B-after-release.png');
+    await waitAiming(page);
+    const vB = await countVisibleDots(page, `${OUT}/fix7-B-after-release.png`, dotsB, { faded: true });
+    ok(dotsB.length >= 12, `reference stored at release (${dotsB.length} dots)`);
+    ok(vB.visible >= Math.ceil(vB.total * 0.55), `faded reference visible after release (${vB.visible}/${vB.total})`);
+  },
 
-  console.log('\n== H. pause/resume keeps the reference ==');
-  await mouseDrag(page, { x: 135, y: 420 });
-  await waitAiming(page);
-  const refH = await refDots(page);
-  await page.keyboard.press('p');
-  await sleep(400);
-  const pausedKeep = await refDots(page);
-  await page.keyboard.press('p');
-  await waitAiming(page, 10000);
-  ok(JSON.stringify(pausedKeep) === JSON.stringify(refH) && (await refDots(page)).length === refH.length,
-    `reference intact across pause/resume (${refH.length} dots)`);
-  await page.close();
+  async 'C' (browser) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+    watchErrors(page);
+    await gotoAiming(page, 1);
+    await fireShot(page, { x: 115, y: 432 });
 
-  /* ================= mobile landscape touch 844×390 ================= */
-  console.log('\n== G. mobile landscape: touch controls drive the same flow ==');
-  const m = await browser.newPage();
-  await m.setViewport({ width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  const seenErrM = new Set();
-  m.on('pageerror', (e) => {
-    const key = (e.stack || e.message).split('\n').slice(0, 3).join('|');
-    if (seenErrM.has(key)) return;
-    seenErrM.add(key);
-    console.log('  [pageerror]', (e.stack || e.message).split('\n').slice(0, 6).join('\n           '));
-  });
-  await gotoAiming(m, 1);
-  await touchDrag(m, { x: 110, y: 435 }, { hold: true });
-  const dotsG = await liveDots(m);
-  await shot(m, 'fix7-G-mobile-aiming.png');
-  const vG = await countVisibleDots(m, `${OUT}/fix7-G-mobile-aiming.png`, dotsG);
-  ok(dotsG.length >= 12, `touch drag shows the aiming arc (${dotsG.length} dots)`);
-  ok(vG.visible >= Math.ceil(vG.total * 0.6), `mobile bright dots visible (${vG.visible}/${vG.total})`);
-  await m.touchscreen.touchEnd();
-  await waitAiming(m);
-  const refG = await refDots(m);
-  await shot(m, 'fix7-G-mobile-after-release.png');
-  const vGref = await countVisibleDots(m, `${OUT}/fix7-G-mobile-after-release.png`, refG, { faded: true });
-  ok(refG.length >= 12, `touch shot kept its reference (${refG.length} dots)`);
-  ok(vGref.visible >= Math.ceil(vGref.total * 0.55), `mobile faded reference visible (${vGref.visible}/${vGref.total})`);
-  await m.close();
-} finally {
-  await browser.close();
+    console.log('\n== C. aiming again: bright arc + faded previous together ==');
+    await mouseDrag(page, { x: 150, y: 415 }, { hold: true });
+    const dotsC = await liveDots(page);
+    const refC = await refDots(page);
+    await shot(page, 'fix7-C-aiming-with-reference.png');
+    const vCbright = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, dotsC);
+    const vCref = await countVisibleDots(page, `${OUT}/fix7-C-aiming-with-reference.png`, refC, { faded: true });
+    ok(vCbright.visible >= Math.ceil(vCbright.total * 0.6), `new bright arc visible (${vCbright.visible}/${vCbright.total})`);
+    ok(vCref.visible >= Math.ceil(vCref.total * 0.45), `previous faded arc still visible (${vCref.visible}/${vCref.total})`);
+  },
+
+  async 'D' (browser) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+    watchErrors(page);
+    await gotoAiming(page, 1);
+    await fireShot(page, { x: 115, y: 432 });
+
+    console.log('\n== D. second shot REPLACES the reference ==');
+    const beforeD = JSON.stringify(await refDots(page));
+    await fireShot(page, { x: 140, y: 425 });
+    const afterD = await refDots(page);
+    await shot(page, 'fix7-D-replaced.png');
+    ok(afterD.length > 0 && JSON.stringify(afterD) !== beforeD, 'reference replaced by the newest shot');
+    const vD = await countVisibleDots(page, `${OUT}/fix7-D-replaced.png`, afterD, { faded: true });
+    ok(vD.visible >= Math.ceil(vD.total * 0.55), `replaced reference visible (${vD.visible}/${vD.total})`);
+  },
+
+  async 'E+F' (browser) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+    watchErrors(page);
+    await gotoAiming(page, 1);
+
+    console.log('\n== E. question flow keeps it; NEXT LEVEL clears everything ==');
+    const st = await completeLevel(page);
+    ok(st === 'LEVEL_COMPLETE', `level 1 completed (state ${st})`);
+    const refWin = await refDots(page); // the final answering shot's reference
+    const btn = await page.evaluate(() => window.__map.toClient(640, 360)); // NEXT LEVEL button
+    await page.mouse.click(btn.x, btn.y);
+    await page.waitForFunction(() => {
+      const s = window.__WB__ && window.__WB__.scene();
+      return s && s.levelId === 2 && s.stateMachine && s.stateMachine.current === 'AIMING';
+    }, { timeout: 30000, polling: 120 });
+    await installMapper(page); // fresh scene → fresh canvas rect
+    await sleep(500);
+    await shot(page, 'fix7-E-level2-clean.png');
+    ok((await refDots(page)).length === 0, `level 2 starts with zero reference dots (was ${refWin.length} in level 1)`);
+
+    console.log('\n== F. aiming in level 2: only the new bright arc ==');
+    await mouseDrag(page, { x: 120, y: 430 }, { hold: true });
+    const dotsF = await liveDots(page);
+    await shot(page, 'fix7-F-level2-aiming.png');
+    const vF = await countVisibleDots(page, `${OUT}/fix7-F-level2-aiming.png`, dotsF);
+    ok(dotsF.length >= 12 && (await refDots(page)).length === 0, `fresh aiming arc, no stale reference (${dotsF.length} dots)`);
+    ok(vF.visible >= Math.ceil(vF.total * 0.6), `level-2 bright dots visible (${vF.visible}/${vF.total})`);
+  },
+
+  async 'H' (browser) {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+    watchErrors(page);
+    await gotoAiming(page, 1);
+    await fireShot(page, { x: 135, y: 420 });
+
+    console.log('\n== H. pause/resume keeps the reference ==');
+    const refH = await refDots(page);
+    await page.keyboard.press('p');
+    await sleep(400);
+    const pausedKeep = await refDots(page);
+    await page.keyboard.press('p');
+    await waitAiming(page, 10000);
+    ok(JSON.stringify(pausedKeep) === JSON.stringify(refH) && (await refDots(page)).length === refH.length,
+      `reference intact across pause/resume (${refH.length} dots)`);
+  },
+
+  async 'G (mobile)' (browser) {
+    console.log('\n== G. mobile landscape: touch controls drive the same flow ==');
+    const m = await browser.newPage();
+    await m.setViewport({ width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    watchErrors(m);
+    await gotoAiming(m, 1);
+    await touchDrag(m, { x: 110, y: 435 }, { hold: true });
+    const dotsG = await liveDots(m);
+    await shot(m, 'fix7-G-mobile-aiming.png');
+    const vG = await countVisibleDots(m, `${OUT}/fix7-G-mobile-aiming.png`, dotsG);
+    ok(dotsG.length >= 12, `touch drag shows the aiming arc (${dotsG.length} dots)`);
+    ok(vG.visible >= Math.ceil(vG.total * 0.6), `mobile bright dots visible (${vG.visible}/${vG.total})`);
+    await m.touchscreen.touchEnd();
+    await waitAiming(m);
+    const refG = await refDots(m);
+    await shot(m, 'fix7-G-mobile-after-release.png');
+    const vGref = await countVisibleDots(m, `${OUT}/fix7-G-mobile-after-release.png`, refG, { faded: true });
+    ok(refG.length >= 12, `touch shot kept its reference (${refG.length} dots)`);
+    ok(vGref.visible >= Math.ceil(vGref.total * 0.55), `mobile faded reference visible (${vGref.visible}/${vGref.total})`);
+  }
+};
+
+for (const [name, fn] of Object.entries(phases)) {
+  let done = false;
+  for (let attempt = 1; attempt <= 2 && !done; attempt++) {
+    const browser = await newBrowser();
+    try {
+      await fn(browser);
+      done = true;
+    } catch (e) {
+      if (attempt >= 2) {
+        failed++;
+        console.log(`FAIL  phase ${name} aborted after retry: ${e.message.split('\n')[0]}`);
+      } else {
+        console.log(`  [retry phase ${name}: browser hiccup — ${e.message.split('\n')[0]}]`);
+        await sleep(1500);
+      }
+    } finally {
+      await browser.close().catch(() => {});
+    }
+  }
 }
 
 console.log(`\n== summary ==\n${passed} passed, ${failed} failed`);

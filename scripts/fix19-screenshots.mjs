@@ -101,16 +101,34 @@ async function rearm(page) {
 }
 
 const main = async () => {
+  // pass filter: "desktop", "mobile" or both (default) — separate browser
+  // processes per pass proved far more stable in this environment
+  const pass = process.argv[3] || 'all';
+
+  if (pass === 'all' || pass === 'desktop') {
+    await runDesktopPass();
+  }
+  if (pass === 'all' || pass === 'mobile') {
+    await runMobilePass();
+  }
+  console.log('done ->', OUT);
+};
+
+async function launchBrowser() {
   const exe = findBrowser();
   if (!exe) throw new Error('No Chrome/Edge executable found');
   console.log('browser:', exe);
-  const browser = await puppeteer.launch({
+  return puppeteer.launch({
     executablePath: exe,
     headless: 'new',
     args: ['--no-sandbox', '--disable-gpu-sandbox', '--use-angle=swiftshader',
-      '--enable-unsafe-swiftshader', '--mute-audio']
+      '--enable-unsafe-swiftshader', '--mute-audio', '--disable-dev-shm-usage',
+      '--disable-features=TranslateUI', '--no-first-run']
   });
+}
 
+async function runDesktopPass() {
+  const browser = await launchBrowser();
   /**
    * ONE page carries the whole desktop campaign (one boot, sequential
    * scenarios with re-arms between shots) — repeated navigations proved
@@ -153,29 +171,35 @@ const main = async () => {
     await snap('yellow-split-five.png');
     await rearm(page);
 
-    /* 4 — black bird exploding over a tower */
+    /* 4 — black bird exploding over a tower. Detonate mid-flight as soon as
+       it reaches the tower band; if a tower ate it first, the impact
+       fallback already detonated — either way the frame shows the blast. */
     await page.evaluate(() => window.__WB__.scene().selectProjectile('bomb'));
     await sleep(300);
     await fire(page, 17, -6);
     await page.waitForFunction(() => {
       const ps = window.__WB__ && window.__WB__.scene().factory.projectiles;
-      return ps.length > 0 && !ps[0].wb.consumed && ps[0].x > 700;
-    }, { timeout: 8000 });
+      if (!ps.length) return true;                 // impact fallback already ran
+      const p = ps[0];
+      return p.wb.consumed || p.wb.firstImpactDone || p.x > 580;
+    }, { timeout: 12000, polling: 120 });
     await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
-    await sleep(160);
+    await sleep(170);
     await snap('black-explosion.png');
     await rearm(page);
 
-    /* 5 — purple bird freezing blocks */
+    /* 5 — purple bird freezing blocks (same adaptive trigger) */
     await page.evaluate(() => window.__WB__.scene().selectProjectile('ice'));
     await sleep(300);
     await fire(page, 17, -6);
     await page.waitForFunction(() => {
       const ps = window.__WB__ && window.__WB__.scene().factory.projectiles;
-      return ps.length > 0 && !ps[0].wb.consumed && ps[0].x > 680;
-    }, { timeout: 8000 });
+      if (!ps.length) return true;
+      const p = ps[0];
+      return p.wb.consumed || p.wb.firstImpactDone || p.x > 560;
+    }, { timeout: 12000, polling: 120 });
     await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
-    await sleep(450);
+    await sleep(470);
     await snap('purple-freeze.png');
     await rearm(page);
 
@@ -195,8 +219,12 @@ const main = async () => {
     console.log('FAIL desktop campaign -', e.message);
   } finally {
     await page.close();
+    await browser.close();
   }
+}
 
+async function runMobilePass() {
+  const browser = await launchBrowser();
   /* mobile pass: selector row + mid-flight TAP button */
   const mpage = await newPage(browser, { w: 844, h: 390, mobile: true, touch: true });
   try {
@@ -213,11 +241,9 @@ const main = async () => {
     console.log('FAIL mobile pass -', e.message);
   } finally {
     await mpage.close();
+    await browser.close();
   }
-
-  await browser.close();
-  console.log('done ->', OUT);
-};
+}
 
 main().catch((e) => {
   console.error(e);
