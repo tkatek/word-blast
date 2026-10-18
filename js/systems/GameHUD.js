@@ -341,7 +341,7 @@ export class GameHUD {
    * @param {Phaser.Scene} scene
    * @param {object} actions gameplay callbacks:
    *   onPause, onResume, onRestartQuestion, onRestartLevel, onExitToLevels,
-   *   onToggleSound, onToggleReducedMotion
+   *   onToggleSound, onToggleMusic, onToggleSfx, onToggleReducedMotion
    * @param {object} opts { markUi() -> flags UI pointerdown for the scene,
    *                        save (settings reader), audio (event bus) }
    */
