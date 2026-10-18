@@ -507,17 +507,18 @@ export class AudioManager {
       };
       // one-shots RELEASE their source + nodes when they finish — a long
       // session must not accumulate dead Sound instances in the manager.
-      s.once('ended', () => {
+      // (Phaser emits 'complete' on natural end, 'destroy' after teardown.)
+      s.once('complete', () => {
         drop();
         try { s.destroy(); } catch { /* already gone */ }
       });
-      s.once('destroyed', drop);
+      s.once('destroy', drop);
     }
     return s;
   }
 
   _stopVoice(rec) {
-    try { rec.s.stop(); } catch { /* already gone */ }
+    try { rec.s.stop(); rec.s.destroy(); } catch { /* already gone */ }
     const i = this._voices.indexOf(rec);
     if (i !== -1) this._voices.splice(i, 1);
   }
@@ -626,7 +627,9 @@ export class AudioManager {
       s.belowSince = 0;
       s.lastStart = this._now();
       voice.play();
-      voice.once('ended', () => {
+      // Phaser fires 'complete' on natural end — chain the next segment
+      // (or let the fade logic release everything when motion stopped).
+      voice.once('complete', () => {
         if (this._sling.voice === voice) {
           this._sling.voice = null; // next updateSlingMotion chains or fades
           this._sling.key = null;

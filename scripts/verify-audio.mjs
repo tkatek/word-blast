@@ -263,13 +263,23 @@ try {
     holding.max < SILENT && stretched > 90,
     `5s maxRMS=${holding.max.toExponential(2)}, pouch at ${stretched.toFixed(0)}px`);
 
-  // 4. movement-resume: audio returns, exactly one stretch voice
+  // 4. movement-resume: audio returns, exactly one stretch voice. Move
+  // radially OUTWARD (away from rest) so the normal variants play — moves
+  // toward rest use the quieter soft variant by design.
   const c0 = await pouchClient(page);
-  await page.mouse.move(c0.x - 15, c0.y + 8); // still holding the button
-  await sleep(120);
-  await page.mouse.move(c0.x + 15, c0.y - 10);
-  await sleep(120);
-  await page.mouse.move(c0.x - 10, c0.y + 6);
+  const outward = await page.evaluate(() => {
+    const s = window.__WB__.scene();
+    const a = s.slingshot.anchor;
+    const p = s.slingshot.pouchPoint();
+    const dx = p.x - a.x, dy = p.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return window.__WB__.worldToClient(p.x + (dx / len) * 26, p.y + (dy / len) * 26);
+  });
+  await page.mouse.move(outward.x, outward.y);
+  await sleep(110);
+  await page.mouse.move(c0.x, c0.y);
+  await sleep(110);
+  await page.mouse.move(outward.x, outward.y);
   // sample the engine state DURING motion (before the measurement window
   // lets the fade-out logic release the voice)
   const slingState = await page.evaluate(() => ({
@@ -332,8 +342,7 @@ try {
   const beforeStats = await page.evaluate(() => window.__WB__.audio().stats.plays);
   await page.evaluate(() => window.__wbTap.recStart());
   await page.mouse.up();
-  await sleep(400);
-  const release = await outputLevel(page, 400);
+  const release = await outputLevel(page, 500); // poll immediately — the snap is short
   const afterStats = await page.evaluate(() => window.__WB__.audio().stats.plays);
   const loops = await page.evaluate(() =>
     window.__WB__.game.sound.sounds.filter((s) => s.loop && s.isPlaying).length);

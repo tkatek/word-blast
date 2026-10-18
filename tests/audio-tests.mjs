@@ -279,7 +279,7 @@ test('a finished segment chains once while movement continues', () => {
   let t = drive(audio, scene, 1100, 6, { tension: 0.5, speed: 500 });
   const seg = liveSounds(sound).find((s) => s.key.startsWith('sling-stretch-'));
   assert(seg, 'segment started');
-  seg.fire('ended'); // natural end while still moving
+  seg.fire('complete'); // Phaser's natural-end event, while still moving
   motion(audio, { tension: 0.5, speed: 500 });
   pump(scene, t += 16);
   const live = liveSounds(sound).filter((s) => s.key.startsWith('sling-stretch-') && s.isPlaying);

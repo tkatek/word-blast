@@ -399,6 +399,11 @@ export class GameScene extends Phaser.Scene {
   loadQuestion(index) {
     DebugLog.info(`L${this.levelId} / Question ${index + 1} — cleaning question ${this.questionIndex + 1}`);
     this.questionIndex = index;
+    // Any feedback card still on screen (restart / retry during feedback)
+    // is cancelled WITHOUT running its action — the reload owns the state.
+    this.feedbackCard?.cancel();
+    this.feedbackArmed = false;
+    this.feedbackAdvancing = false;
     this.factory.clearQuestionObjects();
     this.answerLock = false;
     this.currentShot = null;
@@ -1367,9 +1372,11 @@ export class GameScene extends Phaser.Scene {
     // thaw it on resume (the reading countdown is already update()-gated).
     if (next === STATES.PAUSED) {
       this.card?.pause();
+      this.feedbackCard?.pause();
     }
     if (prev === STATES.PAUSED && next !== STATES.PAUSED) {
       this.card?.resume();
+      this.feedbackCard?.resume();
       // A deferred arming (delayed call fired while paused) lands here on resume.
       if (this.armPending) {
         this.armPending = false;
@@ -1414,6 +1421,7 @@ export class GameScene extends Phaser.Scene {
       questionIndex: this.questionIndex,
       state: this.stateMachine.current,
       cardPhase: this.card ? this.card.phase : null, // Fix #9 (tests/verification)
+      feedback: this.feedbackCard ? this.feedbackCard.info() : null,
       shotsLeft: this.shotsLeft,
       score: this.scoring.liveScore(),
       shotsUsed: this.scoring.shotsUsed,
