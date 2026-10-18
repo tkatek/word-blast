@@ -440,7 +440,9 @@ await test('auto-select: next available bird loads when ammo hits zero', async (
   const s = h.scene();
   eq(s.selectedProjectile, 'basic', 'start with red');
   for (let i = 0; i < 3; i++) {
-    assert(h.fire(11, -6), `basic launch ${i + 1} refused`);
+    // guaranteed misses (backward lobs) — forward shots can now clip the
+    // wider answer panels and advance the question, resetting the inventory
+    assert(h.fire(-6 - i * 0.25, -5), `basic launch ${i + 1} refused`);
     await h.waitFor(() => s.currentShot.resolvedHandled, 25000);
     await h.waitForState('AIMING', 20000);
   }
