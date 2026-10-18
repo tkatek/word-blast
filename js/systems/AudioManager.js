@@ -267,6 +267,10 @@ export class AudioManager {
   destroy() {
     this._attached = false;
     try { this.stopMusic(0); this.stopAmbience(0); } catch { /* none yet */ }
+    if (this._game && this._game.events && this._tickHandler) {
+      try { this._game.events.off('poststep', this._tickHandler); } catch { /* gone */ }
+      this._tickHandler = null;
+    }
     if (this._unlockBound && typeof document !== 'undefined' && document.removeEventListener) {
       document.removeEventListener('pointerdown', this._onGesture);
       document.removeEventListener('touchstart', this._onGesture);

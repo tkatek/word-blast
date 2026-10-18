@@ -18,7 +18,7 @@ import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { audioManifestKeys } from '../js/systems/AudioManager.js';
+import { audioPreloadList } from '../js/systems/AudioManager.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const DIST = join(ROOT, 'dist');
@@ -83,13 +83,15 @@ try {
     return g && g.scene.isActive('MenuScene');
   }, { timeout: 30000 });
 
-  // 1. every manifest key decoded into the audio cache
-  const keys = audioManifestKeys();
+  // 1. every loadable sound DECODED into the audio cache (the manifest's
+  //    base aliases (wood-light etc.) are intentionally never loaded —
+  //    only their variation keys are, one decode per file)
+  const keys = audioPreloadList().map((e) => e.key);
   const decoded = await page.evaluate((ks) => {
     const cache = window.__WB__.game.cache.audio;
     return ks.filter((k) => cache.exists(k));
   }, keys);
-  check(`all ${keys.length} manifest sounds decoded`, decoded.length === keys.length,
+  check(`all ${keys.length} loadable sounds decoded`, decoded.length === keys.length,
     `${decoded.length}/${keys.length}`);
 
   // 2. menu music genuinely playing through Web Audio
@@ -121,26 +123,40 @@ try {
   check('menu theme faded out', gameAudio.menuLeft === 0);
   check('forest ambience loop playing', gameAudio.ambience === 1);
 
-  // 4. a real shot → launch + impact sounds actually play
-  await page.evaluate(() => window.__WB__.simulateShot({ vx: 16, vy: -11 }));
+  // 4. real shots → launch + impact + answer sounds actually play.
+  //    Shot A: flat trajectory into the tower zone (material impacts).
+  //    Shot B: autoAim at the correct plaque (guaranteed collision + the
+  //    correct-answer jingle through the REAL gameplay path).
+  const impactPlaysEval = `(() => {
+    const a = window.__WB__.audio().stats.plays;
+    return Object.entries(a).filter(([k]) => /wood|glass|stone|bird-hit/.test(k))
+      .reduce((n, [, v]) => n + v, 0);
+  })()`;
+  await page.evaluate(() => window.__WB__.simulateShot({ vx: 18, vy: -7 }));
   await page.waitForFunction(() => {
     const a = window.__WB__.audio();
     return (a.stats.plays['sling-release'] || 0) >= 1;
   }, { timeout: 8000 });
+  await page.waitForFunction(impactPlaysEval + ' >= 1', { timeout: 10000 });
+  // wait for re-arm (miss settles) or question advance (lucky hit), then aim
+  await page.waitForFunction(() => {
+    const s = window.__WB__.state();
+    return s === 'AIMING' || s === 'QUESTION_READY';
+  }, { timeout: 15000 });
+  await page.evaluate(() => window.__WB__.autoAim());
+  await page.waitForFunction(impactPlaysEval + ' >= 2', { timeout: 12000 });
   await page.waitForFunction(() => {
     const a = window.__WB__.audio();
-    const impacts = ['wood-light-1', 'wood-light-2', 'wood-light-3', 'wood-heavy-1', 'wood-heavy-2',
-      'glass-hit-1', 'glass-hit-2', 'stone-light-1', 'stone-light-2', 'stone-heavy-1',
-      'bird-hit'].reduce((n, k) => n + (a.stats.plays[k] || 0), 0);
-    return impacts >= 1;
-  }, { timeout: 10000 }).catch(() => {});
+    return (a.stats.plays['ui-correct'] || 0) >= 1;
+  }, { timeout: 15000 }).catch(() => {});
   const shotStats = await page.evaluate(() => window.__WB__.audio().stats.plays);
-  const impactPlays = Object.entries(shotStats)
-    .filter(([k]) => /wood|glass|stone|bird-hit/.test(k))
-    .reduce((n, [, v]) => n + v, 0);
-  check('launch snap played', (shotStats['sling-release'] || 0) >= 1);
-  check('bird cry played', (shotStats['bird-launch'] || 0) >= 1);
-  check('material/bird impact sounds played', impactPlays >= 1, `${impactPlays} impact plays`);
+  const impactPlays = await page.evaluate(impactPlaysEval);
+  check('launch snaps played', (shotStats['sling-release'] || 0) >= 2,
+    `${shotStats['sling-release'] || 0} launches`);
+  check('bird cries played', (shotStats['bird-launch'] || 0) >= 1);
+  check('material/bird impact sounds played', impactPlays >= 2, `${impactPlays} impact plays`);
+  check('correct-answer jingle played through real flow',
+    (shotStats['ui-correct'] || 0) >= 1);
 
   // 5. pause suspends, resume does not duplicate music
   await page.evaluate(() => window.__WB__.scene().togglePause());
@@ -165,11 +181,13 @@ try {
   await page.evaluate(() => window.__WB__.scene().toggleSound());
   const muted = await page.evaluate(() => ({
     mute: window.__WB__.game.sound.mute,
-    setting: window.__WB__.save().data.settings.sound
+    setting: window.__WB__.save().data.settings.sound,
+    engineEnabled: window.__WB__.audio().enabled
   }));
   await page.evaluate(() => window.__WB__.scene().toggleSound());
   const unmuted = await page.evaluate(() => window.__WB__.game.sound.mute);
-  check('master mute silences output + persists', muted.mute === true && muted.setting === false);
+  check('master mute silences output + persists', muted.mute === true && muted.setting === false,
+    JSON.stringify(muted));
   check('unmute restores output', unmuted === false);
 
   check('no HTTP/page errors', bad.length === 0, bad.slice(0, 3).join(' | '));

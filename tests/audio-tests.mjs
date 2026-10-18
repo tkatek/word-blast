@@ -103,19 +103,17 @@ function makeFakeSound() {
 }
 
 function makeFakeScene(save, sound) {
+  // Minimal game event emitter: tests pump the engine clock by emitting
+  // 'poststep' with an explicit time — exactly how the real game drives it.
+  const events = {
+    map: new Map(),
+    on(ev, fn) { if (!this.map.has(ev)) this.map.set(ev, []); this.map.get(ev).push(fn); },
+    off(ev, fn) { const l = this.map.get(ev); if (l) this.map.set(ev, l.filter((f) => f !== fn)); },
+    emit(ev, ...args) { (this.map.get(ev) || []).slice().forEach((fn) => fn(...args)); }
+  };
   const scene = {
-    time: {
-      now: 0,
-      timers: [],
-      delayedCall(ms, fn) { this.timers.push(fn); return { remove() {} }; }
-    },
-    tweens: {
-      queue: [],
-      add(cfg) {
-        this.queue.push(cfg);
-        return cfg;
-      }
-    },
+    time: { now: 0 }, // parity only — the engine reads the poststep clock
+    game: { events },
     cache: { audio: { exists: (k) => sound.loaded.has(k) } },
     registry: { get: (k) => (k === 'save' ? save : null) },
     sound
@@ -123,23 +121,10 @@ function makeFakeScene(save, sound) {
   return scene;
 }
 
-/** Run every queued timer (delayedCall) once. */
-function flushTimers(scene) {
-  const q = scene.time.timers.splice(0);
-  q.forEach((fn) => fn());
-}
-
-/** Apply every queued tween to its final value synchronously. */
-function flushTweens(scene) {
-  const q = scene.tweens.queue.splice(0);
-  for (const cfg of q) {
-    const t = cfg.targets;
-    for (const k of Object.keys(cfg).filter((x) => !['targets', 'duration', 'onUpdate', 'onComplete', 'delay', 'ease', 'yoyo', 'repeat'].includes(x))) {
-      t[k] = cfg[k];
-    }
-    if (cfg.onUpdate) cfg.onUpdate();
-    if (cfg.onComplete) cfg.onComplete();
-  }
+/** Advance the engine clock to `now` ms and run one engine tick. */
+function pump(scene, now) {
+  scene.time.now = now;
+  scene.game.events.emit('poststep', now, 16);
 }
 
 function freshManager(save) {
@@ -147,6 +132,7 @@ function freshManager(save) {
   const scene = makeFakeScene(save, sound);
   const audio = new AudioManager();
   audio.attach(scene);
+  pump(scene, 1000); // establish the engine clock
   return { audio, scene, sound, save };
 }
 
@@ -220,14 +206,14 @@ test('stretch starts only above the tension threshold and tracks tension', () =>
   audio.emit('sling-stretch', { tension: 0.95 });
   assert(loop.volume > 0.7, `near-max tension loud enough (vol ${loop.volume.toFixed(2)})`);
   assert(loop.detune > 0, 'tension raises pitch');
-  flushTweens(scene); flushTimers(scene);
+  pump(scene, 2000);
 });
 
 test('cancel stops the loop and plays a soft return (never a launch)', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.emit('sling-stretch', { tension: 0.6 });
   audio.emit('sling-cancel');
-  flushTweens(scene); flushTimers(scene);
+  pump(scene, 2000);
   const loop = sound.sounds.find((s) => s.key === 'sling-stretch');
   assert(loop.stopped, 'stretch loop stopped');
   assert(sound.plays.includes('sling-cancel'), 'elastic return sound played');
@@ -298,13 +284,13 @@ test('impact voice cap holds under a burst; strongest wins', () => {
   const mats = ['hit-wood', 'hit-glass', 'hit-stone', 'hit-pig'];
   let sev = 10;
   for (let i = 0; i < 40; i++) {
-    scene.time.now += 30;
+    pump(scene, 1030 + i * 30);
     audio.emit(mats[i % mats.length], { severity: sev });
   }
   const impactVoices = sound.sounds.filter((s) => s.isPlaying && !s.loop).length;
   assert(impactVoices <= 8, `impact voice cap (got ${impactVoices} simultaneous)`);
   // a much stronger impact must displace a weaker active one
-  scene.time.now += 200;
+  pump(scene, 2230 + 200);
   audio.emit('hit-stone', { severity: 90 });
   assert(sound.sounds.some((s) => s.isPlaying && s.key.startsWith('stone-heavy')),
     'strong impact still lands at cap');
@@ -313,9 +299,9 @@ test('impact voice cap holds under a burst; strongest wins', () => {
 test('wood/stone/glass destruction plays material-specific breaks once', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.emit('break-wood', { severity: 40 });
-  scene.time.now += 900; // space them: 3 breaks at once WOULD be a collapse
+  pump(scene, 1900); // space them: 3 breaks at once WOULD be a collapse
   audio.emit('break-glass', { severity: 40 });
-  scene.time.now += 900;
+  pump(scene, 2800);
   audio.emit('break-stone', { severity: 40 });
   assert(sound.plays.includes('wood-break'), 'wood break');
   assert(sound.plays.includes('glass-shatter'), 'glass shatter');
@@ -326,13 +312,13 @@ test('wood/stone/glass destruction plays material-specific breaks once', () => {
 test('three breaks in a short window trigger ONE collapse accent', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   for (let i = 0; i < 3; i++) {
-    scene.time.now += 80;
+    pump(scene, 1080 + i * 80);
     audio.emit('break-wood', { severity: 45 });
   }
   eq(sound.plays.filter((k) => k === 'wood-collapse').length, 1, 'collapse accent fired once');
   // more breaks inside the lockout window must NOT retrigger
   for (let i = 0; i < 3; i++) {
-    scene.time.now += 80;
+    pump(scene, 1320 + i * 80);
     audio.emit('break-wood', { severity: 45 });
   }
   eq(sound.plays.filter((k) => k === 'wood-collapse').length, 1, 'lockout respected');
@@ -361,9 +347,9 @@ test('bomb explosion plays once even when bomb + chain emit close together', () 
 test('spaced TNT chain stays audible but rate-limited', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.emit('explode', { x: 400, y: 300 });
-  scene.time.now += 250; // past the 120ms global gap
+  pump(scene, 1250); // past the 120ms global gap
   audio.emit('explode', { x: 700, y: 300 });
-  scene.time.now += 30;  // too soon — dropped
+  pump(scene, 1280);  // too soon — dropped
   audio.emit('explode', { x: 1000, y: 300 });
   eq(sound.plays.filter((k) => k === 'explosion').length, 2, 'two of three blasts pass');
 });
@@ -389,13 +375,13 @@ console.log('\n== feedback + music ========================================');
 test('correct answer plays success once and ducks (never stops) music', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-game');
-  flushTweens(scene);
+  pump(scene, 2000); // ramp-in complete
   const music = sound.sounds.find((s) => s.key === 'music-game');
   assert(music && music.isPlaying, 'gameplay music playing');
   const before = music.volume;
   audio.emit('answer-correct');
   eq(sound.plays.filter((k) => k === 'ui-correct').length, 1, 'success jingle once');
-  flushTweens(scene); // duck ramp applied
+  pump(scene, 2600); // duck ramp applied; restore (t+1200ms) not due yet
   assert(music.volume < before, `music ducked (v ${music.volume.toFixed(2)} < ${before.toFixed(2)})`);
   assert(music.isPlaying, 'music still playing under feedback');
 });
@@ -411,10 +397,9 @@ test('wrong answer plays gentle feedback; missed shot plays a quiet whiff', () =
 test('level complete: star chimes match the star count, music fades out', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-game');
-  flushTweens(scene);
+  pump(scene, 2000);
   audio.emit('level-complete', { stars: 2 });
-  flushTimers(scene);   // staggered chimes + fanfare
-  flushTweens(scene);   // music fade-out
+  pump(scene, 3500);   // staggered chimes + fanfare + music fade-out
   eq(sound.plays.filter((k) => k === 'ui-star').length, 2, 'two stars → two chimes');
   eq(sound.plays.filter((k) => k === 'ui-complete').length, 1, 'fanfare once');
   assert(!sound.plays.includes('music-victory'), 'no victory sting for a normal level');
@@ -423,19 +408,18 @@ test('level complete: star chimes match the star count, music fades out', () => 
 test('level failed: gentle cue, music stops', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-game');
-  flushTweens(scene);
+  pump(scene, 2000);
   audio.emit('level-failed');
-  flushTimers(scene);
-  flushTweens(scene);
+  pump(scene, 3200);
   eq(sound.plays.filter((k) => k === 'ui-failed').length, 1, 'failure cue once');
 });
 
 test('music switching is idempotent and crossfades instead of stacking', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-menu');
-  flushTweens(scene);
+  pump(scene, 2000);
   audio.playMusic('music-game'); // menu → gameplay
-  flushTweens(scene);
+  pump(scene, 3000);
   const game = sound.sounds.filter((s) => s.key === 'music-game');
   const menu = sound.sounds.filter((s) => s.key === 'music-menu');
   eq(game.filter((s) => s.isPlaying).length, 1, 'gameplay music playing');
@@ -447,7 +431,7 @@ test('music switching is idempotent and crossfades instead of stacking', () => {
 test('game pause suspends all audio; resume continues without duplication', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-game');
-  flushTweens(scene);
+  pump(scene, 2500);
   audio.emit('sling-stretch', { tension: 0.5 }); // have a loop running too
   audio.emit('game-pause');
   eq(sound.pauseAllCount, 1, 'pauseAll issued');
@@ -476,24 +460,24 @@ test('sfx mute silences impacts/abilities but not UI clicks', () => {
 test('music mute stops current music and remembers the request', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-game');
-  flushTweens(scene);
+  pump(scene, 2000);
   audio.setMusicEnabled(false);
-  flushTweens(scene);
+  pump(scene, 2500);
   assert(sound.sounds.filter((s) => s.key === 'music-game').every((s) => !s.isPlaying), 'music stopped');
   audio.setMusicEnabled(true);
-  flushTweens(scene);
+  pump(scene, 3000);
   assert(sound.sounds.some((s) => s.key === 'music-game' && s.isPlaying), 'music restored');
 });
 
 test('master mute silences everything; unmute revives desired music', () => {
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.playMusic('music-menu');
-  flushTweens(scene);
+  pump(scene, 2000);
   audio.setMasterEnabled(false);
   eq(sound.mute, true, 'manager muted');
   assert(!audio.enabled, 'bus disabled');
   audio.setMasterEnabled(true);
-  flushTweens(scene);
+  pump(scene, 2600);
   eq(sound.mute, false, 'manager unmuted');
   assert(sound.sounds.some((s) => s.key === 'music-menu' && s.isPlaying), 'desired music replayed');
 });
