@@ -38,6 +38,16 @@ const jobs = [
     out: join(OUT_DIR, 'logo.webp'),
     transform: (img) => img.webp({ quality: 95, effort: 5 }),
     desc: 'WORD BLAST logo (transparent, aspect preserved)'
+  },
+  {
+    // Supplied wooden bar element (628×143) — the PLAY button face. Kept
+    // at FULL source resolution (≥ the button's device-pixel size across
+    // the support matrix); the game scales it to the button, aspect
+    // preserved, and centre-crops nothing.
+    src: join(SRC_DIR, 'play-button.png'),
+    out: join(OUT_DIR, 'play-button.webp'),
+    transform: (img) => img.webp({ quality: 95, effort: 5 }),
+    desc: 'PLAY button wooden face (supplied element)'
   }
 ];
 
