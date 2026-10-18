@@ -3,7 +3,7 @@
  * Used by the browser integration tests; harmless in normal play.
  */
 import { WORLD, QUESTION_CARD } from '../config.js';
-import { clientToWorld } from '../systems/InputMapper.js';
+import { clientToWorld, worldToClient } from '../systems/InputMapper.js';
 import { deviceInfo, setOrientationOverride, setTypeOverride } from '../systems/Device.js';
 import { currentView } from '../systems/Viewport.js';
 import { refreshOrientationGate } from '../systems/OrientationGate.js';
@@ -87,6 +87,25 @@ export function installDebugAPI(game) {
       // necessarily the bare 1280×720 world rect.
       const scene = game.scene.getScenes(true)[0];
       return clientToWorld(clientX, clientY, canvas.getBoundingClientRect(), currentView(scene));
+    },
+
+    /** Inverse of mapClient: world coords → client (synthesizing pointer
+     *  events in automated UI tests, e.g. clicking the menu buttons). */
+    worldToClient(wx, wy) {
+      const canvas = game.canvas;
+      const scene = game.scene.getScenes(true)[0];
+      return worldToClient(wx, wy, canvas.getBoundingClientRect(), currentView(scene));
+    },
+
+    /**
+     * Fix #21 — main-menu diagnostics (progress, art source, transition
+     * guards). The menu itself never draws developer text; this is the only
+     * diagnostic channel.
+     */
+    menu() {
+      const s = game.scene.getScene('MenuScene');
+      if (!s || !s.sys.isActive()) return { active: false };
+      return s.menuDebugInfo();
     },
 
     /** Await a game state (polling — robust across scene restarts). */

@@ -26,6 +26,7 @@ import { QuestionCard } from '../systems/QuestionCard.js';
 import { BirdInventory } from '../systems/BirdInventory.js';
 import { BirdSelector, AbilityButton, SELECTOR_ORDER, SELECTOR_LAYOUT } from '../systems/BirdSelector.js';
 import { planQuestion } from '../systems/AnswerPanel.js';
+import { AnswerPeek } from '../systems/AnswerPeek.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -403,6 +404,14 @@ export class GameScene extends Phaser.Scene {
         questionIndex: index, plan: this.answerPlan
       });
     });
+
+    // Sentence questions get the enlarged reading view (hold a panel / press
+    // Z while AIMING) — the phone-scale fallback that keeps the ink readable
+    // without shrinking the panels any further.
+    if (this.answerPeek) { this.answerPeek.destroy(); this.answerPeek = null; }
+    if (this.answerPlan.format === 'XL') {
+      this.answerPeek = new AnswerPeek(this, this.prepared.targets);
+    }
 
     // Build-time settle: silent fixed steps with damage suppressed, then
     // everything sleeps. Towers are therefore at rest before the first
