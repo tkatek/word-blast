@@ -13,9 +13,8 @@ export class LevelSelectScene extends Phaser.Scene {
   create() {
     const save = this.registry.get('save');
     const levels = this.registry.get('levels');
-    // Fix #22 — the menu theme keeps playing on the level select (never
-    // restarts: playMusic is idempotent per key).
-    this.registry.get('audio')?.playMusic('music-menu');
+    // Audio-repair — silence-first configuration: no music on the level
+    // select; only button clicks sound.
     // Full-bleed backdrop: covers the whole visible view on any aspect
     // ratio (Fix #2) — re-covered on every resize below.
     this.backdrop = this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x1b4332);

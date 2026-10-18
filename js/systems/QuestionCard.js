@@ -418,6 +418,9 @@ export class QuestionCard {
     this.phase = CARD_PHASES.EXPANDING;
     DebugLog.info('Card — EXPANDING (enlarged reading view)');
     this.scene.events.emit('wb-card-peek', true);
+    // Audio hook — ONE soft paper/whoosh per expansion transition (never
+    // per tween frame). The reading period itself stays quiet.
+    this.scene.audio?.emit('card-open');
     this.scrim.setVisible(true);
     this.enlargeHint.setVisible(false);
     if (this.reducedMotion()) {
@@ -475,6 +478,8 @@ export class QuestionCard {
     const token = this.token;
     this.phase = CARD_PHASES.COLLAPSING;
     DebugLog.info('Card — COLLAPSING (back to the dock)');
+    // Audio hook — one soft return whoosh per close transition.
+    this.scene.audio?.emit('card-close');
     this.showCloseBtn(false);
     this.killTweensOf(this.root);
     this.killTweensOf(this.scrim);
@@ -643,16 +648,28 @@ export class QuestionCard {
       if (voice) utter.voice = voice;
       utter.lang = voice ? voice.lang : 'en-US';
       utter.rate = 0.92;
+      // While the question voice speaks, competing effects duck so the
+      // pronunciation stays intelligible; levels restore smoothly on end
+      // (a saved-settings change this is NOT). The safety timer covers
+      // engines that never fire onend.
+      const endDuck = () => {
+        this.speaking = false;
+        this.scene.audio?.duckForSpeech(false);
+        if (this._speechGuard) { clearTimeout(this._speechGuard); this._speechGuard = null; }
+      };
       utter.onstart = () => {
         if (!this.speaker.active) return;
         this.speaking = true;
+        this.scene.audio?.duckForSpeech(true);
+        if (this._speechGuard) clearTimeout(this._speechGuard);
+        this._speechGuard = setTimeout(endDuck, 20000);
         this.scene.tweens.killTweensOf(this.speaker);
         this.scene.tweens.add({
           targets: this.speaker, scaleX: this.speaker.scaleX * 1.12, scaleY: this.speaker.scaleY * 1.12,
           duration: 220, yoyo: true, ease: 'Sine.easeInOut'
         });
       };
-      utter.onend = utter.onerror = () => { this.speaking = false; };
+      utter.onend = utter.onerror = endDuck;
       this.synth.cancel(); // a repeat tap restarts the pronunciation
       this.synth.speak(utter);
       DebugLog.info('Card — speaking question via Web Speech API');

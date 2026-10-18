@@ -72,11 +72,8 @@ export class MenuScene extends Phaser.Scene {
     this.dialog = null;
     this.reducedMotion = !!(save.data && save.data.settings && save.data.settings.reducedMotion);
 
-    // Fix #22 — cheerful menu music (idempotent: returning from gameplay
-    // crossfades back; on locked mobile audio it starts after the first
-    // user gesture — see AudioManager's unlock handling).
-    this.registry.get('audio')?.playMusic('music-menu');
-
+    // Audio-repair — silence-first configuration: no menu music. The menu
+    // is silent apart from button clicks; nothing starts automatically.
     this.buildBackground();
     this.buildLogo();
     this.buildSubtitle();
