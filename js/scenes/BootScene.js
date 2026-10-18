@@ -9,7 +9,7 @@ import { STATES, COLORS, WORLD, SLINGSHOT, PROJECTILE_TYPES, QUESTION_CARD } fro
 import { QuestionManager } from '../systems/QuestionManager.js';
 import { LevelManager } from '../systems/LevelManager.js';
 import { SaveManager } from '../systems/SaveManager.js';
-import { AudioManager } from '../systems/AudioManager.js';
+import { AudioManager, audioPreloadList } from '../systems/AudioManager.js';
 import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
