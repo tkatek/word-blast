@@ -312,12 +312,13 @@ export class AudioManager {
     return this.bus.master * (this.bus[c] !== undefined ? this.bus[c] : 1);
   }
 
-  /** Pick a variation key (random, no immediate repeat). */
+  /** Pick a variation key (random, no immediate repeat). Always returns a
+   *  LOADED key — when variations exist the base key is never played. */
   _pick(baseKey, def) {
     const vars = def.vars;
     if (!vars || vars.length < 2) return baseKey;
-    let key = baseKey;
-    for (let i = 0; i < 4 && key === this._lastVar.get(baseKey); i++) {
+    let key = null;
+    for (let i = 0; i < 4 && (key === null || key === this._lastVar.get(baseKey)); i++) {
       key = vars[Math.floor(Math.random() * vars.length)];
     }
     this._lastVar.set(baseKey, key);
@@ -370,7 +371,8 @@ export class AudioManager {
 
     const now = this._now();
     const cd = opts.cooldown !== undefined ? opts.cooldown : (base.cooldown || 0);
-    if (cd > 0 && now - (this._lastPlay.get(key) || -1e9) < cd) {
+    const lastPlay = this._lastPlay.get(key); // NOTE: 0 is a valid timestamp
+    if (cd > 0 && now - (lastPlay === undefined ? -Infinity : lastPlay) < cd) {
       this.stats.dropped[key] = (this.stats.dropped[key] || 0) + 1;
       return null;
     }
@@ -502,8 +504,13 @@ export class AudioManager {
     } catch { /* missing/blocked */ }
   }
 
-  stopMusic(fadeMs = 500) {
-    this._desiredMusic = null;
+  /**
+   * Stop the music. `forget: false` (used by the music MUTE toggle) keeps
+   * the desired-track memory so unmuting restores exactly what was playing;
+   * scene/level changes use the default and clear it.
+   */
+  stopMusic(fadeMs = 500, { forget = true } = {}) {
+    if (forget) this._desiredMusic = null;
     const s = this._music;
     this._music = null;
     if (!s) return;
@@ -704,7 +711,7 @@ export class AudioManager {
   setMusicEnabled(v) {
     this.mutes.music = !v;
     if (this.save) this.save.setSetting('music', !!v);
-    if (!v) this.stopMusic(400);
+    if (!v) this.stopMusic(400, { forget: false }); // remember what to restore
     else if (this._desiredMusic) this.playMusic(this._desiredMusic, { fadeMs: 600 });
   }
 
