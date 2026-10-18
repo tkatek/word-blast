@@ -1314,7 +1314,8 @@ export class GameScene extends Phaser.Scene {
     DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — STATE ${prev} -> ${next}`);
     // Fix #22 — every pause source (menu, portrait rotation, hidden tab)
     // funnels through this one choke point: audio pauses with the game and
-    // resumes with it (music never duplicates — playMusic is idempotent).
+    // resumes with it (movement audio is stopped on pause; a stationary
+    // pouch stays silent after resume).
     if (next === STATES.PAUSED) {
       this.audio?.emit('game-pause');
     } else if (prev === STATES.PAUSED) {
