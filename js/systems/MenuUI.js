@@ -385,7 +385,7 @@ export class WoodButton {
       strokeThickness: variant === 'primary' ? 6 : 4
     };
     const text = menuText(scene, 0, 2, label, style);
-    const iconSize = variant === 'primary' ? height * 0.4 : 24;
+    const iconSize = variant === 'primary' ? btnH * 0.4 : 24;
     const gap = icon ? iconSize * 0.5 : 0;
     const minPad = 22;
     let groupScale = 1;
@@ -414,12 +414,12 @@ export class WoodButton {
 
     if (shine) this._addShine();
 
-    c.setSize(width, height);
+    c.setSize(width, btnH);
     // NOTE: containers hardcode origin 0.5, and InputManager.pointWithinHitArea
     // shifts the local point by +displayOrigin before testing — so a
     // container hit area must be in TOP-LEFT space (0,0,w,h), not centered.
     c.setInteractive({
-      hitArea: new Phaser.Geom.Rectangle(0, 0, width, height),
+      hitArea: new Phaser.Geom.Rectangle(0, 0, width, btnH),
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       useHandCursor: true
     });

@@ -129,13 +129,14 @@ export class BootScene extends Phaser.Scene {
       const levelManager = new LevelManager(levelsData, questionsData);
       const save = new SaveManager();
       save.load();
-      const audio = new AudioManager();
-      audio.attach();
-
-      this.registry.set('questions', questionManager);
-      this.registry.set('levels', levelManager);
+      // Fix #22 — the audio manager is created ONCE per game and kept in
+      // the registry (survives every scene restart). attach() binds it to
+      // this scene's sound manager + audio cache + the save settings; it
+      // is idempotent, so nothing can ever double-attach.
       this.registry.set('save', save);
+      const audio = new AudioManager();
       this.registry.set('audio', audio);
+      audio.attach(this);
       this.registry.set('bootTime', this.time.now);
 
       if (levelManager.validation.warnings.length) {
