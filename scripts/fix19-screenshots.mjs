@@ -97,111 +97,109 @@ const main = async () => {
       '--enable-unsafe-swiftshader', '--mute-audio']
   });
 
-  const shot = async (name, vp, prepare, levelId = 12) => {
-    const page = await newPage(browser, vp);
-    try {
-      await gotoGameScene(page, levelId);
-      if (prepare) await prepare(page);
-      await page.screenshot({ path: join(OUT, name) });
-      console.log('ok', name);
-    } catch (e) {
-      console.log('FAIL', name, '-', e.message);
-    } finally {
-      await page.close();
-    }
+  /**
+   * ONE page carries the whole desktop campaign (one boot, sequential
+   * scenarios with re-arms between shots) — repeated navigations proved
+   * fragile in this environment.
+   */
+  const page = await newPage(browser, { w: 1536, h: 864 });
+  const snap = async (name) => {
+    await page.screenshot({ path: join(OUT, name) });
+    console.log('ok', name);
   };
 
-  /* 1 — the five-card selector, desktop */
-  await shot('selector-desktop.png', { w: 1536, h: 864 }, async (page) => {
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('basic'));
-    await sleep(300);
-  });
+  try {
+    await gotoGameScene(page, 12);
 
-  /* 2 — phone landscape (responsive check) */
-  await shot('selector-phone-landscape.png', { w: 844, h: 390, mobile: true, touch: true }, async (page) => {
-    await sleep(200);
-  });
-
-  /* 3 — tablet landscape */
-  await shot('selector-tablet.png', { w: 1180, h: 820, mobile: true, touch: true }, async (page) => {
-    await sleep(200);
-  });
-
-  /* 4 — red bird selected (glowing card + red bird in the pouch) */
-  await shot('red-selected.png', { w: 1536, h: 864 }, async (page) => {
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('bomb')); // select another first…
-    await sleep(250);
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('basic')); // …so the pop reads
-    await sleep(350);
-  });
-
-  /* 5 — blue bird accelerating (mid-boost trail) */
-  await shot('blue-boost.png', { w: 1536, h: 864 }, async (page) => {
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('speed'));
-    await sleep(250);
-    await fire(page, 17, -7);
-    await sleep(320);                 // let it climb over the foreground
-    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
-    await sleep(130);                 // trail + stretch visible
-  });
-
-  /* 6 — yellow bird splitting into five */
-  await shot('yellow-split-five.png', { w: 1536, h: 864 }, async (page) => {
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('split'));
-    await sleep(250);
-    await fire(page, 17, -7);
-    await sleep(380);                 // fan separates visibly
-    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
-    await sleep(240);
-  });
-
-  /* 7 — black bird exploding over a tower */
-  await shot('black-explosion.png', { w: 1536, h: 864 }, async (page) => {
+    /* 1 — the five-card selector, red selected */
     await page.evaluate(() => window.__WB__.scene().selectProjectile('bomb'));
     await sleep(250);
-    await fire(page, 17, -5.5);
-    await page.waitForFunction(() => {
-      const ps = window.__WB__ && window.__WB__.scene().factory.projectiles;
-      return ps.length > 0 && !ps[0].wb.consumed && ps[0].x > 720;
-    }, { timeout: 6000 });
-    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
-    await sleep(150);                 // flash + ring + debris frame
-  });
+    await page.evaluate(() => window.__WB__.scene().selectProjectile('basic'));
+    await sleep(400);
+    await snap('selector-desktop.png');
+    await snap('red-selected.png');
 
-  /* 8 — purple bird freezing blocks */
-  await shot('purple-freeze.png', { w: 1536, h: 864 }, async (page) => {
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('ice'));
-    await sleep(250);
-    await fire(page, 17, -5.5);
-    await page.waitForFunction(() => {
-      const ps = window.__WB__ && window.__WB__.scene().factory.projectiles;
-      return ps.length > 0 && !ps[0].wb.consumed && ps[0].x > 690;
-    }, { timeout: 6000 });
-    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
-    await sleep(420);                 // icy tint visible on blocks
-  });
-
-  /* 9 — a bird type at zero ammunition (drain blue: 2 shots on L12) */
-  await shot('zero-ammo-card.png', { w: 1536, h: 864 }, async (page) => {
+    /* 2 — blue bird accelerating (mid-boost trail) */
     await page.evaluate(() => window.__WB__.scene().selectProjectile('speed'));
-    await sleep(200);
-    for (let i = 0; i < 2; i++) {
-      await fire(page, 15, -7);
-      await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 30000 });
-      await sleep(300);
-    }
-    const n = await page.evaluate(() => window.__WB__.scene().birdInventory.count('speed'));
-    if (n !== 0) throw new Error(`speed ammo should be 0, got ${n}`);
-    await sleep(400);                 // badge pulse settled on ×0 + dimmed
-  });
-
-  /* 10 — mobile: mid-flight ability TAP button visible */
-  await shot('ability-button-mobile.png', { w: 844, h: 390, mobile: true, touch: true }, async (page) => {
-    await page.evaluate(() => window.__WB__.scene().selectProjectile('split'));
-    await sleep(250);
-    await fire(page, 15, -7);
+    await sleep(300);
+    await fire(page, 17, -9);
     await sleep(260);
-  });
+    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
+    await sleep(140);
+    await snap('blue-boost.png');
+    await rearm(page);
+
+    /* 3 — yellow bird splitting into five (early activation, lofted arc) */
+    await page.evaluate(() => window.__WB__.scene().selectProjectile('split'));
+    await sleep(300);
+    await fire(page, 16, -9);
+    await sleep(220);
+    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
+    await sleep(330);
+    await snap('yellow-split-five.png');
+    await rearm(page);
+
+    /* 4 — black bird exploding over a tower */
+    await page.evaluate(() => window.__WB__.scene().selectProjectile('bomb'));
+    await sleep(300);
+    await fire(page, 17, -6);
+    await page.waitForFunction(() => {
+      const ps = window.__WB__ && window.__WB__.scene().factory.projectiles;
+      return ps.length > 0 && !ps[0].wb.consumed && ps[0].x > 700;
+    }, { timeout: 8000 });
+    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
+    await sleep(160);
+    await snap('black-explosion.png');
+    await rearm(page);
+
+    /* 5 — purple bird freezing blocks */
+    await page.evaluate(() => window.__WB__.scene().selectProjectile('ice'));
+    await sleep(300);
+    await fire(page, 17, -6);
+    await page.waitForFunction(() => {
+      const ps = window.__WB__ && window.__WB__.scene().factory.projectiles;
+      return ps.length > 0 && !ps[0].wb.consumed && ps[0].x > 680;
+    }, { timeout: 8000 });
+    await page.evaluate(() => window.__WB__.scene().tryActivateAbilities());
+    await sleep(450);
+    await snap('purple-freeze.png');
+    await rearm(page);
+
+    /* 6 — a bird type at zero ammunition (fresh level: drain blue ×2) */
+    await page.evaluate((id) => window.__WB__.gotoLevel(id), 12);
+    await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 30000 });
+    await page.evaluate(() => window.__WB__.setAutoPause(false));
+    await page.evaluate(() => window.__WB__.scene().selectProjectile('speed'));
+    await sleep(250);
+    for (let i = 0; i < 2; i++) {
+      await fire(page, -6.5, -5);   // backward lobs: quick guaranteed misses
+      await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 30000 });
+      await sleep(350);
+    }
+    await snap('zero-ammo-card.png');
+  } catch (e) {
+    console.log('FAIL desktop campaign -', e.message);
+  } finally {
+    await page.close();
+  }
+
+  /* mobile pass: selector row + mid-flight TAP button */
+  const mpage = await newPage(browser, { w: 844, h: 390, mobile: true, touch: true });
+  try {
+    await gotoGameScene(mpage, 12);
+    await mpage.screenshot({ path: join(OUT, 'selector-phone-landscape.png') });
+    console.log('ok selector-phone-landscape.png');
+    await mpage.evaluate(() => window.__WB__.scene().selectProjectile('split'));
+    await sleep(250);
+    await fire(mpage, 15, -9);
+    await sleep(300);
+    await mpage.screenshot({ path: join(OUT, 'ability-button-mobile.png') });
+    console.log('ok ability-button-mobile.png');
+  } catch (e) {
+    console.log('FAIL mobile pass -', e.message);
+  } finally {
+    await mpage.close();
+  }
 
   await browser.close();
   console.log('done ->', OUT);
