@@ -828,10 +828,23 @@ function buildUi() {
     peakTo(out, -22);
     files.push(['ui/question-ready.wav', out, false]);
   }
+  // pig pop — soft "poof" + friendly squeak (pig defeated)
+  {
+    const out = zeros(0.4);
+    const puff = bp(noiseBuf(0.18), 700, 0.8);
+    for (let i = 0; i < puff.length; i++) puff[i] *= Math.exp(-(i / SR) * 16);
+    mix(out, 0, puff, 0.7);
+    mix(out, 0, damped({ dur: 0.1, freq: 320, decay: 26, gain: 0.6 }), 1);
+    mix(out, 0.03, tone({ dur: 0.16, freq: [640, 980], wave: 'tri', gain: 0.3, glideShape: 0.7, vibratoHz: 14, vibratoDepth: 30 }), 0.8);
+    fadeEdges(out, 1, 40);
+    peakTo(out, -10);
+    files.push(['pigs/pop.wav', out, false]);
+  }
   return files;
 }
 
 function buildAmbience() {
+  const files = [];
   // forest loop — soft wind bed + occasional distant birds. Very quiet:
   // gameplay SFX must always dominate it.
   const dur = 16;
@@ -865,7 +878,8 @@ function buildAmbience() {
   loopify(out, 500);
   rmsTo(out, -34, -14);
   fadeEdges(out, 4, 4);
-  return [['ambience/forest-loop.wav', out, true]];
+  files.push(['ambience/forest-loop.wav', out, true]);
+  return files;
 }
 
 /* ------------------------------------------------------------------ */
