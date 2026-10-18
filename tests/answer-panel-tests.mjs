@@ -147,14 +147,11 @@ for (const lvl of levelsData.levels) {
 /* ---- 9-10: live physics ------------------------------------------------- */
 console.log('--- live XL question boot + collider match ---');
 for (const levelId of [8, 13]) {
-  await h.gotoLevel(levelId);
-  await h.waitForState('AIMING', 15000);
-  const s = h.scene();
   for (let q = 0; q < 4; q++) {
-    if (q > 0) {
-      s.loadQuestion(q);
-      await h.waitForState('AIMING', 15000);
-    }
+    const ok = await h.api.gotoQuestion(levelId, q);
+    check(ok, `L${levelId}Q${q + 1}: gotoQuestion`);
+    await h.waitForState('AIMING', 15000);
+    const s = h.scene();
     const plan = plans.get(s.prepared.question.id);
     const f = formatByName(plan.format);
     const targets = s.factory.targets;

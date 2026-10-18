@@ -52,6 +52,34 @@ export function installDebugAPI(game) {
       return true;
     },
 
+    /**
+     * Start a level AT A SPECIFIC QUESTION (answer-panel verification needs
+     * the sentence questions on demand). Walks the legal state-machine path
+     * to NEXT_QUESTION and loads the question from there. Async — resolves
+     * once the question is loaded (QUESTION_READY or later).
+     */
+    async gotoQuestion(levelId, index) {
+      api.gotoLevel(levelId);
+      await new Promise((resolve) => {
+        const poll = () => {
+          const s = api.scene();
+          if (s && s.prepared) return resolve();
+          setTimeout(poll, 50);
+        };
+        poll();
+      });
+      const s = api.scene();
+      if (s.questionIndex === index) return true;
+      const sm = s.stateMachine;
+      for (const st of ['AIMING', 'PROJECTILE_FLYING', 'PHYSICS_RESOLVING', 'NEXT_QUESTION']) {
+        if (sm.current !== st) {
+          if (!sm.set(st)) return false;
+        }
+      }
+      s.loadQuestion(index);
+      return s.questionIndex === index;
+    },
+
     /** Map client coords → world coords for the canvas (input mapping test). */
     mapClient(clientX, clientY) {
       const canvas = game.canvas;
