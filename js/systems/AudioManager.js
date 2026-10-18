@@ -149,6 +149,13 @@ export class AudioManager {
     this._lastExplosion = { t: -1e9, x: 0, y: 0 };
     this._paused = false;
     this._unlockBound = false;
+    // engine-side clock queues (filled in attach(); defaults keep
+    // destroy()/pre-attach calls safe)
+    this._ramps = [];
+    this._timers = [];
+    this._tickTime = null;
+    this._game = null;
+    this._tickHandler = null;
     this.stats = { plays: Object.create(null), dropped: Object.create(null), events: Object.create(null) };
   }
 
@@ -193,9 +200,10 @@ export class AudioManager {
 
   /**
    * Bind the playback engine. Called once from BootScene.create() with the
-   * boot scene (its sound manager and audio cache are game-scoped). Safe to
-   * call repeatedly — the second call is a no-op, so scene restarts can
-   * never duplicate listeners.
+   * boot scene. CRITICAL: all timing (cooldowns, fades, delayed chimes)
+   * runs off the GAME's post-step clock, never off a scene — scenes shut
+   * down and their clocks freeze, which would stall every cooldown after
+   * boot. Safe to call repeatedly — the second call is a no-op.
    */
   attach(scene) {
     if (this._attached) return;
@@ -204,10 +212,55 @@ export class AudioManager {
     this.sound = scene && scene.sound ? scene.sound : null;
     this._cache = scene && scene.cache ? scene.cache.audio : null;
     this.save = scene && scene.registry ? scene.registry.get('save') : null;
+    this._game = scene && scene.game ? scene.game : null;
+
+    this._ramps = [];   // {s, from, to, t0, ms, onDone} — volume fades
+    this._timers = [];  // {due, fn, cancelled} — short audio-side delays
+    this._tickTime = null;
 
     this._readSettings();
     this._registerRoutes();
     this._installUnlock();
+    this._installTicker();
+  }
+
+  /** Drive ramps/timers/the engine clock from the game loop (every frame). */
+  _installTicker() {
+    if (!this._game || !this._game.events || typeof this._game.events.on !== 'function') return;
+    this._tickHandler = (time) => this._tick(time);
+    // Phaser.Core.Events.POST_STEP — fires for the whole game lifetime with
+    // the loop's monotonic ms clock, regardless of which scene is active.
+    this._game.events.on('poststep', this._tickHandler);
+  }
+
+  /** One engine tick: advance clock, apply due volume ramps, fire timers. */
+  _tick(time) {
+    if (typeof time === 'number' && Number.isFinite(time)) this._tickTime = time;
+    const now = this._now();
+    if (this._ramps.length) {
+      const done = [];
+      for (const r of this._ramps) {
+        let v;
+        if (now >= r.t0 + r.ms) {
+          v = r.to;
+          done.push(r);
+        } else {
+          v = r.from + (r.to - r.from) * ((now - r.t0) / Math.max(1, r.ms));
+        }
+        try { r.s.setVolume(v); } catch { done.push(r); continue; }
+      }
+      if (done.length) {
+        this._ramps = this._ramps.filter((r) => !done.includes(r));
+        for (const r of done) { try { r.onDone && r.onDone(); } catch { /* owner gone */ } }
+      }
+    }
+    if (this._timers.length) {
+      const due = this._timers.filter((t) => !t.cancelled && t.due <= now);
+      if (due.length) {
+        this._timers = this._timers.filter((t) => !due.includes(t));
+        for (const t of due) { try { t.fn(); } catch { /* owner gone */ } }
+      }
+    }
   }
 
   /** Detach everything (game destroy only — scenes never call this). */
@@ -290,16 +343,20 @@ export class AudioManager {
   /* Core playback                                                       */
   /* ------------------------------------------------------------------ */
 
+  /**
+   * Engine clock. Prefers the game-loop time updated by _tick (monotonic,
+   * scene-independent); falls back to wall clock for the rare frame before
+   * the first post-step (and for engine-only unit tests without a game).
+   */
   _now() {
-    const t = this._scene && this._scene.time ? this._scene.time.now : null;
-    return typeof t === 'number' ? t : Date.now();
+    return typeof this._tickTime === 'number' ? this._tickTime : Date.now();
   }
 
+  /** Audio-side delayed call on the engine clock (survives scene swaps). */
   _delay(ms, fn) {
-    if (this._scene && this._scene.time && this._scene.time.delayedCall) {
-      try { this._scene.time.delayedCall(ms, fn); return; } catch { /* scene dying */ }
-    }
-    setTimeout(fn, ms);
+    const rec = { due: this._now() + ms, fn, cancelled: false };
+    this._timers.push(rec);
+    return rec;
   }
 
   _loaded(key) {
@@ -436,7 +493,7 @@ export class AudioManager {
   }
 
   /* ------------------------------------------------------------------ */
-  /* Volume ramp helper (tween when possible, timer fallback)            */
+  /* Volume ramp helper — game-loop driven, never scene-driven           */
   /* ------------------------------------------------------------------ */
   _ramp(sound, to, ms, onDone) {
     if (!sound) { if (onDone) onDone(); return; }
@@ -447,27 +504,7 @@ export class AudioManager {
       if (onDone) onDone();
       return;
     }
-    if (this._scene && this._scene.tweens && this._scene.tweens.add) {
-      const proxy = { v: from };
-      try {
-        this._scene.tweens.add({
-          targets: proxy, v: to, duration: ms,
-          onUpdate: () => { try { sound.setVolume(proxy.v); } catch { /* gone */ } },
-          onComplete: () => { if (onDone) onDone(); }
-        });
-        return;
-      } catch { /* scene shutting down */ }
-    }
-    const steps = Math.max(1, Math.round(ms / 50));
-    let i = 0;
-    const tick = () => {
-      i++;
-      const v = from + (to - from) * (i / steps);
-      try { sound.setVolume(v); } catch { if (onDone) onDone(); return; }
-      if (i < steps) setTimeout(tick, 50);
-      else if (onDone) onDone();
-    };
-    setTimeout(tick, 50);
+    this._ramps.push({ s: sound, from, to, t0: this._now(), ms, onDone });
   }
 
   /* ------------------------------------------------------------------ */
