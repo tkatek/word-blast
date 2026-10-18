@@ -7,6 +7,29 @@
  * Phaser captures environment facts at module-init time.
  */
 
+/**
+ * Font-size-aware Arial-bold approximation for headless text measurement
+ * (answer-panel planning + question-card fitting run REAL Phaser Text
+ * metrics; in Node the canvas is fake, so width/height come from this table
+ * instead — browser runs use the true canvas metrics).
+ */
+const NARROW = new Set(['i', 'l', 'I', 'j', 't', 'f', 'r', ' ', '.', ',', "'", ':', ';', '!', '|', '(', ')', '[', ']']);
+const WIDE = new Set(['m', 'w', 'M', 'W', '@']);
+const CAPS = new Set('ABCDEFGHJKLNOPQRSTUVXYZ');
+
+function approxCharWidth(ch) {
+  if (NARROW.has(ch)) return 0.30;
+  if (WIDE.has(ch)) return 0.86;
+  if (CAPS.has(ch)) return 0.72;
+  return 0.575; // average Arial-bold glyph
+}
+
+function measureArialBold(text, fontSize) {
+  let w = 0;
+  for (const ch of String(text)) w += approxCharWidth(ch) * fontSize;
+  return w;
+}
+
 function make2DContext() {
   // A Proxy-based no-op 2D context: any method call is absorbed, property
   // reads for the handful of value-returning APIs Phaser depends on are
@@ -20,9 +43,21 @@ function make2DContext() {
     lineWidth: 1,
     font: '10px sans-serif',
     imageSmoothingEnabled: true,
-    measureText: (t) => ({ width: String(t).length * 6, actualBoundingBoxAscent: 8, actualBoundingBoxDescent: 2 }),
+    measureText: (t) => {
+      // Phaser sets ctx.font (e.g. "bold 24px Arial") before measuring —
+      // approximate the same metrics the real canvas would report.
+      const m = /(\d+(?:\.\d+)?)px/.exec(target.font);
+      const size = m ? parseFloat(m[1]) : 10;
+      return {
+        width: measureArialBold(t, size),
+        actualBoundingBoxAscent: size * 0.72,
+        actualBoundingBoxDescent: size * 0.2,
+        fontBoundingBoxAscent: size * 0.9,
+        fontBoundingBoxDescent: size * 0.22
+      };
+    },
     getImageData: (_x, _y, w = 1, h = 1) => ({ width: w, height: h, data: new Uint8ClampedArray(Math.max(4, w * h * 4)) }),
-    createImageData: (w = 1, h = 1) => ({ width: w, height: h, data: new Uint8ClampedArray(Math.max(4, w * h * 4)) }),
+    createImageData: (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(Math.max(4, w * h * 4)) }),
     createLinearGradient: () => ({ addColorStop() {} }),
     createRadialGradient: () => ({ addColorStop() {} }),
     createPattern: () => ({}),

@@ -206,20 +206,47 @@ export class ObjectFactory {
   /**
    * Dynamic answer plaque on the parchment-and-wood panel: a real body
    * resting on the structure, indestructible, validated only by direct
-   * projectile contact. Panel width adapts to the answer length (S/M/L
-   * variants of one design), the letter badge marks the choice, and the
-   * word is inked large enough to read at gameplay distance. Labels follow
-   * the body (position + rotation) via a container, so the text rides the
-   * board like paint when the tower tumbles.
+   * projectile contact.
+   *
+   * Sizing is MEASUREMENT-driven (js/systems/AnswerPanel.js): the question
+   * plan passed in `meta.plan` was computed from real Phaser text metrics —
+   * short words get compact S/M/L panels, sentences get the wide XL panel,
+   * and all three answers of a question share one format + font size. The
+   * collider matches the displayed panel exactly (texture-sized body +
+   * setDisplaySize scales body and visual together), the panel bottom sits
+   * on the layout slot's surface (panelCenterYForSlot), and the letter
+   * badge + text ride the body (position + rotation) via one container, so
+   * the ink moves with the board when the tower tumbles.
+   *
+   * XL panels keep the mass of the historical L plaque (density normalized)
+   * so the bigger board never crushes its support during the settle phase.
+   *
+   * @param {{x:number,y:number}} def      slot position (level layout)
+   * @param {{choiceId:string,label:string,text:string,questionIndex:number,
+   *          plan:{format:string,font:number,entries:Array}}} meta
    */
   createTarget(def, meta) {
-    const variant = panelVariantFor(meta.text);
+    const plan = meta.plan || { format: 'L', font: TARGETS.TEXT.MIN_SIZE, entries: [] };
+    const formatName = plan.format;
+    const variant = formatByName(formatName);
+    const fontSize = Math.max(variant.font.min, plan.font || variant.font.min);
     const texKey = `tw-${variant.key}`;
-    const [w, h] = TOWER_ASSETS[variant.key].size;
-    const go = this.scene.matter.add.image(def.x, def.y, texKey, undefined, {
+    const [w, h] = variant.size;
+
+    // slot y = surface − 40 (baked for the historical 80px plaque): place the
+    // panel so its BOTTOM rests on that surface whatever its height is
+    const centerY = panelCenterYForSlot(def.y, formatName);
+
+    // XL is much larger than L at the same density — normalize the mass so
+    // supports and settle behavior stay identical to the shipped game
+    const density = formatName === 'XL'
+      ? TARGETS.XL_REFERENCE_MASS / (w * h)
+      : TARGETS.DENSITY;
+
+    const go = this.scene.matter.add.image(def.x, centerY, texKey, undefined, {
       friction: 0.6,
       restitution: TARGETS.RESTITUTION,
-      density: 0.0012,
+      density,
       frictionAir: 0.004,
       label: 'target'
     });
@@ -230,40 +257,21 @@ export class ObjectFactory {
       kind: 'target',
       choiceId: meta.choiceId,
       questionIndex: meta.questionIndex,
+      format: formatName,
+      fontSize,
       hit: false,
       anchorX: def.x,
-      anchorY: def.y,
+      anchorY: centerY,
       respawned: 0,
       labelHolder: null,
       labels: []
     };
 
-    // parchment typography (config TARGETS.TEXT): badge = choice letter,
-    // word/sentence = wrap + shrink-to-fit inside the parchment area
-    // (answers can be full sentences — the L panel wraps them to 2-3 lines
-    // instead of the old 13-char clip)
-    const T = TARGETS.TEXT;
-    const badge = this.scene.add.circle(
-      -w / 2 + T.BADGE_RADIUS + 4, -h / 2 + T.BADGE_RADIUS + 4,
-      T.BADGE_RADIUS, T.BADGE_FILL
-    ).setStrokeStyle(2.5, 0x5d3a17);
-    const badgeText = this.scene.add.text(badge.x, badge.y, meta.label, {
-      fontFamily: T.FONT, fontSize: '17px', fontStyle: 'bold', color: T.BADGE_TEXT
-    }).setOrigin(0.5);
-    const maxW = w - T.PADDING_X * 2;
-    const maxH = h - 22;
-    const wordText = this.scene.add.text(0, 2, meta.text, {
-      fontFamily: T.FONT, fontSize: `${T.MAX_SIZE}px`, fontStyle: 'bold', color: T.COLOR,
-      align: 'center', wordWrap: { width: maxW }
-    }).setOrigin(0.5);
-    let size = T.MAX_SIZE;
-    while (size > T.MIN_SIZE && (wordText.width > maxW || wordText.height > maxH)) {
-      size -= 1;
-      wordText.setFontSize(size);
-    }
-    if (wordText.width > maxW) wordText.setScale(maxW / wordText.width); // unbreakable token fallback
-
-    const holder = this.scene.add.container(def.x, def.y, [badge, badgeText, wordText]).setDepth(8);
+    // parchment typography (AnswerPanel): badge = choice letter on the frame
+    // corner, answer inked at the shared question font, centered in the
+    // parchment writing box — measured so it never touches the wooden frame
+    const { badge, badgeText, wordText } = buildVisual(this.scene, meta, formatName, fontSize);
+    const holder = this.scene.add.container(def.x, centerY, [badge, badgeText, wordText]).setDepth(8);
     go.wb.labelHolder = holder;
     go.wb.labels = [badge, badgeText, wordText];
 

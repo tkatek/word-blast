@@ -24,7 +24,8 @@ import { LevelTimer } from '../systems/LevelTimer.js';
 import { HeartsSystem } from '../systems/HeartsSystem.js';
 import { QuestionCard } from '../systems/QuestionCard.js';
 import { BirdInventory } from '../systems/BirdInventory.js';
-import { BirdSelector, AbilityButton } from '../systems/BirdSelector.js';
+import { BirdSelector, AbilityButton, SELECTOR_ORDER, SELECTOR_LAYOUT } from '../systems/BirdSelector.js';
+import { planQuestion } from '../systems/AnswerPanel.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -224,20 +225,22 @@ export class GameScene extends Phaser.Scene {
       scrimDepth: DEPTH.HUD - 1 // peek scrim dims gameplay but not the HUD
     });
 
-    // Fix #19 — bird-selection card row (replaces the old text buttons):
-    // real bird artwork + quantity badges bottom-left; the selector owns no
-    // state, it renders what refreshHUD() pushes and clicks route back
-    // through selectProjectile() with the same availability gates.
+    // Fix #19 — bird-selection card row: five blue-gradient cards in one
+    // shared tray at the bottom-center; the selector owns no state, it
+    // renders what refreshHUD() pushes and clicks route back through
+    // selectProjectile() with the same availability gates.
     this.birdSelector = new BirdSelector(this, {
       onSelect: (key) => this.selectProjectile(key),
       markUi: () => { this.uiPointerConsumed = true; },
       audio: this.audio
     });
 
-    // small unobtrusive ability hint for the selected bird (above the cards)
-    this.abilityHint = this.add.text(38, 566, '', {
-      fontFamily: 'Arial', fontSize: '13px', color: '#fff6e5'
-    }).setDepth(DEPTH.HUD).setShadow(0, 2, 'rgba(35,22,8,0.7)', 2, false, true);
+    // small unobtrusive ability hint for the selected bird (left-aligned
+    // directly above the selector tray — anchored to the shared layout)
+    this.abilityHint = this.add.text(
+      SELECTOR_LAYOUT.leftX + 4, SELECTOR_LAYOUT.topY - 6, '', {
+        fontFamily: 'Arial', fontSize: '13px', color: '#eaf4ff'
+      }).setOrigin(0, 1).setDepth(DEPTH.HUD).setShadow(0, 2, 'rgba(10,18,38,0.8)', 2, false, true);
 
     // mid-flight ability button (mobile + desktop), bottom-right — far
     // from the cards and outside the slingshot aiming zone
@@ -388,9 +391,17 @@ export class GameScene extends Phaser.Scene {
     // translated onto the live flat ground (LevelManager)
     const layout = this.levels.getLayout(this.levelId, index);
     this.factory.buildLayout(layout);
+
+    // Answer panel plan: measure every choice with real Phaser text metrics
+    // and pick ONE shared format + font for the whole question (short words
+    // → compact S/M/L plaque, sentences → the wide XL parchment panel).
+    this.answerPlan = planQuestion(this, this.prepared.targets);
     layout.targets.forEach((t, i) => {
       const meta = this.prepared.targets[i];
-      this.factory.createTarget(t, { choiceId: meta.choiceId, label: meta.label, text: meta.text, questionIndex: index });
+      this.factory.createTarget(t, {
+        choiceId: meta.choiceId, label: meta.label, text: meta.text,
+        questionIndex: index, plan: this.answerPlan
+      });
     });
 
     // Build-time settle: silent fixed steps with damage suppressed, then
@@ -551,7 +562,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   selectProjectileByIndex(i) {
-    const key = this.level.projectiles[i];
+    // Fix #19 — hotkeys 1..5 follow the VISIBLE card order (the canonical
+    // selector order), not the level roster's compacted ordering
+    const key = SELECTOR_ORDER[i];
     if (key) this.selectProjectile(key);
   }
 

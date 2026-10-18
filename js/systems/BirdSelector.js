@@ -1,124 +1,265 @@
 /**
- * BirdSelector — the bird-selection card row (Fix #19).
+ * BirdSelector — the bird-selection card row (Fix #19 redesign).
  *
- * Five polished cartoon cards along the bottom-left of the gameplay screen
- * (matching the supplied reference): real bird artwork, gold quantity
- * badge, glowing selected state, dimmed unavailable state, soft shadows.
+ * Five premium cartoon cards in ONE shared tray along the bottom-center of
+ * the gameplay screen, matching the supplied reference: rounded blue-gradient
+ * card bodies, real bird artwork contained inside a portrait region, a
+ * circular dark-blue ammunition badge at each card's bottom-right corner,
+ * a glowing electric-blue selected state and a dimmed unavailable state.
  *
- * Design contract (mirrors GameHUD):
+ * Architecture contract (unchanged from the first Fix #19 pass):
  *   - the selector OWNS NO gameplay state: sync() receives one snapshot
- *     (roster, ammo counts, selected key, armed flag) from the scene's
- *     refreshHUD() funnel and only renders it; clicks call back out
- *   - all frames/badges are procedural textures generated once and reused
- *     across scene restarts (guarded by textures.exists)
- *   - layout lives in the fixed 1280×720 world; the whole world is always
- *     framed on every device (Viewport), and the CSS shell already insets
- *     the canvas by the safe-area, so the row is never under a notch
- *   - the row sits BELOW the slingshot aiming zone (pouch drag is clamped
- *     above GROUND_Y − 14 = 457; cards start at y ≈ 586) and left of the
- *     answer towers — it can never eat an aiming drag or cover a target
+ *     (roster, ammo counts, selected key, enabled flag) from the scene's
+ *     refreshHUD() funnel and only renders it; clicks call back out through
+ *     onSelect() — the scene's selectProjectile() keeps every gate
+ *   - all frames/badges are procedural canvas textures generated once and
+ *     reused across scene restarts (guarded by textures.exists)
+ *   - layout lives in the fixed 1280×720 world and the whole world is
+ *     always framed on every device (Viewport), so the tray is effectively
+ *     fixed relative to the screen; it is pure HUD (no physics body, never
+ *     a child of any gameplay object) and the camera never scrolls — the
+ *     only camera motion is the capped (≤0.6%) impact shake the whole HUD
+ *     band shares
+ *   - the row sits BELOW the slingshot aiming zone (pouch drag clamps at
+ *     y ≤ 457; the tray top edge is y = 588) and below the answer towers,
+ *     so it can never eat an aiming drag or cover a target
  *   - every card flags its pointerdown through markUi() so the scene's
  *     tap-to-activate-ability handler ignores card taps
+ *
+ * Portrait fitting (the original oversized-bird bug, fixed structurally):
+ *   - each portrait is scaled by CONTAIN-fitting the texture's ACTUAL
+ *     non-transparent pixel bounds (alpha bounds, measured once per texture
+ *     and cached) into the card's portrait region — transparent padding is
+ *     ignored, aspect ratio is preserved, no stretching, no cropping
+ *   - the fitted scale is stored as the portrait's base scale; every later
+ *     animation multiplies that base (portrait wrapper scale starts at 1)
+ *     — nothing ever calls setScale(1) on the portrait image itself, which
+ *     is exactly what used to reset the artwork to full texture size
  *
  * Also exports AbilityButton — the mid-flight ability trigger shown while
  * the active bird is flying (bottom-right, far from the cards).
  */
 import Phaser from 'phaser';
 import { PROJECTILE_TYPES } from '../config.js';
-import { birdForProjectile, projectileVisual } from '../data/birds.js';
+import { birdForProjectile } from '../data/birds.js';
 
 /* Canonical card order: RED, BLUE, YELLOW, BLACK, PURPLE (spec §1). */
 export const SELECTOR_ORDER = ['basic', 'speed', 'split', 'bomb', 'ice'];
 
 const SELECTOR_DEPTH = 50; // same band as the top HUD; overlays sit higher
 
-const CARD = {
-  W: 82,            // frame texture size (includes glow margin)
-  BODY: 64,         // visible card body (rounded square)
-  GAP: 10,
-  X0: 36,           // left edge of the first card (world px)
-  Y: 630,           // vertical center of the row
-  PORTRAIT: 52      // bird artwork display size inside the card
+/**
+ * Shared layout (all values in 1280×720 world px). The tray is the one
+ * anchor: cards are laid out relative to it, so repositioning the selector
+ * means changing exactly this object.
+ */
+export const SELECTOR_LAYOUT = {
+  trayX: 640,          // tray center — bottom-CENTER of the gameplay screen
+  trayY: 647,          // tray center (bottom edge lands 14px above the fold)
+  cardW: 86,
+  cardH: 96,
+  cardGap: 10,
+  trayPadX: 12,
+  trayPadY: 11,
+  get pitch() { return this.cardW + this.cardGap; },
+  get width() { return SELECTOR_ORDER.length * this.cardW + (SELECTOR_ORDER.length - 1) * this.cardGap + 2 * this.trayPadX; },
+  get height() { return this.cardH + 2 * this.trayPadY; },
+  get topY() { return this.trayY - this.height / 2; },
+  get leftX() { return this.trayX - this.width / 2; }
+};
+
+/* Texture margin around each card body (fits the selection glow rings). */
+const MARGIN = 12;
+const TEX_W = SELECTOR_LAYOUT.cardW + MARGIN * 2;   // 110
+const TEX_H = SELECTOR_LAYOUT.cardH + MARGIN * 2;   // 120
+
+/** Portrait region inside a card (contain-fit target, centered, badge-aware). */
+const PORTRAIT = { w: 64, h: 62, y: -6 };
+
+/* Per-card gradient palettes (idle body + brighter selected body). */
+const PALETTES = {
+  basic: { top: '#4d80cc', bottom: '#a9d9f2', selTop: '#74a5e2', selBottom: '#dcf3ff' },
+  speed: { top: '#2c5fb2', bottom: '#7cb9f3', selTop: '#4b86d6', selBottom: '#aad6ff' },
+  split: { top: '#1e8b90', bottom: '#70dac9', selTop: '#37b4b7', selBottom: '#a9f0e3' },
+  bomb: { top: '#3b4457', bottom: '#7d89a1', selTop: '#57627c', selBottom: '#9caac2' },
+  ice: { top: '#5c40a0', bottom: '#a68de9', selTop: '#7d61c3', selBottom: '#c6b3f3' }
 };
 
 const TEX = {
-  shadow: 'wbcard-shadow',
-  idle: 'wbcard-idle',
-  selected: 'wbcard-selected',
-  off: 'wbcard-off',
-  badge: 'wbcard-badge',
-  bolt: 'wbcard-bolt'
+  shadow: 'wbsel-shadow',
+  glow: 'wbsel-glow',
+  off: 'wbsel-off',
+  dim: 'wbsel-dim',
+  sheen: 'wbsel-sheen',
+  badge: 'wbsel-badge',
+  bolt: 'wbsel-bolt',
+  idle: (key) => `wbsel-idle-${key}`,
+  sel: (key) => `wbsel-sel-${key}`
 };
 
 /* ------------------------------------------------------------------ */
-/* Procedural textures (generated once; survive scene restarts)        */
+/* Canvas texture helpers (identical result in WebGL and Canvas)       */
 /* ------------------------------------------------------------------ */
+
+function makeCanvas(w, h) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  return canvas;
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** One card body texture (rounded gradient + borders + sheen + shade). */
+function drawCardBody(ctx, { top, bottom }, border, innerAlpha) {
+  const x = MARGIN, y = MARGIN;
+  const w = SELECTOR_LAYOUT.cardW, h = SELECTOR_LAYOUT.cardH;
+  const r = 14;
+
+  // body gradient
+  const grad = ctx.createLinearGradient(0, y, 0, y + h);
+  grad.addColorStop(0, top);
+  grad.addColorStop(1, bottom);
+  roundRectPath(ctx, x, y, w, h, r);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // clip everything decorative to the rounded body
+  ctx.save();
+  roundRectPath(ctx, x, y, w, h, r);
+  ctx.clip();
+
+  // bottom inner shade
+  ctx.fillStyle = 'rgba(8,14,32,0.20)';
+  ctx.fillRect(x, y + h - 24, w, 24);
+
+  // top sheen (soft white gradient over the upper third)
+  const sheen = ctx.createLinearGradient(0, y + 4, 0, y + 34);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.34)');
+  sheen.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sheen;
+  roundRectPath(ctx, x + 5, y + 4, w - 10, 30, 9);
+  ctx.fill();
+  ctx.restore();
+
+  // outer border
+  roundRectPath(ctx, x, y, w, h, r);
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // decorative inner light border
+  roundRectPath(ctx, x + 3.5, y + 3.5, w - 7, h - 7, r - 3.5);
+  ctx.strokeStyle = `rgba(255,255,255,${innerAlpha})`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+/**
+ * Procedural textures (generated once; survive scene restarts). Guards on
+ * textures.exists so a scene restart never duplicates them.
+ */
 export function ensureCardTextures(scene) {
   const T = scene.textures;
-  if (T.exists(TEX.idle)) return;
-  const g = scene.add.graphics();
-  const S = CARD.W;           // texture square
-  const c = S / 2;            // center
-  const m = (S - CARD.BODY) / 2; // glow margin around the body
+  if (T.exists(TEX.badge)) return;
+  const add = (key, w, h, draw) => {
+    if (T.exists(key)) return;
+    const canvas = makeCanvas(w, h);
+    draw(canvas.getContext('2d'));
+    T.addCanvas(key, canvas);
+  };
 
-  /* soft drop shadow (offset down-right) */
-  g.clear();
-  g.fillStyle(0x1a1208, 0.34);
-  g.fillRoundedRect(m + 2, m + 4, CARD.BODY, CARD.BODY, 14);
-  g.generateTexture(TEX.shadow, S, S);
-
-  /* idle: parchment body + warm wood border + top sheen */
-  g.clear();
-  g.fillStyle(0x6e4a22, 1);                                   // outer border
-  g.fillRoundedRect(m, m, CARD.BODY, CARD.BODY, 13);
-  g.fillStyle(0xf7e8c9, 1);                                   // parchment
-  g.fillRoundedRect(m + 3, m + 3, CARD.BODY - 6, CARD.BODY - 6, 10);
-  g.fillStyle(0xfff7e0, 0.8);                                 // sheen
-  g.fillRoundedRect(m + 7, m + 6, CARD.BODY - 14, 14, 7);
-  g.fillStyle(0xdfc68f, 0.55);                                // lower shade
-  g.fillRoundedRect(m + 7, m + CARD.BODY - 18, CARD.BODY - 14, 11, 6);
-  g.generateTexture(TEX.idle, S, S);
-
-  /* selected: brighter body + double gold border + soft outer glow.
-     Glow rings stay INSIDE the (W−BODY)/2 texture margin — Phaser clips
-     generateTexture at its bounds, so any ring outside it just vanishes. */
-  g.clear();
-  for (let i = 3; i >= 1; i--) {                              // glow rings
-    g.lineStyle(4 + i * 2, 0xffd166, 0.6 / i);
-    g.strokeRoundedRect(m - i * 2.4, m - i * 2.4, CARD.BODY + i * 4.8, CARD.BODY + i * 4.8, 13 + i * 1.5);
+  // per-bird idle + selected card bodies
+  for (const key of SELECTOR_ORDER) {
+    const pal = PALETTES[key];
+    add(TEX.idle(key), TEX_W, TEX_H, (ctx) => {
+      drawCardBody(ctx, pal, 'rgba(10,18,38,0.9)', 0.32);
+    });
+    add(TEX.sel(key), TEX_W, TEX_H, (ctx) => {
+      drawCardBody(ctx, { top: pal.selTop, bottom: pal.selBottom }, '#bff0ff', 0.55);
+    });
   }
-  g.lineStyle(2.5, 0xfff7e0, 0.95);                           // hot inner rim
-  g.strokeRoundedRect(m - 1, m - 1, CARD.BODY + 2, CARD.BODY + 2, 14);
-  g.fillStyle(0x9c6b1f, 1);                                   // gold edge
-  g.fillRoundedRect(m - 2, m - 2, CARD.BODY + 4, CARD.BODY + 4, 15);
-  g.fillStyle(0xfff7e0, 1);                                   // bright body
-  g.fillRoundedRect(m + 1, m + 1, CARD.BODY - 2, CARD.BODY - 2, 12);
-  g.fillStyle(0xffe9a8, 0.9);                                 // warm sheen
-  g.fillRoundedRect(m + 5, m + 4, CARD.BODY - 10, 13, 7);
-  g.fillStyle(0xecd9a3, 0.6);                                 // lower shade
-  g.fillRoundedRect(m + 5, m + CARD.BODY - 16, CARD.BODY - 10, 11, 6);
-  g.generateTexture(TEX.selected, S, S);
 
-  /* off (unavailable): dark desaturated frame */
-  g.clear();
-  g.fillStyle(0x40382c, 1);
-  g.fillRoundedRect(m, m, CARD.BODY, CARD.BODY, 13);
-  g.fillStyle(0x8d8272, 1);
-  g.fillRoundedRect(m + 3, m + 3, CARD.BODY - 6, CARD.BODY - 6, 10);
-  g.fillStyle(0xa89b88, 0.6);
-  g.fillRoundedRect(m + 7, m + 6, CARD.BODY - 14, 12, 6);
-  g.generateTexture(TEX.off, S, S);
+  // unavailable card body (desaturated dark navy)
+  add(TEX.off, TEX_W, TEX_H, (ctx) => {
+    drawCardBody(ctx, { top: '#2c3444', bottom: '#4a5468' }, 'rgba(12,16,28,0.9)', 0.14);
+  });
 
-  /* gold quantity badge (rim + body; number drawn as text on top) */
-  g.clear();
-  g.fillStyle(0x9c6b1f, 1); g.fillCircle(16, 16, 15);
-  g.fillStyle(0xe09f3e, 1); g.fillCircle(16, 16, 12.5);
-  g.fillStyle(0xffd166, 1); g.fillCircle(16, 16, 10.5);
-  g.fillStyle(0xffffff, 0.5); g.fillEllipse(12, 11, 9, 6);
-  g.generateTexture(TEX.badge, 32, 32);
+  // soft drop shadow (offset down, pseudo-blurred by stacking)
+  add(TEX.shadow, TEX_W, TEX_H, (ctx) => {
+    const { cardW, cardH } = SELECTOR_LAYOUT;
+    for (let i = 0; i < 3; i++) {
+      roundRectPath(ctx, MARGIN - 1.5 - i, MARGIN + 2.5 + i, cardW + 3 + i * 2, cardH + 2 + i * 2, 15);
+      ctx.fillStyle = 'rgba(3,8,20,0.13)';
+      ctx.fill();
+    }
+  });
 
-  /* lightning bolt (ability button icon) */
-  g.clear();
+  // electric-blue selection glow rings (drawn BEHIND the brighter card)
+  add(TEX.glow, TEX_W, TEX_H, (ctx) => {
+    const { cardW, cardH } = SELECTOR_LAYOUT;
+    const rings = [
+      { grow: 3.5, alpha: 0.50 },
+      { grow: 7, alpha: 0.26 },
+      { grow: 10.5, alpha: 0.12 }
+    ];
+    for (const ring of rings) {
+      roundRectPath(ctx, MARGIN - ring.grow, MARGIN - ring.grow,
+        cardW + ring.grow * 2, cardH + ring.grow * 2, 14 + ring.grow);
+      ctx.strokeStyle = `rgba(53,200,255,${ring.alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  });
+
+  // gray/blue overlay for unavailable cards (alpha-tweened at runtime)
+  add(TEX.dim, TEX_W, TEX_H, (ctx) => {
+    roundRectPath(ctx, MARGIN, MARGIN, SELECTOR_LAYOUT.cardW, SELECTOR_LAYOUT.cardH, 14);
+    ctx.fillStyle = 'rgba(38,46,64,0.92)';
+    ctx.fill();
+  });
+
+  // hover sheen (white, very low alpha, inside the border)
+  add(TEX.sheen, TEX_W, TEX_H, (ctx) => {
+    roundRectPath(ctx, MARGIN + 4, MARGIN + 4,
+      SELECTOR_LAYOUT.cardW - 8, SELECTOR_LAYOUT.cardH - 8, 10);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fill();
+  });
+
+  // circular ammunition badge (dark navy + bright blue outline)
+  add(TEX.badge, 40, 40, (ctx) => {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2;
+    ctx.beginPath();
+    ctx.arc(20, 20, 16.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#141f3c';
+    ctx.fill();
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(20, 20, 16.5, 0, Math.PI * 2);
+    ctx.strokeStyle = '#3fa7ff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(20, 20, 12.5, Math.PI * 1.05, Math.PI * 1.75);
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // lightning bolt (ability button icon — shared with AbilityButton)
+  const g = scene.add.graphics();
   g.fillStyle(0x4d3218, 1);
   g.fillPoints([
     new Phaser.Geom.Point(29, 4), new Phaser.Geom.Point(11, 34),
@@ -132,8 +273,87 @@ export function ensureCardTextures(scene) {
     new Phaser.Geom.Point(35, 28), new Phaser.Geom.Point(27, 28)
   ], true);
   g.generateTexture(TEX.bolt, 44, 62);
-
   g.destroy();
+}
+
+/* ------------------------------------------------------------------ */
+/* Portrait fitting — alpha-bounds contain (the oversized-bird fix)    */
+/* ------------------------------------------------------------------ */
+
+/** Measured alpha bounds, keyed by texture key (module-lifetime cache). */
+const alphaBoundsCache = new Map();
+
+/**
+ * Actual non-transparent pixel bounds of a texture ({x,y,w,h,srcW,srcH} in
+ * texture px). Drawn once onto a scratch canvas and scanned; when pixel
+ * data is unreadable (headless test env's no-op 2D context) or empty, the
+ * full texture bounds are returned — the fit stays safe everywhere.
+ */
+export function alphaBoundsOf(scene, textureKey) {
+  if (alphaBoundsCache.has(textureKey)) return alphaBoundsCache.get(textureKey);
+  let bounds = null;
+  try {
+    const tex = scene.textures.get(textureKey);
+    const src = tex && tex.getSourceImage ? tex.getSourceImage() : null;
+    const srcW = (src && (src.naturalWidth || src.width)) || 0;
+    const srcH = (src && (src.naturalHeight || src.height)) || 0;
+    if (src && srcW > 0 && srcH > 0 && typeof document !== 'undefined'
+      && typeof document.createElement === 'function') {
+      const canvas = makeCanvas(srcW, srcH);
+      const ctx = canvas.getContext('2d');
+      if (ctx && typeof ctx.drawImage === 'function') {
+        ctx.drawImage(src, 0, 0);
+        const isBlank = (data, from, to) => {
+          for (let i = from; i < to; i += 4) if (data[i + 3] > 12) return false;
+          return true;
+        };
+        if (typeof ctx.getImageData === 'function') {
+          const THRESH = 12;
+          let minX = srcW, minY = srcH, maxX = -1, maxY = -1;
+          // row scan: find the tight box of pixels above the alpha threshold
+          for (let y = 0; y < srcH; y++) {
+            const d = ctx.getImageData(0, y, srcW, 1).data;
+            if (isBlank(d, 0, d.length)) continue;
+            if (minY === srcH) minY = y;
+            maxY = y;
+            for (let x = 0; x < srcW; x++) {
+              if (d[x * 4 + 3] > THRESH) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+              }
+            }
+          }
+          if (maxX >= minX && maxY >= minY) {
+            bounds = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1, srcW, srcH };
+          }
+        }
+      }
+    }
+    if (!bounds) {
+      const w = srcW || 1, h = srcH || 1;
+      bounds = { x: 0, y: 0, w, h, srcW: w, srcH: h };
+    }
+  } catch {
+    bounds = { x: 0, y: 0, w: 1, h: 1, srcW: 1, srcH: 1 };
+  }
+  alphaBoundsCache.set(textureKey, bounds);
+  return bounds;
+}
+
+/**
+ * Contain-fit a portrait image into a centered region, preserving aspect
+ * ratio and ignoring transparent padding. Returns the base scale (all
+ * later portrait animation multiplies it — never resets it).
+ */
+function fitPortrait(scene, image, regionW, regionH) {
+  const b = alphaBoundsOf(scene, image.texture.key);
+  const scale = Math.min(regionW / b.w, regionH / b.h);
+  image.setScale(scale);
+  // center the ALPHA bounds (not the padded texture) on the local origin
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  image.setPosition(-(cx - b.srcW / 2) * scale, -(cy - b.srcH / 2) * scale);
+  return scale;
 }
 
 /* ------------------------------------------------------------------ */
@@ -156,15 +376,16 @@ export class BirdSelector {
 
     ensureCardTextures(scene);
 
-    this.root = scene.add.container(0, 0).setDepth(SELECTOR_DEPTH);
+    // ONE shared root: the tray + every card move as a single HUD unit
+    this.root = scene.add.container(SELECTOR_LAYOUT.trayX, SELECTOR_LAYOUT.trayY)
+      .setDepth(SELECTOR_DEPTH);
     this.cards = new Map();   // projectile key -> card record
     this.prevAmmo = {};       // for decrease-pulse detection
     this.prevSelected = null;
-    this.enabled = true;      // false hides the row (terminal overlays)
+    this.enabled = true;      // false dims the row (terminal overlays)
 
-    for (let i = 0; i < SELECTOR_ORDER.length; i++) {
-      this.cards.set(SELECTOR_ORDER[i], this.buildCard(SELECTOR_ORDER[i], i));
-    }
+    this.buildTray();
+    SELECTOR_ORDER.forEach((key, i) => this.cards.set(key, this.buildCard(key, i)));
     scene.events.once('shutdown', () => this.destroy());
   }
 
@@ -173,65 +394,222 @@ export class BirdSelector {
     return !!(save && save.data && save.data.settings && save.data.settings.reducedMotion);
   }
 
-  /** Build one card container at its slot. */
+  /** Shared dark-blue tray with rounded corners and generous padding. */
+  buildTray() {
+    const s = this.scene;
+    const L = SELECTOR_LAYOUT;
+    const halfW = L.width / 2, halfH = L.height / 2;
+
+    const shadow = s.add.graphics();
+    shadow.fillStyle(0x030814, 0.32);
+    shadow.fillRoundedRect(-halfW - 2, -halfH + 4, L.width + 4, L.height, 20);
+
+    const tray = s.add.graphics();
+    tray.fillStyle(0x172036, 0.82);
+    tray.fillRoundedRect(-halfW, -halfH, L.width, L.height, 18);
+    tray.lineStyle(2, 0x7ea6e2, 0.30);
+    tray.strokeRoundedRect(-halfW + 1, -halfH + 1, L.width - 2, L.height - 2, 17);
+    // subtle top inner highlight
+    tray.lineStyle(1.5, 0xbcd2f2, 0.18);
+    tray.strokeRoundedRect(-halfW + 4, -halfH + 4, L.width - 8, L.height - 8, 14);
+
+    this.root.add([shadow, tray]);
+  }
+
+  /** Build one card container at its slot inside the tray. */
   buildCard(key, index) {
     const s = this.scene;
-    const x = CARD.X0 + CARD.W / 2 + index * (CARD.W + CARD.GAP);
-    const card = s.add.container(x, CARD.Y);
-    this.root.add(card);
+    const L = SELECTOR_LAYOUT;
+    const card = s.add.container((index - (SELECTOR_ORDER.length - 1) / 2) * L.pitch, 0);
 
-    const shadow = s.add.image(0, 0, TEX.shadow);
-    const frame = s.add.image(0, 0, TEX.idle);
-    // real bird artwork when loaded; legacy circle texture otherwise
-    const visual = projectileVisual(key, s.textures, PROJECTILE_TYPES[key].radius);
-    const portrait = s.add.image(0, 0, visual.texture).setDisplaySize(CARD.PORTRAIT, CARD.PORTRAIT);
-    const hotkey = s.add.text(-CARD.BODY / 2 + 5, CARD.BODY / 2 - 5, String(index + 1), {
-      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '12px', fontStyle: 'bold',
-      color: '#fff6e5'
-    }).setOrigin(0.5).setAlpha(0.9);
-    hotkey.setStroke('#4d3218', 3);
-    const badge = s.add.image(CARD.BODY / 2 - 2, -CARD.BODY / 2 + 2, TEX.badge).setDisplaySize(29, 29);
-    const badgeNum = s.add.text(CARD.BODY / 2 - 2, -CARD.BODY / 2 + 1.5, '0', {
-      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '15px', fontStyle: 'bold',
+    const shadow = s.add.image(0, 3, TEX.shadow);
+    const glow = s.add.image(0, 0, TEX.glow).setVisible(false).setAlpha(0);
+    const frame = s.add.image(0, 0, TEX.idle(key));
+    const dimmer = s.add.image(0, 0, TEX.dim).setAlpha(0);
+    const sheen = s.add.image(0, 0, TEX.sheen).setAlpha(0);
+
+    // portrait wrapper: all portrait reactions scale/rotate THIS container
+    // (scale 1 = fitted base) — the image's own fitted scale is untouchable
+    const portraitWrap = s.add.container(0, PORTRAIT.y);
+    const bird = birdForProjectile(key);
+    const textureKey = bird && s.textures.exists(bird.texture)
+      ? bird.texture
+      : `proj-${key}`; // legacy procedural circle (headless / missing artwork)
+    const portrait = s.add.image(0, 0, textureKey);
+    fitPortrait(s, portrait, PORTRAIT.w, PORTRAIT.h);
+    portraitWrap.add(portrait);
+
+    const hotkey = s.add.text(-L.cardW / 2 + 7, -L.cardH / 2 + 6, String(index + 1), {
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '11px', fontStyle: 'bold',
+      color: '#eaf4ff'
+    }).setOrigin(0.5).setAlpha(0.75);
+    hotkey.setStroke('rgba(8,16,34,0.9)', 3);
+
+    // circular ammunition badge — bottom-right corner, tangent inside
+    const badgeX = L.cardW / 2 - 13;
+    const badgeY = L.cardH / 2 - 15;
+    const badge = s.add.image(badgeX, badgeY, TEX.badge).setDisplaySize(30, 30);
+    const badgeNum = s.add.text(badgeX, badgeY + 0.5, '0', {
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '16px', fontStyle: 'bold',
       color: '#ffffff'
     }).setOrigin(0.5);
-    badgeNum.setStroke('#7a4d12', 3);
-    card.add([shadow, frame, portrait, hotkey, badge, badgeNum]);
+    badgeNum.setStroke('#0d1830', 3);
+
+    card.add([shadow, glow, frame, dimmer, sheen, portraitWrap, hotkey, badge, badgeNum]);
+    this.root.add(card);
 
     const rec = {
-      key, card, frame, portrait, badge, badgeNum, hotkey,
+      key, card, glow, frame, dimmer, sheen, portraitWrap, portrait,
+      badge, badgeNum, hotkey,
+      available: true,
+      isSelected: false,
+      hover: false,
+      yTween: null,       // the card's ONE layout tween (y only)
+      scaleTween: null,   // the card's ONE selection scale tween
       glowPulse: null,
       birdName: birdForProjectile(key)?.name || PROJECTILE_TYPES[key].name
     };
 
-    card.setSize(CARD.BODY, CARD.BODY);
-    card.setInteractive({ useHandCursor: true });
-    card.on('pointerover', () => { if (this.enabled) rec.card.y = CARD.Y - 4; });
-    card.on('pointerout', () => { rec.card.y = CARD.Y + (rec.isSelected ? -4 : 0); });
+    card.setSize(L.cardW, L.cardH);
+    card.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-L.cardW / 2, -L.cardH / 2, L.cardW, L.cardH),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true
+    });
+    card.on('pointerover', () => {
+      if (!this.enabled || !rec.available) return;
+      rec.hover = true;
+      this.layoutCard(rec);
+      this.fade(rec.sheen, 1, 110);
+    });
+    card.on('pointerout', () => {
+      rec.hover = false;
+      this.layoutCard(rec);
+      this.fade(rec.sheen, 0, 110);
+    });
     card.on('pointerdown', () => {
       this.markUi();
-      if (!this.enabled) return;
+      if (!this.enabled || !rec.available) return;
       this.audio?.emit('ui-click');
-      this.popCard(rec, 0.94);
+      this.pressCard(rec);
       this.onSelect(key);
     });
 
     return rec;
   }
 
+  /* ---------------------------------------------------------------- */
+  /* Micro-animations (all reduced-motion aware, all short)           */
+  /* ---------------------------------------------------------------- */
+
+  /** Tween a GameObject's alpha (instant when reduced motion is on). */
+  fade(target, alpha, duration = 150) {
+    if (this.reducedMotion) {
+      this.scene.tweens.killTweensOf(target);
+      target.setAlpha(alpha);
+      return;
+    }
+    this.scene.tweens.killTweensOf(target);
+    this.scene.tweens.add({ targets: target, alpha, duration, ease: 'Quad.out' });
+  }
+
   /**
-   * Small scale pop on the FRAME (selection feedback / press feedback).
-   * Deliberately not the card container: the selected card's glow pulse
-   * tween owns the container scale — killing it here would freeze the glow.
+   * One funnel for the card's lift offset (selection −4, hover −3 on top).
+   * Every y change routes through here and only ever touches the card's
+   * OWN y tween reference, so hover can never kill the selection scale
+   * tween (and vice versa).
    */
-  popCard(rec, peak = 1.14) {
+  layoutCard(rec, instant = false) {
+    const targetY = (rec.isSelected ? -4 : 0) + (rec.hover ? -3 : 0);
+    if (rec.card.y === targetY && !rec.yTween) return;
+    if (rec.yTween) { rec.yTween.remove(); rec.yTween = null; }
+    if (instant || this.reducedMotion) {
+      rec.card.y = targetY;
+      return;
+    }
+    rec.yTween = this.scene.tweens.add({
+      targets: rec.card, y: targetY, duration: 130, ease: 'Quad.out',
+      onComplete: () => { rec.yTween = null; }
+    });
+  }
+
+  /** Press feedback: a quick dip of the card body (never the layout). */
+  pressCard(rec) {
     if (this.reducedMotion) return;
     this.scene.tweens.killTweensOf(rec.frame);
     rec.frame.setScale(1);
     this.scene.tweens.add({
-      targets: rec.frame, scale: peak, duration: 110, yoyo: true, ease: 'Quad.out',
+      targets: rec.frame, scale: 0.955, duration: 80, yoyo: true, ease: 'Quad.out',
       onComplete: () => rec.frame.setScale(1)
     });
+  }
+
+  /** Selection pop: card scales up slightly (never enough to overlap). */
+  popSelection(rec) {
+    if (rec.scaleTween) { rec.scaleTween.remove(); rec.scaleTween = null; }
+    if (this.reducedMotion) {
+      rec.card.setScale(1.05);
+      return;
+    }
+    rec.scaleTween = this.scene.tweens.add({
+      targets: rec.card, scale: 1.05, duration: 180, ease: 'Back.out',
+      onComplete: () => { rec.scaleTween = null; }
+    });
+    // subtle portrait reaction (wrapper scale — base fit stays intact)
+    this.scene.tweens.killTweensOf(rec.portraitWrap);
+    this.scene.tweens.add({
+      targets: rec.portraitWrap, scale: 1.07, duration: 150, yoyo: true, ease: 'Quad.out',
+      onComplete: () => rec.portraitWrap.setScale(1)
+    });
+  }
+
+  /** Quantity badge briefly pulses when its count drops. */
+  pulseBadge(rec) {
+    if (this.reducedMotion) return;
+    this.scene.tweens.killTweensOf([rec.badge, rec.badgeNum]);
+    this.scene.tweens.add({
+      targets: [rec.badge, rec.badgeNum], scale: 1.35, duration: 130, yoyo: true,
+      ease: 'Quad.out', onComplete: () => {
+        rec.badge.setScale(1);
+        rec.badgeNum.setScale(1);
+      }
+    });
+  }
+
+  /**
+   * Apply/clear the selected state. The glow image (behind the brighter
+   * card body) breathes gently instead of the whole card scaling forever.
+   */
+  applySelection(rec, on) {
+    rec.isSelected = on;
+    rec.frame.setTexture(on ? TEX.sel(rec.key) : rec.available ? TEX.idle(rec.key) : TEX.off);
+    if (rec.glowPulse) {
+      rec.glowPulse.stop();
+      rec.glowPulse = null;
+    }
+    if (on) {
+      rec.glow.setVisible(true);
+      this.fade(rec.glow, 1, 160);
+      if (!this.reducedMotion) {
+        rec.glowPulse = this.scene.tweens.add({
+          targets: rec.glow, alpha: { from: 1, to: 0.8 }, duration: 850, yoyo: true,
+          repeat: -1, ease: 'Sine.inOut'
+        });
+      }
+      this.popSelection(rec);
+    } else {
+      this.fade(rec.glow, 0, 140);
+      if (rec.scaleTween) { rec.scaleTween.remove(); rec.scaleTween = null; }
+      if (!this.reducedMotion) {
+        rec.scaleTween = this.scene.tweens.add({
+          targets: rec.card, scale: 1, duration: 140, ease: 'Quad.out',
+          onComplete: () => { rec.scaleTween = null; }
+        });
+      } else {
+        rec.card.setScale(1);
+      }
+    }
+    this.layoutCard(rec);
   }
 
   /**
@@ -253,61 +631,40 @@ export class BirdSelector {
       const count = Math.max(0, ammo[key] ?? 0);
       const available = inRoster && count > 0;
       const isSelected = key === selected && available;
-      rec.isSelected = isSelected;
+      rec.available = available;
 
-      rec.frame.setTexture(isSelected ? TEX.selected : available ? TEX.idle : TEX.off);
-      rec.portrait.setTint(available ? 0xffffff : 0x8a8a8a);
-      rec.portrait.setAlpha(available ? 1 : 0.5);
+      // selection change → swap frame + pop (idempotent)
+      if (rec.isSelected !== isSelected) this.applySelection(rec, isSelected);
+      else if (isSelected) rec.frame.setTexture(TEX.sel(rec.key));
+
+      // availability dimming (smooth gray/blue overlay)
+      this.fade(rec.dimmer, available ? 0 : 0.55, 200);
+      rec.portrait.setTint(available ? 0xffffff : 0x9aa4b8);
+
+      // interactive only while selectable (no accidental taps on dead cards)
+      if (rec.card.input) rec.card.input.enabled = available;
+      rec.card.setAlpha(this.enabled ? 1 : 0.6);
+
+      // ammunition badge — always the authoritative count
       rec.badgeNum.setText(String(count));
-      rec.badge.setAlpha(available || inRoster ? 1 : 0.5);
-      rec.card.setAlpha(this.enabled ? 1 : 0.65);
-      rec.portrait.setScale(isSelected ? 1.12 : 1);
-      // the selected card lifts slightly out of the row (hover state)
-      if (!this.scene.tweens.isTweening(rec.card)) {
-        rec.card.y = CARD.Y + (isSelected ? -4 : 0);
-      }
-
-      // gentle breathing pulse on the selected card's glow (skipped in
-      // reduced motion)
-      if (isSelected && !this.reducedMotion && !rec.glowPulse) {
-        rec.glowPulse = this.scene.tweens.add({
-          targets: rec.card, scale: 1.05, duration: 620, yoyo: true,
-          repeat: -1, ease: 'Sine.inOut'
-        });
-      } else if ((!isSelected || this.reducedMotion) && rec.glowPulse) {
-        rec.glowPulse.stop();
-        rec.glowPulse = null;
-        rec.card.setScale(1);
-      }
 
       // ammunition decreased → badge pulse
       const prev = this.prevAmmo[key];
       if (prev !== undefined && count < prev) this.pulseBadge(rec);
       this.prevAmmo[key] = count;
-
-      // selection change → pop animation
-      if (isSelected && this.prevSelected !== key) this.popCard(rec, 1.16);
     }
-    this.prevSelected = selected && (ammo[selected] ?? 0) > 0 ? selected : null;
-  }
-
-  /** Quantity badge briefly pulses when its count drops. */
-  pulseBadge(rec) {
-    if (this.reducedMotion) return;
-    this.scene.tweens.killTweensOf([rec.badge, rec.badgeNum]);
-    this.scene.tweens.add({
-      targets: [rec.badge, rec.badgeNum], scale: 1.4, duration: 130, yoyo: true,
-      ease: 'Quad.out', onComplete: () => {
-        rec.badge.setScale(1);
-        rec.badgeNum.setScale(1);
-      }
-    });
+    this.prevSelected = selected;
   }
 
   destroy() {
     for (const rec of this.cards.values()) {
       if (rec.glowPulse) rec.glowPulse.stop();
-      this.scene.tweens.killTweensOf([rec.card, rec.badge, rec.badgeNum]);
+      if (rec.yTween) rec.yTween.remove();
+      if (rec.scaleTween) rec.scaleTween.remove();
+      this.scene.tweens.killTweensOf([
+        rec.card, rec.frame, rec.glow, rec.dimmer, rec.sheen,
+        rec.portraitWrap, rec.badge, rec.badgeNum
+      ]);
     }
     this.cards.clear();
     this.root?.destroy();

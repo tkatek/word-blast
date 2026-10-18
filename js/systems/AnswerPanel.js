@@ -27,34 +27,38 @@
 import { TARGETS } from '../config.js';
 
 /**
- * Panel formats. `box` = parchment writing box in panel-local px, centered on
- * the panel origin (x from left edge, y from top edge), measured from the
- * shipped artwork:
+ * Panel formats. `box` = parchment writing box in panel-local px (from the
+ * panel's top-left), measured from the shipped artwork:
  *   - S/M/L: parchment extents of the three baked variants
  *   - XL: the newly uploaded wide parchment artwork (scripts/build-answer-panel-xl.mjs
  *     reports the fractions — x 0.083..0.864, y 0.245..0.797 of 300×97)
  * `size` must match TOWER_ASSETS[key].size (physics collider + display size).
+ *
+ * `font.min` is the READABILITY FLOOR of each format: a text that would have
+ * to drop below it escalates to the next bigger panel instead of shrinking
+ * further — sentences therefore land on XL through measurement, never through
+ * character counting.
  */
 export const PANEL_FORMATS = {
   S: {
     key: 'answer_panel_s', size: [116, 80],
     box: { x: 31, y: 22, w: 54, h: 32 },
-    font: { max: 24, min: 15 }
+    font: { max: 24, min: 17 }
   },
   M: {
     key: 'answer_panel_m', size: [142, 80],
     box: { x: 31, y: 21, w: 80, h: 35 },
-    font: { max: 24, min: 15 }
+    font: { max: 24, min: 17 }
   },
   L: {
     key: 'answer_panel_l', size: [170, 80],
     box: { x: 31, y: 22, w: 108, h: 34 },
-    font: { max: 24, min: 15 }
+    font: { max: 24, min: 17 }
   },
   XL: {
     key: 'answer_panel_xl', size: [300, 97],
     box: { x: 31, y: 30, w: 222, h: 41 },
-    font: { max: 19, min: 15 }
+    font: { max: 19, min: 16 }
   }
 };
 

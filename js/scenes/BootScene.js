@@ -14,7 +14,7 @@ import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
 import { ensureQuestionCardTexture } from '../systems/QuestionCard.js';
-import { preloadList } from '../data/tower-assets.js';
+import { preloadList, TOWER_ASSETS } from '../data/tower-assets.js';
 import { birdPreloadList } from '../data/birds.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
@@ -195,6 +195,23 @@ export class BootScene extends Phaser.Scene {
   generateFallbackTexture(key) {
     if (this.textures.exists(key)) return;
     const g = this.add.graphics();
+    const asset = preloadList().find((p) => `tw-${p.key}` === key);
+    // Answer panels keep their TRUE size in the fallback so the physics
+    // collider + display size match the real artwork exactly — headless
+    // tests then exercise the same geometry as the browser.
+    if (asset && asset.key.startsWith('answer_panel')) {
+      // drawn at CONTENT dims (600×194 for XL etc.) so displaySizeFor's
+      // trimmed-canvas path maps it onto the exact logical size
+      const [w, h] = TOWER_ASSETS[asset.key].content;
+      const lw = Math.max(4, Math.round(w / 60));
+      g.fillStyle(0xd8b98a, 1);
+      g.fillRoundedRect(0, 0, w, h, 10);
+      g.lineStyle(lw, 0x8a5a2b, 1);
+      g.strokeRoundedRect(lw, lw, w - lw * 2, h - lw * 2, 10);
+      g.generateTexture(key, w, h);
+      g.destroy();
+      return;
+    }
     const map = {
       wood: [COLORS.WOOD, COLORS.WOOD_DARK], stone: [COLORS.STONE, COLORS.STONE_DARK],
       glass: [COLORS.GLASS, COLORS.GLASS_DARK], boom: [COLORS.BOOM, 0x8a3a24],
