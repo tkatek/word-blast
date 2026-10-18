@@ -14,6 +14,7 @@
     "test:lifecycle": "node tests/bird-lifecycle-tests.mjs",
     "test:card": "node tests/question-card-tests.mjs",
     "test:panels": "node tests/answer-panel-tests.mjs",
+    "test:feedback": "node tests/feedback-card-tests.mjs",
     "test:audio": "node tests/audio-tests.mjs",
     "audio:generate": "node scripts/generate-audio.mjs",
     "verify:audio": "node scripts/verify-audio.mjs",

@@ -244,6 +244,13 @@ export function installDebugAPI(game) {
       return s.card.info();
     },
 
+    /** Live answer-feedback card snapshot (kind, arm state, text fit). */
+    feedbackInfo() {
+      const s = api.scene();
+      if (!s || !s.feedbackCard) return null;
+      return s.feedbackCard.info();
+    },
+
     /** True if the loop is currently advancing (for stall detection). */
     isLoopRunning() {
       return !game.loop.isStopped && document.visibilityState === 'visible';

@@ -84,7 +84,7 @@ const THEMES = {
 };
 
 /** DISPLAY font targets (world px after the card scale is applied). */
-const FONT = { title: 30, answer: 22, explain: { max: 21, min: 15 } };
+const FONT = { title: 30, answer: 22, explain: { max: 21, min: 15 }, explainAbs: 14 };
 const LINE_SPACING = 0.34;   // × font
 const MAX_SCALE = 1.22;      // card may grow up to ~683×488 world px
 
@@ -204,12 +204,15 @@ export class FeedbackCard {
       this._scratch = this.scene.add.text(0, 0, '', {}).setVisible(false);
       this.scene.events.once('shutdown', () => { this._scratch?.destroy(); this._scratch = null; });
     }
+    // lineSpacing is a GameObject property, NOT a style key — setStyle()
+    // silently ignores it while add.text(config) applies it, so it must be
+    // assigned directly or the measurement under-counts the line gaps.
+    this._scratch.lineSpacing = Math.round(fontSize * LINE_SPACING);
     this._scratch.setStyle({
       fontFamily: 'Arial, Helvetica, sans-serif',
       fontSize: `${fontSize}px`,
       fontStyle: bold ? 'bold' : '',
       color: '#000000', align: 'center',
-      lineSpacing: Math.round(fontSize * LINE_SPACING),
       wordWrap: { width: maxWidth, useAdvancedWrap: true }
     });
     this._scratch.setText(text);
@@ -290,14 +293,17 @@ export class FeedbackCard {
     // card scale of s multiplies every displayed size by s, so the display
     // font is localFont × s. Growing the card therefore buys real writing
     // pixels at a constant display font (local font shrinks by 1/s).
+    // Ladder per scale: preferred font floor → absolute floor → compact
+    // separator; only when every rung fails does the block render tall.
     let scale = 1;
     let answerFont = FONT.answer;
     let explainFont = FONT.explain.min;
     let answerH = 0;
     let explainH = 0;
-    let explainTop = L.explainBottom; // recomputed below
+    let explainTop = L.explainBottom; // sentinel: nothing fit yet
+    let bodyRender = body;
 
-    for (let s = 1; s <= MAX_SCALE + 0.001; s += 0.11) {
+    for (let s = 1; s <= MAX_SCALE + 0.001 && explainTop === L.explainBottom; s += 0.11) {
       s = Math.round(s * 1000) / 1000;
       // answer line: fixed display size, may wrap to 2 lines for sentences
       const aFont = FONT.answer / s;
@@ -307,21 +313,17 @@ export class FeedbackCard {
       // explanation box: from below the answer line down to the button zone
       const eTop = aTop + aH + 10;
       const eHmax = L.explainBottom - eTop;
-      // display font from max down to min (constant display size)
-      const fMax = FONT.explain.max / s;
-      const fMin = FONT.explain.min / s;
-      let chosen = null;
-      for (let f = fMax; f >= fMin - 0.001; f -= 0.5) {
-        const m = this.measure(body, f, boxW, false);
-        if (m.height <= eHmax) { chosen = f; explainH = m.height; break; }
-      }
-      if (chosen !== null) {
-        scale = s;
-        answerFont = aFont;
-        explainFont = chosen;
-        answerH = aH;
-        explainTop = eTop;
-        break;
+      for (const variant of [body, body.replace('\n\n', '\n')]) {
+        for (let f = FONT.explain.max / s; f >= FONT.explainAbs / s - 0.001; f -= 0.5) {
+          const m = this.measure(variant, f, boxW, false);
+          if (m.height <= eHmax) {
+            scale = s; answerFont = aFont; explainFont = f;
+            answerH = aH; explainTop = eTop; explainH = m.height;
+            bodyRender = variant;
+            break;
+          }
+        }
+        if (explainTop !== L.explainBottom) break;
       }
     }
     if (explainTop === L.explainBottom) {
@@ -332,8 +334,9 @@ export class FeedbackCard {
       const am = this.measure(answerLine, answerFont, boxW, true);
       answerH = am.height;
       explainTop = L.answerY + answerH + 10;
-      explainFont = FONT.explain.min / scale;
-      explainH = this.measure(body, explainFont, boxW, false).height;
+      explainFont = FONT.explainAbs / scale;
+      bodyRender = body.replace('\n\n', '\n');
+      explainH = this.measure(bodyRender, explainFont, boxW, false).height;
       DebugLog.warn('FeedbackCard: explanation exceeds card even at MAX_SCALE (rendered tall, not truncated)');
     }
     this.fit = {
@@ -346,10 +349,11 @@ export class FeedbackCard {
       fontFamily: 'Arial, Helvetica, sans-serif',
       fontSize: `${answerFont}px`, fontStyle: 'bold',
       color: '#3e2723', align: 'center',
+      lineSpacing: Math.round(answerFont * LINE_SPACING),
       wordWrap: { width: boxW, useAdvancedWrap: true }
     }).setOrigin(0.5, 0);
 
-    this.explainText = this.scene.add.text(0, explainTop, body, {
+    this.explainText = this.scene.add.text(0, explainTop, bodyRender, {
       fontFamily: 'Arial, Helvetica, sans-serif',
       fontSize: `${explainFont}px`,
       color: '#5d4037', align: 'center',

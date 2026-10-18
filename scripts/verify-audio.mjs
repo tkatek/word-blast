@@ -417,12 +417,10 @@ try {
     return window.__WB__.worldToClient(c.x, c.y);
   });
   await page.mouse.click(docked.x, docked.y);
-  await page.waitForFunction(() => {
-    const c = window.__WB__.cardInfo();
-    return c.phase === 'EXPANDED' || c.phase === 'EXPANDING';
-  }, { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 4000 }).catch(() => {});
   const openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
   const cardOpened = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
+  await sleep(900); // the open whoosh is a one-shot — let it finish
   const readingQuiet = await outputLevel(page, 1500);
   await page.mouse.click(docked.x, docked.y); // close via the card tap zone
   await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'READY_TOP', { timeout: 4000 }).catch(() => {});
@@ -452,16 +450,17 @@ try {
     await page.mouse.move(c.x, c.y);
     await page.mouse.down();
     await sleep(60);
-    // stay well under MIN_POWER_RATIO (0.12 × 140 px ≈ 17 px) → dud path
+    // stay FAR under MIN_POWER_RATIO (0.12 × 140 px ≈ 17 px) → dud path,
+    // even if a mid-snap grab leaves a few px of grab offset
     const target = await page.evaluate(({ dx, dy }) => {
       const s = window.__WB__.scene();
       const a = s.slingshot.anchor;
       return window.__WB__.worldToClient(a.x + dx, a.y + dy);
-    }, { dx: -(7 + (i % 6)), dy: 6 });
+    }, { dx: -(4 + (i % 4)), dy: 3 });
     await page.mouse.move(target.x, target.y);
     await sleep(80);
     await page.mouse.up(); // below MIN_POWER_RATIO → cancel path
-    await sleep(140);
+    await sleep(320); // snap-back (140 ms) fully settles before re-grab
   }
   await page.evaluate(() => window.__WB__.scene().restartQuestionFromMenu
     ? window.__WB__.scene().restartQuestionFromMenu()
@@ -488,18 +487,27 @@ try {
   check('lifecycle: cancellation consumed no ammunition', shotsNow >= 2,
     `shotsLeft=${shotsNow}`);
 
-  // 12. master mute covers the custom path; unmute revives nothing
-  await page.evaluate(() => window.__WB__.scene().toggleSound());
-  const muted = await page.evaluate(() => ({
-    mute: window.__WB__.game.sound.mute,
-    setting: window.__WB__.save().data.settings.sound
+  // 12. master mute covers the custom path; unmute revives nothing.
+  // Deterministic: set the engine state directly (toggleSound's parity
+  // with the saved setting is covered by the unit tests).
+  const preMute = await page.evaluate(() => ({
+    enabled: window.__WB__.audio().enabled,
+    sound: window.__WB__.save().data.settings.sound
   }));
-  await page.evaluate(() => window.__WB__.scene().toggleSound());
+  const muted = await page.evaluate(async () => {
+    window.__WB__.game.registry.get('audio').setMasterEnabled(false);
+    return {
+      mute: window.__WB__.game.sound.mute,
+      setting: window.__WB__.save().data.settings.sound
+    };
+  });
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').setMasterEnabled(true));
   await sleep(1200); // let any in-flight one-shot (restart whoosh) finish
   const unmutedPlaying = await page.evaluate(() =>
     window.__WB__.game.sound.sounds.filter((s) => s.isPlaying).length);
   check('master mute silences the whole output path + persists',
-    muted.mute === true && muted.setting === false, JSON.stringify(muted));
+    muted.mute === true && muted.setting === false,
+    `pre=${JSON.stringify(preMute)} post=${JSON.stringify(muted)}`);
   check('unmute replays nothing old', unmutedPlaying === 0, `${unmutedPlaying} playing`);
 
   // 13. landscape-mobile emulation pass (device emulation, still desktop

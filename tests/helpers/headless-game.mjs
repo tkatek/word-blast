@@ -77,6 +77,27 @@ export async function createHeadlessGame() {
     state: () => api.state(),
     info: () => api.info(),
     slingAnchor,
+
+    /**
+     * The wooden feedback card advances ONLY through its action button
+     * (the player's click). In headless runs the harness IS the player:
+     * while autoFeedback is true a poller clicks CONTINUE / TRY AGAIN the
+     * moment the settle watcher arms it — the same click the old
+     * auto-advance performed implicitly. Dedicated feedback-card tests
+     * set this to false and drive the button manually.
+     */
+    autoFeedback: true,
+    feedbackArmed: () => {
+      const s = api.scene();
+      const card = s && s.feedbackCard;
+      if (!card) return false;
+      const i = card.info();
+      return !!(i && i.visible && i.actionEnabled && !i.acted);
+    },
+    feedbackContinue() {
+      const s = api.scene();
+      if (s && s.feedbackCard) s.feedbackCard.act();
+    },
     /** The game's own inverse solver (Trajectory.js), from the live anchor. */
     solveLaunch: (tx, ty, opts) => {
       const a = slingAnchor();
@@ -179,10 +200,19 @@ export async function createHeadlessGame() {
     },
 
     async destroy() {
+      clearInterval(feedbackPoller);
       game.destroy(false);
       await sleep(50);
     }
   };
+
+  const feedbackPoller = setInterval(() => {
+    if (!harness.autoFeedback) return;
+    try {
+      if (harness.feedbackArmed()) harness.feedbackContinue();
+    } catch { /* scene mid-restart */
+    }
+  }, 60);
 
   return harness;
 }
