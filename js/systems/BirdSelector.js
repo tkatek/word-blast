@@ -490,7 +490,8 @@ export class BirdSelector {
     card.on('pointerdown', () => {
       this.markUi();
       if (!this.enabled || !rec.available) return;
-      this.audio?.emit('ui-click');
+      // Fix #22 — the selection pop comes from the scene's selectProjectile
+      // ('bird-selected'); a plain click here would double the sound.
       this.pressCard(rec);
       this.onSelect(key);
     });

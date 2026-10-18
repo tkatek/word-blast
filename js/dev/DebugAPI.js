@@ -247,6 +247,15 @@ export function installDebugAPI(game) {
     /** True if the loop is currently advancing (for stall detection). */
     isLoopRunning() {
       return !game.loop.isStopped && document.visibilityState === 'visible';
+    },
+
+    /**
+     * Fix #22 — live audio diagnostics: engine state, active voices,
+     * per-key play/drop counters (used by the audio verification script).
+     */
+    audio() {
+      const audio = game.registry.get('audio');
+      return audio ? audio.audioDebugInfo() : { attached: false };
     }
   };
 

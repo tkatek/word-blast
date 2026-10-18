@@ -620,6 +620,7 @@ export class ConfirmDialog {
   _act(cb) {
     if (this.closing) return;
     this.closing = true;
+    this.scene.registry.get('audio')?.emit('ui-click'); // Fix #22 — dialog click
     if (this._esc && this.scene.input.keyboard) this.scene.input.keyboard.off('keydown-ESC', this._esc);
     if (cb) cb();
   }
