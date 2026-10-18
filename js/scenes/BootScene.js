@@ -14,6 +14,7 @@ import { deviceInfo } from '../systems/Device.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { ensureSlingshotTexture } from '../systems/SlingshotRenderer.js';
 import { ensureQuestionCardTexture } from '../systems/QuestionCard.js';
+import { FEEDBACK_CARD } from '../systems/FeedbackCard.js';
 import { preloadList, TOWER_ASSETS } from '../data/tower-assets.js';
 import { birdPreloadList } from '../data/birds.js';
 import { hudPreloadList, ensureHudArtFallback } from '../systems/HudArt.js';
@@ -68,6 +69,15 @@ export class BootScene extends Phaser.Scene {
       (import.meta.env.BASE_URL || '/') + 'assets/images/ui/question-card.png'
     );
 
+    // Blank wooden parchment feedback card (correct/wrong answer panel).
+    // The skin stays BLANK: header, badge, texts and button are drawn by
+    // js/systems/FeedbackCard.js at runtime. Missing PNG → the component's
+    // procedural parchment fallback (headless test environments).
+    this.load.image(
+      FEEDBACK_CARD.TEXTURE,
+      (import.meta.env.BASE_URL || '/') + FEEDBACK_CARD.ART
+    );
+
     // Supplied blank wooden HUD artwork (top bar): frames only — every
     // label, icon and counter is a separate game object drawn by GameHUD.
     // If a PNG is unreachable, a procedural stand-in with the SAME measured
@@ -102,6 +112,12 @@ export class BootScene extends Phaser.Scene {
       if (file.key === QUESTION_CARD.TEXTURE) {
         console.warn(`[Boot] question-card artwork missing — procedural fallback`);
         ensureQuestionCardTexture(this);
+        return;
+      }
+      if (file.key === FEEDBACK_CARD.TEXTURE) {
+        // the FeedbackCard constructor generates its procedural parchment
+        // the moment it finds the texture key absent — nothing to do here
+        console.warn(`[Boot] feedback-card artwork missing — procedural fallback`);
         return;
       }
       if (file.key.startsWith('bird-')) {

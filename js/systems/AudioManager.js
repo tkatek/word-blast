@@ -505,7 +505,12 @@ export class AudioManager {
         const i = this._voices.indexOf(rec);
         if (i !== -1) this._voices.splice(i, 1);
       };
-      s.once('ended', drop);
+      // one-shots RELEASE their source + nodes when they finish — a long
+      // session must not accumulate dead Sound instances in the manager.
+      s.once('ended', () => {
+        drop();
+        try { s.destroy(); } catch { /* already gone */ }
+      });
       s.once('destroyed', drop);
     }
     return s;
@@ -882,8 +887,12 @@ export class AudioManager {
     R('ui-hover', () => this.play('ui-hover'));
     R('bird-selected', () => this.play('ui-select'));
     R('game-pause', () => {
-      this.play('ui-pause');
+      // pauseAll FIRST, then the cue: a click started before pauseAll would
+      // freeze mid-play and hang until resume (audible wart, and it read as
+      // "sound still playing while paused"). New sounds still play through
+      // a paused manager, so the cue completes normally.
       this.setPaused(true);
+      this.play('ui-pause');
     });
     R('game-resume', () => {
       this.setPaused(false);

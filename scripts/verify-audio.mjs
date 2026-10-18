@@ -282,17 +282,30 @@ try {
   check('resume: still at most one stretch voice',
     slingState.live === 1, JSON.stringify(slingState));
 
-  // 5. max-pull: pointer runs past the drag limit, clamped pouch still.
-  // Target stays INSIDE the canvas but pulls > 140 px of world distance
-  // (down-left: world x clamps at the margin, y stays above the grass).
-  const far = await page.evaluate(() => {
-    const s = window.__WB__.scene();
-    const a = s.slingshot.anchor;
-    return window.__WB__.worldToClient(a.x - 260, a.y + 90);
-  });
+  // 5. max-pull: pointer runs past the clamp while the pouch stays still.
+  // Pull STRAIGHT DOWN (fixed x): the pouch pins at the grass-line clamp;
+  // moving the pointer further down the same ray never changes the
+  // accepted pouch position → no movement → no creak. The drag from the
+  // tests above is STILL HELD (no mouse.up yet) — just steer it.
+  const anchorClient = await pouchClient(page);
+  for (let i = 1; i <= 10; i++) {
+    const c = await page.evaluate(({ f }) => {
+      const s = window.__WB__.scene();
+      const a = s.slingshot.anchor;
+      return window.__WB__.worldToClient(a.x, a.y + 190 * f);
+    }, { f: i / 10 });
+    await page.mouse.move(c.x, c.y);
+    await sleep(55);
+  }
+  await sleep(700); // let the movement fade-out finish
   await page.evaluate(() => window.__wbTap.recStart());
-  for (let i = 1; i <= 8; i++) { // wiggle far beyond MAX_DRAG
-    await page.mouse.move(far.x + i * 10, far.y - i * 6);
+  for (let i = 1; i <= 8; i++) { // strictly radial: further down, same x
+    const c = await page.evaluate(({ extra }) => {
+      const s = window.__WB__.scene();
+      const a = s.slingshot.anchor;
+      return window.__WB__.worldToClient(a.x, a.y + 190 + extra);
+    }, { extra: i * 35 });
+    await page.mouse.move(c.x, c.y);
     await sleep(90);
   }
   const overshoot = await outputLevel(page, 800);
@@ -303,10 +316,19 @@ try {
     return Math.hypot(p.x - a.x, p.y - a.y);
   });
   check('max-pull: excess pointer motion generates no new stretch',
-    overshoot.max < SILENT && pouchNow > 130,
-    `maxRMS=${overshoot.max.toExponential(2)}, pouch pinned at ${pouchNow.toFixed(0)}px (limit 140)`);
+    overshoot.max < SILENT && pouchNow > 100,
+    `maxRMS=${overshoot.max.toExponential(2)}, pouch pinned at ${pouchNow.toFixed(0)}px`);
+  // bring the pouch back to rest and let go (dud release below the power
+  // threshold — also proves a rest-position drop consumes no ammunition)
+  await page.mouse.move(anchorClient.x, anchorClient.y);
+  await sleep(150);
+  await page.mouse.up();
+  await sleep(350);
 
-  // 6+7. release: one snap + one whoosh, no loop, then settle to silence
+  // 6+7. release: pull to real power, then let go — one snap + one whoosh,
+  // no loop, then settle to silence
+  await dragPouch(page, -110, 78, 700); // ~135 px ≈ 0.96 power
+  await sleep(200); // stretch already faded (pouch stops when drag ends)
   const beforeStats = await page.evaluate(() => window.__WB__.audio().stats.plays);
   await page.evaluate(() => window.__wbTap.recStart());
   await page.mouse.up();
@@ -351,20 +373,21 @@ try {
   check('collapse: silence once the tower settles',
     collapseSettled.max < SILENT, `maxRMS=${collapseSettled.max.toExponential(2)}`);
 
-  // 9. pause/mute during stretch. NOTE: the analyser keeps the last ~46 ms
-  // of audio when the manager freezes MID-sound (the pause click itself),
-  // so "silent" here = no sound playing at all + movement voice dropped.
+  // 9. pause/mute during stretch. The pause cue plays AFTER pauseAll (by
+  // design), so give it its fraction of a second, then require a fully
+  // quiet, movement-free paused state.
   await dragPouch(page, -90, 60, 700);
   await sleep(250);
   await page.evaluate(() => window.__WB__.scene().togglePause());
-  await sleep(500);
+  await sleep(900); // pause cue finishes; movement voice already dropped
   const pausedState = await page.evaluate(() => ({
     sling: window.__WB__.audio().sling,
     playing: window.__WB__.game.sound.sounds.filter((s) => s.isPlaying).length,
     pausedSounds: window.__WB__.game.sound.sounds.filter((s) => s.isPaused).length
   }));
   check('pause during stretch: movement voice dropped, nothing playing',
-    pausedState.sling.active === false && pausedState.playing === 0,
+    pausedState.sling.active === false && pausedState.playing === 0
+    && pausedState.pausedSounds === 0,
     JSON.stringify(pausedState));
   await page.mouse.up().catch(() => {}); // the game already cancelled the drag
   await page.evaluate(() => window.__WB__.scene().togglePause());
@@ -373,34 +396,50 @@ try {
   check('resume while stationary: no stretch sound restarts',
     resumedStill.max < SILENT, `maxRMS=${resumedStill.max.toExponential(2)}`);
 
-  // 10. question card transitions
+  // 10. question card transitions — wait until the card is DOCKED (a card
+  // mid-intro/reading ignores taps by design), then verify the phases.
+  await page.waitForFunction(() => {
+    const c = window.__WB__.cardInfo();
+    return c && c.phase === 'READY_TOP';
+  }, { timeout: 15000 });
   const cardBefore = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   const docked = await page.evaluate(() => {
-    const s = window.__WB__.scene();
-    const pos = s.card.root.position;
-    return window.__WB__.worldToClient(pos.x, pos.y);
+    const c = window.__WB__.cardInfo();
+    return window.__WB__.worldToClient(c.x, c.y);
   });
   await page.mouse.click(docked.x, docked.y);
-  await sleep(900);
+  await page.waitForFunction(() => {
+    const c = window.__WB__.cardInfo();
+    return c.phase === 'EXPANDED' || c.phase === 'EXPANDING';
+  }, { timeout: 4000 }).catch(() => {});
+  const openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
   const cardOpened = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   const readingQuiet = await outputLevel(page, 1500);
   await page.mouse.click(docked.x, docked.y); // close via the card tap zone
-  await sleep(900);
+  await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'READY_TOP', { timeout: 4000 }).catch(() => {});
   const cardClosed = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
+  check('card: open/close transition phases worked',
+    openedPhase === 'EXPANDED', `phase after open tap: ${openedPhase}`);
   check('card: one whoosh per open/close transition',
-    cardOpened - cardBefore === 1 && cardClosed - cardOpened <= 1,
+    cardOpened - cardBefore === 1 && cardClosed - cardOpened === 1,
     `open+${cardOpened - cardBefore}, close+${cardClosed - cardOpened}`);
   check('card: reading period is quiet', readingQuiet.max < SILENT,
     `maxRMS=${readingQuiet.max.toExponential(2)}`);
 
-  // 11. lifecycle — 20 drag/cancel cycles + question restarts, no growth
+  // 11. lifecycle — 20 drag/cancel cycles + question restarts, no growth.
+  // Each cycle: settle to AIMING with a docked card, grab, drift ~10 px
+  // (far below MIN_POWER_RATIO), release → dud cancel.
   const lifecycleBase = await page.evaluate(() => ({
     sounds: window.__WB__.game.sound.sounds.length,
     voices: window.__WB__.audio().activeVoices,
     release: window.__WB__.audio().stats.plays['sling-release'] || 0
   }));
   for (let i = 0; i < 20; i++) {
-    const c = await pouchClient(page); // grab + tiny release = dud cancel
+    await page.waitForFunction(() => {
+      const c = window.__WB__.cardInfo();
+      return window.__WB__.state() === 'AIMING' && c && c.phase === 'READY_TOP';
+    }, { timeout: 15000 }).catch(() => {});
+    const c = await pouchClient(page);
     await page.mouse.move(c.x, c.y);
     await page.mouse.down();
     await sleep(60);
@@ -419,7 +458,7 @@ try {
     ? window.__WB__.scene().restartQuestionFromMenu()
     : window.__WB__.scene().restartLevel());
   await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 20000 });
-  await sleep(1200);
+  await sleep(1500);
   const endCounts = await page.evaluate(() => ({
     sounds: window.__WB__.game.sound.sounds.length,
     voices: window.__WB__.audio().activeVoices
@@ -431,11 +470,11 @@ try {
   const shotsNow = await page.evaluate(() => window.__WB__.scene().shotsLeft);
   check('lifecycle: 20 dud releases played no firing sound',
     cancelStats.release === lifecycleBase.release,
-    `release count unchanged (${cancelStats.release})`);
+    `release ${lifecycleBase.release} → ${cancelStats.release}`);
   check('lifecycle: soft return used for cancellations', cancelStats.cancel >= 15,
     `${cancelStats.cancel} returns`);
   check('lifecycle: no sound-instance growth after 20 cycles + restart',
-    endCounts.sounds <= lifecycleBase.sounds + 6 && endCounts.voices <= 6,
+    endCounts.sounds <= lifecycleBase.sounds + 4 && endCounts.voices <= 6,
     JSON.stringify(lifecycleBase) + ' → ' + JSON.stringify(endCounts));
   check('lifecycle: cancellation consumed no ammunition', shotsNow >= 2,
     `shotsLeft=${shotsNow}`);
@@ -447,6 +486,7 @@ try {
     setting: window.__WB__.save().data.settings.sound
   }));
   await page.evaluate(() => window.__WB__.scene().toggleSound());
+  await sleep(1200); // let any in-flight one-shot (restart whoosh) finish
   const unmutedPlaying = await page.evaluate(() =>
     window.__WB__.game.sound.sounds.filter((s) => s.isPlaying).length);
   check('master mute silences the whole output path + persists',

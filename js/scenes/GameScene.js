@@ -27,6 +27,7 @@ import { BirdInventory } from '../systems/BirdInventory.js';
 import { BirdSelector, AbilityButton, SELECTOR_ORDER, SELECTOR_LAYOUT } from '../systems/BirdSelector.js';
 import { planQuestion } from '../systems/AnswerPanel.js';
 import { AnswerPeek } from '../systems/AnswerPeek.js';
+import { FeedbackCard } from '../systems/FeedbackCard.js';
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 
@@ -79,6 +80,9 @@ export class GameScene extends Phaser.Scene {
     this.abilityButton = null;    // mid-flight ability button (Fix #19)
     this.card = null;             // animated question card (Fix #9)
     this.cardExitPending = null;  // queued next-question hand-off during the card exit (Fix #9)
+    this.feedbackCard = null;     // wooden answer-feedback card (correct/wrong)
+    this.feedbackArmed = false;   // settle watcher armed the card's action button
+    this.feedbackAdvancing = false; // one-shot guard: feedback → transition
     this.leavingLevel = false;    // one-shot guard for restart / exit clicks
     this.uiPointerConsumed = false; // a UI button ate this pointerdown
     this.questionIndex = 0; // known before create() for logging
@@ -271,14 +275,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   buildOverlays() {
-    // feedback panel (correct / wrong / miss)
-    this.feedback = this.add.container(WORLD.WIDTH / 2, 240).setDepth(DEPTH.OVERLAY).setVisible(false);
-    this.feedbackBg = this.add.rectangle(0, 0, 560, 190, 0x14213d, 0.95);
-    this.feedbackTitle = this.add.text(0, -60, '', { fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#ffd60a' }).setOrigin(0.5);
-    this.feedbackBody = this.add.text(0, 0, '', {
-      fontFamily: 'Arial', fontSize: '16px', color: '#ffffff', align: 'center', wordWrap: { width: 500 }
-    }).setOrigin(0.5);
-    this.feedback.add([this.feedbackBg, this.feedbackTitle, this.feedbackBody]);
+    // Wooden parchment answer-feedback card (correct / wrong) — replaces
+    // the old plain dark-blue rectangle. Pure UI: the card renders the
+    // validated answer + the question's real explanation and hands control
+    // back through ONE action button; the button is armed by the physics
+    // settle watcher, so the transition below it is always safe.
+    this.feedbackCard = new FeedbackCard(this, {
+      markUi: () => { this.uiPointerConsumed = true; },
+      reducedMotion: () => !!(this.save && this.save.data.settings.reducedMotion),
+      depth: DEPTH.OVERLAY
+    });
 
     // The pause menu lives in the GameHUD (Fix #17) — nothing to build here.
 
@@ -682,25 +688,49 @@ export class GameScene extends Phaser.Scene {
 
     this.currentShot.answered = true;
 
+    // The wooden feedback card presents the validated answer. It appears
+    // immediately (the tower may still be collapsing behind it) but its
+    // action button stays disabled until the settle watcher below arms it;
+    // the actual question transition happens ONLY through that button.
+    const correct = this.prepared.targets.find((t) => t.choiceId === result.correctChoiceId);
+    const answerLine = `Correct answer: ${correct.label} — “${correct.text}”`;
+    this.feedbackArmed = false;
+    this.feedbackAdvancing = false;
+    this.slingshot.cancelDrag();
+    this.slingshot.setEnabled(false);
+
     if (result.correct) {
       this.answerLock = true; // lock until the next question
       this.scoring.recordCorrect(this.prepared.attempt);
       this.flashTarget(targetGo, COLORS.TARGET_CORRECT_FLASH);
       this.audio.emit('answer-correct');
       const pts = SCORING.BASE_BY_ATTEMPT[Math.min(this.prepared.attempt, SCORING.BASE_BY_ATTEMPT.length) - 1];
-      this.showFeedback('✔ CORRECT  +' + pts, result.explanation, '#90be6d');
+      this.feedbackCard.show({
+        token: this.questionIndex,
+        kind: 'correct',
+        answerLine,
+        explanation: result.explanation,
+        hint: `+${pts} points!`,
+        buttonText: 'CONTINUE',
+        onAction: () => this.onFeedbackAction()
+      });
       DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — ANSWER correct (attempt ${this.prepared.attempt}, +${pts} pts)`);
       this.settleStartedAt = this.time.now;
     } else {
       this.flashTarget(targetGo, COLORS.TARGET_WRONG_FLASH);
       this.scoring.recordWrongHit();
       this.audio.emit('answer-wrong');
-      const correct = this.prepared.targets.find((t) => t.choiceId === result.correctChoiceId);
-      this.showFeedback(
-        '✘ WRONG ANSWER',
-        `Correct answer: ${correct.label} — “${correct.text}”\n\n${result.explanation}`,
-        '#e63946'
-      );
+      this.feedbackCard.show({
+        token: this.questionIndex,
+        kind: 'wrong',
+        answerLine,
+        explanation: result.explanation,
+        hint: this.shotsLeft > 0
+          ? 'Nice try! Aim carefully and take another shot.'
+          : 'Take a breath — you can retry this question.',
+        buttonText: 'TRY AGAIN',
+        onAction: () => this.onFeedbackAction()
+      });
       DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — ANSWER wrong (penalty, shots left: ${this.shotsLeft})`);
       this.settleStartedAt = this.time.now;
     }
@@ -862,10 +892,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Feedback pacing (spec §9): the panel stays visible at least
-   * FEEDBACK.MIN_VISIBLE_MS, then advances once the world has genuinely
-   * settled for a short run of frames; a hard cap ends the presentation
-   * after a validated answer without ever waiting for perfect stillness.
+   * Feedback pacing: the wooden card is already on screen while the tower
+   * finishes collapsing; once the world has genuinely settled for a short
+   * run of frames (or the hard cap ends the wait), the card's action
+   * button is ARMED — the question transition itself happens only when the
+   * player clicks it (onFeedbackAction). Physics can therefore never be
+   * interrupted mid-collapse, and the player is never skipped past the
+   * educational text.
    */
   updateAnswerSettle() {
     const elapsed = this.time.now - this.settleStartedAt;
@@ -875,14 +908,32 @@ export class GameScene extends Phaser.Scene {
     const capped = elapsed >= FEEDBACK.MAX_RESOLVE_MS;
     if ((this.settleFrames >= 12 && minVisible) || capped) {
       this.settleFrames = 0;
-      DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS feedback settle completed (${capped ? 'cap reached' : 'settled'})`);
-      this.advanceAfterFeedback();
+      if (!this.feedbackArmed) {
+        this.feedbackArmed = true;
+        DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — PHYSICS feedback settle completed (${capped ? 'cap reached' : 'settled'}) — CONTINUE armed`);
+        this.feedbackCard?.setActionEnabled(true);
+      }
     }
+  }
+
+  /**
+   * ONE valid exit from the feedback card (its button click, after the exit
+   * animation finished). Double-clicks and stale tokens are already
+   * swallowed by the card; this guard makes the scene-side transition
+   * one-shot as well, so the question can never advance twice.
+   */
+  onFeedbackAction() {
+    if (this.feedbackAdvancing) return;
+    this.feedbackAdvancing = true;
+    this.audio?.emit('ui-click');
+    this.advanceAfterFeedback();
   }
 
   advanceAfterFeedback() {
     const wasCorrect = this.answerLock;
-    this.hideFeedback();
+    // the card has already played its exit animation (onFeedbackAction);
+    // a stale visible card (restart during feedback) is cancelled by
+    // loadQuestion, never here.
     DebugLog.info(`L${this.levelId} / Question ${this.questionIndex + 1} — FEEDBACK completed (${wasCorrect ? 'correct' : 'wrong'})`);
     if (wasCorrect) {
       this.stateMachine.set(STATES.NEXT_QUESTION);
@@ -1293,16 +1344,6 @@ export class GameScene extends Phaser.Scene {
       && this.currentShot && PROJECTILE_TYPES[this.currentShot.typeKey]
       && !!PROJECTILE_TYPES[this.currentShot.typeKey].ability;
     this.abilityButton?.sync({ visible: !!flyingAbility });
-  }
-
-  showFeedback(title, body, color) {
-    this.feedbackTitle.setText(title).setColor(color);
-    this.feedbackBody.setText(body);
-    this.feedback.setVisible(true);
-  }
-
-  hideFeedback() {
-    this.feedback.setVisible(false);
   }
 
   showToast(msg, ms = 1500) {
