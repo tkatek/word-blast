@@ -293,18 +293,23 @@ export const TARGETS = {
   CHOICE_LABELS: ['A', 'B', 'C'],
   RESPAWN_PUFF: true,     // out-of-bounds plaque recovery shows a puff
   /**
-   * Parchment answer panels (one design, three widths — the frame and its
-   * corner ornaments are identical, only the parchment middle grows, so
-   * every answer renders at the same font size). Variant is chosen by
-   * answer length; layout maths that must hold for ANY plaque use the
-   * widest (L) width defensively.
+   * Parchment answer panels. S/M/L are the original baked variants of one
+   * design; XL is the newly uploaded wide parchment artwork for sentences
+   * (scripts/build-answer-panel-xl.mjs). Panel choice is MEASUREMENT-driven
+   * (js/systems/AnswerPanel.js — real Phaser text metrics against each
+   * format's parchment writing box), never character-count-driven; the
+   * entries below are metadata for audits and legacy tooling.
    */
   VARIANTS: [
     { key: 'answer_panel_s', width: 116, maxChars: 7 },
     { key: 'answer_panel_m', width: 142, maxChars: 11 },
-    { key: 'answer_panel_l', width: 170, maxChars: 99 }
+    { key: 'answer_panel_l', width: 170, maxChars: 19 },
+    { key: 'answer_panel_xl', width: 300, maxChars: 99 }
   ],
-  MAX_WIDTH: 170,
+  MAX_WIDTH: 300,
+  /** XL panels keep the mass of the historical L plaque (tower-friendly). */
+  DENSITY: 0.0012,
+  XL_REFERENCE_MASS: 0.0012 * 170 * 80,
   /** Parchment typography: dark ink on cream, sized to fit the panel. */
   TEXT: {
     FONT: 'Arial',

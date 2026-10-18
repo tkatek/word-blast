@@ -169,6 +169,15 @@ export const TOWER_ASSETS = {
     content: [170, 80], size: [170, 80], collider: { shape: 'rect', inset: 3 },
     rotatable: false, preload: true
   },
+  // XL sentence panel — the newly uploaded wide parchment artwork, rail-thinned
+  // between the corner posts (scripts/build-answer-panel-xl.mjs; never
+  // stretched). Parchment writing box: x 0.083..0.864, y 0.245..0.797 of the
+  // display size. Pre-trimmed like the rest of the pack: canvas == content.
+  answer_panel_xl: {
+    file: 'props/answer_panel_xl.png', material: 'wood',
+    content: [600, 194], size: [300, 97], collider: { shape: 'rect', inset: 3 },
+    rotatable: false, preload: true
+  },
   // decorative only (no physics unless placed with one explicitly)
   lantern: {
     file: 'props/lantern.png', material: 'wood',

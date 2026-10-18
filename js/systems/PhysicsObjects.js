@@ -23,6 +23,7 @@ import {
 import { TOWER_ASSETS, displaySizeFor } from '../data/tower-assets.js';
 import { projectileVisual } from '../data/birds.js';
 import { BirdSprite } from './BirdSprite.js';
+import { formatByName, panelCenterYForSlot, buildVisual } from './AnswerPanel.js';
 
 const MatterLib = Phaser.Physics.Matter.Matter;
 
@@ -36,13 +37,6 @@ const MatterLib = Phaser.Physics.Matter.Matter;
  */
 const DESPAWN_REST_MS = 250;   // upright rest before the fade starts
 const DESPAWN_FADE_MS = 300;   // fade-out length
-
-/** Parchment panel variant that fits an answer word (short/medium/long). */
-function panelVariantFor(text) {
-  const n = (text || '').length;
-  return TARGETS.VARIANTS.find((v) => n <= v.maxChars)
-    || TARGETS.VARIANTS[TARGETS.VARIANTS.length - 1];
-}
 
 export class ObjectFactory {
   constructor(scene) {
