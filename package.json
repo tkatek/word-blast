@@ -12,12 +12,16 @@
     "test:integration": "node tests/integration-tests.mjs",
     "test:lifecycle": "node tests/bird-lifecycle-tests.mjs",
     "test:card": "node tests/question-card-tests.mjs",
+    "test:panels": "node tests/answer-panel-tests.mjs",
     "repro:freeze": "node tests/repro-freeze.mjs",
     "verify:birds": "node scripts/verify-birds.mjs",
     "verify:build": "node scripts/verify-build.mjs",
-    "test": "node tests/run-tests.mjs && node tests/integration-tests.mjs && node tests/bird-lifecycle-tests.mjs && node tests/bird-ammo-ability-tests.mjs",
+    "test": "node tests/run-tests.mjs && node tests/integration-tests.mjs && node tests/bird-lifecycle-tests.mjs && node tests/bird-ammo-ability-tests.mjs && node tests/answer-panel-tests.mjs",
     "test:fix19": "node tests/bird-ammo-ability-tests.mjs",
-    "shots:fix19": "node scripts/fix19-screenshots.mjs"
+    "shots:fix19": "node scripts/fix19-screenshots.mjs",
+    "shots:card21": "node scripts/card21-screenshots.mjs",
+    "shots:panels": "node scripts/panel-screenshots.mjs",
+    "build:panels": "node scripts/build-answer-panels.mjs && node scripts/build-answer-panel-xl.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

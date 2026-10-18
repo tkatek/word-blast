@@ -1,5 +1,6 @@
 /**
- * QuestionCard (Fix #9) — the animated English question presentation.
+ * QuestionCard (Fix #9 + Fix #21) — the animated English question
+ * presentation.
  *
  * ONE parchment card per question, driven through explicit presentation
  * phases (UI sub-states; the global GameStateMachine is untouched — it
@@ -8,9 +9,15 @@
  *   IDLE → ENTERING (fade + 0.9→1 scale, centered)
  *        → READING  (mandatory readingMs of ACTIVE time; frame-driven via
  *                    tick(delta), so pause/portrait/auto-pause freeze it)
- *        → MOVING_TO_TOP (the SAME container tweens to its resting spot)
- *        → READY_TOP (parchment tappable for the enlarged "peek" view;
+ *        → MOVING_TO_TOP (the SAME container tweens to its upper-left dock)
+ *        → READY_TOP (card tappable for the enlarged reading view;
  *                     the scene arms AIMING exactly now)
+ *        → EXPANDING (Fix #21: click → smooth 460ms Cubic.easeInOut glide
+ *                     to the exact center at reading size)
+ *        → EXPANDED  (scrim behind, close button shown, timer frozen by
+ *                     the scene, slingshot disabled)
+ *        → COLLAPSING (close → smooth glide back to the dock, then the
+ *                     scene re-enables aiming)
  *        → EXITING (brief fade) → IDLE
  *
  * Reliability contract (this game has a history of transition freezes):
@@ -18,6 +25,11 @@
  *     tween completion / utterance callback of a previous question;
  *   - all tweens are tracked and killed on re-present / destroy — no
  *     overlapping tweens, no duplicate cards, no stale callbacks;
+ *   - rapid taps never stack tweens: every expand/collapse first kills
+ *     the live tweens of the target it is about to animate, so reversing
+ *     mid-flight simply retargets from wherever the card is;
+ *   - expansion is additionally gated by the scene's canExpand() (only
+ *     safe gameplay states — never mid-flight / resolving);
  *   - pause()/resume() freeze the visual tweens; the reading countdown
  *     already lives in the scene's pause-gated update();
  *   - the card is pure UI: it never consumes shots, never touches the
@@ -40,12 +52,17 @@ export const CARD_PHASES = {
   READING: 'READING',
   MOVING_TO_TOP: 'MOVING_TO_TOP',
   READY_TOP: 'READY_TOP',
-  PEEK: 'PEEK',
+  EXPANDING: 'EXPANDING',
+  EXPANDED: 'EXPANDED',
+  COLLAPSING: 'COLLAPSING',
   EXITING: 'EXITING'
 };
 
 /** True while the mandatory introduction owns the screen (timer frozen). */
 const INTRO_PHASES = [CARD_PHASES.ENTERING, CARD_PHASES.READING, CARD_PHASES.MOVING_TO_TOP];
+
+/** True while the enlarged reading view owns the screen (Fix #21). */
+const OPEN_PHASES = [CARD_PHASES.EXPANDING, CARD_PHASES.EXPANDED];
 
 /** White speaker icon texture key (generated once, reused across restarts). */
 const SPEAKER_TEX = 'wbqcard-speaker';
@@ -116,6 +133,9 @@ export class QuestionCard {
    * @param {object} opts {
    *   markUi()        — flags UI pointerdown so gameplay taps stay clean,
    *   reducedMotion() — save-settings reader (animations become instant),
+   *   canExpand()     — scene gate: expansion allowed only in safe gameplay
+   *                     states (Fix #21); defaults to always-true for
+   *                     headless/tests without a state machine
    *   depth           — card depth (GameScene passes its PANEL depth),
    *   scrimDepth      — peek scrim depth (just under the HUD)
    * }
@@ -124,6 +144,7 @@ export class QuestionCard {
     this.scene = scene;
     this.markUi = opts.markUi || (() => {});
     this.reducedMotion = opts.reducedMotion || (() => false);
+    this.canExpand = opts.canExpand || (() => true);
     this.depth = opts.depth ?? 80;
     this.token = 0;               // question-generation guard
     this.phase = CARD_PHASES.IDLE;
@@ -175,6 +196,17 @@ export class QuestionCard {
     }).setOrigin(0.5, 0);
     this.root.add([this.shadow, this.art, this.kicker, this.main]);
 
+    /* card tap zone (Fix #21) — the WHOLE card is tappable: one tap opens
+       the enlarged reading view, another tap closes it. Added BEFORE the
+       speaker hit and the close button so those two always win the taps
+       that matter (Phaser sorts overlapping input by render order). */
+    const INSET = 6; // keep the hit box just inside the wooden frame edge
+    this.parchHit = scene.add.rectangle(0, 0, W - INSET, H - INSET, 0xffffff, 0)
+      .setInteractive({ useHandCursor: true });
+    this.parchHit.on('pointerdown', () => { this.markUi(); });
+    this.parchHit.on('pointerup', () => this.togglePeek());
+    this.root.add(this.parchHit);
+
     /* speaker icon + hit circle pinned to the blue medallion */
     const s = QUESTION_CARD.ART.SPEAKER;
     this.speakerPos = { x: -W / 2 + s.x * W, y: -H / 2 + s.y * H };
@@ -189,19 +221,35 @@ export class QuestionCard {
     this.speakerHit.on('pointerup', () => this.trySpeak());
     this.root.add([this.speaker, this.speakerHit]);
 
-    /* parchment tap zone — opens/closes the enlarged reading view */
+    /* close button (Fix #21) — upper-right corner of the ENLARGED card,
+       styled after the artwork's gold-ring medallions; hidden while
+       docked (a docked tap means "open", never "close"). Sits well clear
+       of the speaker medallion (x .878, y .49 of the card box). */
+    const cb = this.closeBtn = scene.add.container(W / 2 - 46, -H / 2 + 42);
+    const cbR = 30;
+    const cbG = scene.add.graphics();
+    cbG.fillStyle(0x2c1a0c, 1); cbG.fillCircle(0, 0, cbR);        // dark rim
+    cbG.fillStyle(0xe09f3e, 1); cbG.fillCircle(0, 0, cbR - 3.5);  // gold ring
+    cbG.fillStyle(0x8a2f26, 1); cbG.fillCircle(0, 0, cbR - 8);    // enamel
+    const cbX = scene.add.text(0, 0, '✕', {
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '26px',
+      color: '#ffefd8', fontStyle: 'bold'
+    }).setOrigin(0.5, 0.5);
+    cb.add([cbG, cbX]);
+    cb.setVisible(false).setAlpha(0);
+    cb.setInteractive(new Phaser.Geom.Circle(0, 0, cbR + 8), Phaser.Geom.Circle.Contains);
+    cb.input.cursor = 'pointer';
+    cb.on('pointerdown', () => { this.markUi(); });
+    cb.on('pointerup', () => this.closePeek());
+    cb.on('pointerover', () => { if (cb.visible) cb.setScale(1.08); });
+    cb.on('pointerout', () => cb.setScale(1));
+    this.root.add(cb);
+
+    /* writing zone (layout math) — unchanged geometry of the parchment */
     const t = QUESTION_CARD.ART.TEXT;
     const zx0 = -W / 2 + t.x0 * W, zx1 = -W / 2 + t.x1 * W;
     const zy0 = -H / 2 + t.y0 * H, zy1 = -H / 2 + t.y1 * H;
     this.zone = { x0: zx0, x1: zx1, y0: zy0, y1: zy1, w: zx1 - zx0, h: zy1 - zy0 };
-    this.parchHit = scene.add.rectangle((zx0 + zx1) / 2, (zy0 + zy1) / 2, this.zone.w, this.zone.h, 0xffffff, 0)
-      .setInteractive({ useHandCursor: true });
-    this.parchHit.on('pointerdown', () => { this.markUi(); });
-    this.parchHit.on('pointerup', () => {
-      if (this.phase === CARD_PHASES.READY_TOP) this.openPeek();
-      else if (this.phase === CARD_PHASES.PEEK) this.closePeek();
-    });
-    this.root.add(this.parchHit);
 
     /* tiny "tap to enlarge" affordance (shown only for shrunk text) */
     this.enlargeHint = scene.add.text(
@@ -339,46 +387,97 @@ export class QuestionCard {
     }));
   }
 
-  /** Enlarged reading view (from READY_TOP only) — no projectile fired. */
+  /**
+   * Fix #21 — one tap on the card: open when docked (or still returning),
+   * close when open (or still expanding). Everything funnels through the
+   * state-checked openPeek/closePeek below, so an out-of-place tap is a
+   * no-op and never interrupts the introduction or a shot.
+   */
+  togglePeek() {
+    if (this.phase === CARD_PHASES.READY_TOP || this.phase === CARD_PHASES.COLLAPSING) {
+      this.openPeek();
+    } else if (OPEN_PHASES.includes(this.phase)) {
+      this.closePeek();
+    }
+  }
+
+  /**
+   * Enlarged reading view (from the dock — or mid-collapse, which simply
+   * reverses the return). Gated by the scene's canExpand() so a flying /
+   * resolving shot is never interrupted. No projectile can fire: the scene
+   * disables the slingshot the moment 'wb-card-peek' opens.
+   */
   openPeek() {
-    if (this.phase !== CARD_PHASES.READY_TOP) return;
+    if (this.phase !== CARD_PHASES.READY_TOP && this.phase !== CARD_PHASES.COLLAPSING) return;
+    if (!this.canExpand()) {
+      DebugLog.info('Card — expand request refused (gameplay not in a safe state)');
+      return;
+    }
     const token = this.token;
-    this.phase = CARD_PHASES.PEEK;
-    DebugLog.info('Card — PEEK open (enlarged reading view)');
+    const { CENTER, TIMINGS, PEEK } = QUESTION_CARD;
+    this.phase = CARD_PHASES.EXPANDING;
+    DebugLog.info('Card — EXPANDING (enlarged reading view)');
     this.scene.events.emit('wb-card-peek', true);
     this.scrim.setVisible(true);
+    this.enlargeHint.setVisible(false);
     if (this.reducedMotion()) {
-      this.scrim.setAlpha(0.38);
-      this.root.setPosition(QUESTION_CARD.CENTER.x, QUESTION_CARD.CENTER.y).setScale(1);
+      this.killTweensOf(this.scrim);
+      this.killTweensOf(this.root);
+      this.scrim.setAlpha(PEEK.scrimAlpha);
+      this.root.setPosition(CENTER.x, CENTER.y).setScale(1);
+      this.showCloseBtn(true);
+      this.phase = CARD_PHASES.EXPANDED;
       return;
     }
     this.killTweensOf(this.root); // a rapid toggle never overlaps tweens
-    this.track(this.scene.tweens.add({ targets: this.scrim, alpha: 0.38, duration: QUESTION_CARD.TIMINGS.peekMs, ease: 'Sine.easeOut' }));
+    this.killTweensOf(this.scrim);
+    this.track(this.scene.tweens.add({
+      targets: this.scrim, alpha: PEEK.scrimAlpha, duration: TIMINGS.peekMs, ease: 'Sine.easeOut'
+    }));
     this.track(this.scene.tweens.add({
       targets: this.root,
-      x: QUESTION_CARD.CENTER.x, y: QUESTION_CARD.CENTER.y, scaleX: 1, scaleY: 1,
-      duration: QUESTION_CARD.TIMINGS.peekMs, ease: 'Sine.easeOut',
-      onComplete: () => { if (token === this.token) this.root.setScale(1); }
+      x: CENTER.x, y: CENTER.y, scaleX: 1, scaleY: 1,
+      duration: TIMINGS.peekMs, ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        if (token !== this.token) return; // stale
+        this.phase = CARD_PHASES.EXPANDED;
+        this.showCloseBtn(true);
+        DebugLog.info('Card — EXPANDED (timer frozen, close button shown)');
+      }
     }));
   }
 
-  /** Back to the resting spot. `instant` skips animation (internal use). */
+  /**
+   * Back to the dock (from EXPANDING or EXPANDED — a tap mid-expand simply
+   * reverses from wherever the card is). The scene re-enables aiming only
+   * when 'wb-card-peek' closes, fired once the card is fully docked again.
+   * `instant` skips animation (present/dismiss/restart paths).
+   */
   closePeek(instant = false) {
-    const wasPeek = this.phase === CARD_PHASES.PEEK;
-    if (!wasPeek && !instant) return;
-    if (wasPeek) this.phase = CARD_PHASES.READY_TOP;
-    if (!wasPeek) return;
-    this.scene.events.emit('wb-card-peek', false);
-    const { TOP, TIMINGS } = QUESTION_CARD;
+    const wasOpen = OPEN_PHASES.includes(this.phase);
+    if (!wasOpen && !instant) return;
+    const { TOP, TIMINGS, PEEK } = QUESTION_CARD;
     if (instant || this.reducedMotion()) {
+      if (wasOpen) {
+        this.scene.events.emit('wb-card-peek', false);
+        this.phase = CARD_PHASES.READY_TOP;
+      }
       this.killTweensOf(this.scrim);
       this.killTweensOf(this.root);
+      this.killTweensOf(this.closeBtn);
       this.scrim.setVisible(false).setAlpha(0);
+      this.showCloseBtn(false);
       this.root.setPosition(TOP.x, TOP.y).setScale(this.topScale);
+      this.enlargeHint.setVisible(this.fittedSize < QUESTION_CARD.TYPE.MAIN.size - 2);
       return;
     }
-    this.killTweensOf(this.scrim);
+    if (!wasOpen) return;
+    const token = this.token;
+    this.phase = CARD_PHASES.COLLAPSING;
+    DebugLog.info('Card — COLLAPSING (back to the dock)');
+    this.showCloseBtn(false);
     this.killTweensOf(this.root);
+    this.killTweensOf(this.scrim);
     this.track(this.scene.tweens.add({
       targets: this.scrim, alpha: 0, duration: TIMINGS.peekMs, ease: 'Sine.easeIn',
       onComplete: () => this.scrim.setVisible(false)
@@ -386,7 +485,36 @@ export class QuestionCard {
     this.track(this.scene.tweens.add({
       targets: this.root,
       x: TOP.x, y: TOP.y, scaleX: this.topScale, scaleY: this.topScale,
-      duration: TIMINGS.peekMs, ease: 'Sine.easeInOut'
+      duration: TIMINGS.peekMs, ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        if (token !== this.token) return; // stale
+        this.root.setPosition(TOP.x, TOP.y).setScale(this.topScale);
+        this.phase = CARD_PHASES.READY_TOP;
+        this.enlargeHint.setVisible(this.fittedSize < QUESTION_CARD.TYPE.MAIN.size - 2);
+        // aiming returns exactly now: the card is docked, the scrim gone
+        this.scene.events.emit('wb-card-peek', false);
+        DebugLog.info('Card — READY_TOP (expanded view closed)');
+      }
+    }));
+  }
+
+  /** Fade the corner close button in/out with the expanded view. */
+  showCloseBtn(on) {
+    const cb = this.closeBtn;
+    if (!cb) return;
+    this.killTweensOf(cb);
+    if (!on) {
+      cb.setVisible(false).setAlpha(0).setScale(1);
+      return;
+    }
+    if (this.reducedMotion()) {
+      cb.setVisible(true).setAlpha(1).setScale(1);
+      return;
+    }
+    cb.setVisible(true).setAlpha(0).setScale(0.8);
+    this.track(this.scene.tweens.add({
+      targets: cb, alpha: 1, scaleX: 1, scaleY: 1,
+      duration: 180, ease: 'Back.easeOut'
     }));
   }
 
@@ -543,6 +671,11 @@ export class QuestionCard {
     return INTRO_PHASES.includes(this.phase);
   }
 
+  /** True while the enlarged reading view owns the card (Fix #21). */
+  get expanded() {
+    return OPEN_PHASES.includes(this.phase);
+  }
+
   track(tw) {
     this.tweens.push(tw);
     return tw;
@@ -554,11 +687,12 @@ export class QuestionCard {
   }
 
   killTweens() {
-    // every card tween targets the root or the scrim — killing those two
-    // severs the whole live timeline, whatever phase it was in
-    this.scene.tweens.killTweensOf([this.root, this.scrim]);
+    // every card tween targets the root, the scrim or the close button —
+    // killing those three severs the whole live timeline, whatever phase
+    // it was in
+    this.scene.tweens.killTweensOf([this.root, this.scrim, this.closeBtn]);
     this.tweens = [];
-    if (this.phase !== CARD_PHASES.PEEK) {
+    if (!this.expanded) {
       this.scrim.setVisible(false).setAlpha(0);
     }
   }
@@ -568,6 +702,7 @@ export class QuestionCard {
     return {
       phase: this.phase,
       introActive: this.introActive,
+      expanded: this.expanded,
       token: this.token,
       x: +this.root.x.toFixed(1),
       y: +this.root.y.toFixed(1),

@@ -12,23 +12,9 @@
  * (defaults to the vite preview server on :4173)
  */
 import puppeteer from 'puppeteer-core';
-import sharp from 'sharp';
 import { mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-
-/** Byte-identical comparison of two screenshot buffers (same clip). */
-async function sharpDiff(a, b) {
-  if (a.length !== b.length) return false;
-  const [ra, rb] = await Promise.all([
-    sharp(a).raw().toBuffer(),
-    sharp(b).raw().toBuffer()
-  ]);
-  if (ra.length !== rb.length) return false;
-  let diff = 0;
-  for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) diff++;
-  return diff === 0; // exact: HUD strip must not move a single pixel
-}
 
 const root = dirname(fileURLToPath(import.meta.url));
 const OUT = join(root, '..', 'screenshots', 'hud2');
@@ -79,7 +65,12 @@ async function hudProbe(page) {
   return page.evaluate(() => {
     const s = window.__WB__.scene();
     const hud = s.hud;
-    const cardTop = 158 - (620 * (484 / 2082)) / 2; // config QUESTION_CARD.TOP
+    // live docked-card top edge (world px) — config values rendered, not
+    // hardcoded, so this probe follows any future card retuning
+    const card = s.card && s.card.root;
+    const cardTop = card
+      ? card.y - (card.displayHeight * card.scaleY) / 2
+      : Infinity;
     const main = s.cameras.main;
     return {
       barBottom: hud.barBottom,
@@ -122,26 +113,31 @@ const main = async () => {
     ok(probe.barBottom + 4 <= probe.cardTop, `HUD band (${probe.barBottom}) clears the card top (${probe.cardTop.toFixed(0)})`);
     await page.screenshot({ path: join(OUT, '1-desktop-1920x1080.png') });
 
-    // camera-shake stability, proven on PIXELS: clip the HUD strip before and
-    // mid-shake and require an identical bitmap (the world around it moves).
-    const zoom = await page.evaluate(() => window.__WB__.scene().cameras.main.zoom);
-    const clip = { x: 0, y: 0, width: Math.floor(1280 * zoom), height: Math.ceil(84 * zoom) };
-    const calm = await page.screenshot({ clip });
-    await page.evaluate(() => {
+    // camera-shake stability, proven at the SOURCE: sample both cameras'
+    // render matrices across a forced shake. The gameplay camera's
+    // translation must oscillate; the HUD camera's must not move at all.
+    const shakeProbe = await page.evaluate(async () => {
       const s = window.__WB__.scene();
-      s.fx.shakeForImpact(160, 0.02); // stronger than the capped gameplay shake
+      const main = s.cameras.main;
+      const ui = s.hud.uiCam;
+      const t0 = performance.now();
+      s.fx.shakeForImpact(160, 500);
+      let mBase = null, uBase = null, mainSwing = 0, uiSwing = 0;
+      while (performance.now() - t0 < 520) {
+        if (!mBase) mBase = { x: main.matrix.tx, y: main.matrix.ty };
+        if (!uBase) uBase = { x: ui.matrix.tx, y: ui.matrix.ty };
+        mainSwing = Math.max(mainSwing,
+          Math.abs(main.matrix.tx - mBase.x), Math.abs(main.matrix.ty - mBase.y));
+        uiSwing = Math.max(uiSwing,
+          Math.abs(ui.matrix.tx - uBase.x), Math.abs(ui.matrix.ty - uBase.y));
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      return { mainSwing, uiSwing };
     });
-    await sleep(90); // mid-shake
-    const shaking = await page.screenshot({ clip });
-    const worldMoved = await page.evaluate(() => {
-      const s = window.__WB__.scene();
-      return s.cameras.main.shakeEffect ? s.cameras.main.shakeEffect.isRunning : true;
-    });
-    const identical = await sharpDiff(calm, shaking);
     await page.screenshot({ path: join(OUT, '2-desktop-shake.png') });
-    ok(worldMoved, 'gameplay camera shake actually ran during the probe');
-    ok(identical, 'HUD bitmap identical before vs mid-shake');
-    await sleep(400); // let the shake finish
+    ok(shakeProbe.mainSwing > 1, `gameplay camera shook (${shakeProbe.mainSwing.toFixed(1)}px matrix swing)`);
+    ok(shakeProbe.uiSwing < 0.01, `HUD camera matrix constant (${shakeProbe.uiSwing.toFixed(3)}px swing)`);
+    await sleep(200); // let the shake finish
 
     // pause via the real button coordinates — must open the menu, not fire
     const pauseXY = await page.evaluate(() => {

@@ -17,7 +17,7 @@
  * Run: node tests/question-card-tests.mjs
  */
 import { createHeadlessGame } from './helpers/headless-game.mjs';
-import { QUESTION_CARD } from '../js/config.js';
+import { QUESTION_CARD, HUD } from '../js/config.js';
 
 let passed = 0;
 let failed = 0;
@@ -115,10 +115,16 @@ const main = async () => {
     near(c.x, QUESTION_CARD.TOP.x, 2, `top x (${c.x})`);
     near(c.y, QUESTION_CARD.TOP.y, 2, `top y (${c.y})`);
     near(c.scale, QUESTION_CARD.TOP.width / QUESTION_CARD.CENTER.width, 0.02, 'top scale');
-    const cardBottom = c.y + (QUESTION_CARD.TOP.width * QUESTION_CARD.ART.ASPECT) / 2;
+    const dockH = QUESTION_CARD.TOP.width * QUESTION_CARD.ART.ASPECT;
+    const cardBottom = c.y + dockH / 2;
+    const cardTop = c.y - dockH / 2;
     assert(cardBottom < 640, 'card stays in the upper area');
-    assert(c.y - (QUESTION_CARD.TOP.width * QUESTION_CARD.ART.ASPECT) / 2 >= 76,
-      'safe gap below the HUD band (y<=76)');
+    assert(cardTop >= 76, 'safe gap below the HUD band (y<=76)');
+    // Fix #21 — docked card is the smaller upper-LEFT card
+    near(c.x - QUESTION_CARD.TOP.width / 2, QUESTION_CARD.SAFE_X, 2, 'left edge at the safe margin');
+    assert(QUESTION_CARD.TOP.width <= 620 * 0.85 + 1, `card 15-20% smaller (${QUESTION_CARD.TOP.width}px)`);
+    assert(QUESTION_CARD.TOP.width >= 620 * 0.80 - 1, 'card not smaller than 20%');
+    assert(cardBottom < 260, 'card bottom clears the slingshot fork (y>=260)');
     assert(h.state() === 'AIMING', 'AIMING armed once the card rests');
     assert(h.scene().slingshot.enabled, 'slingshot enabled after the move');
   });
@@ -222,12 +228,84 @@ const main = async () => {
     await h.waitForState('AIMING', 8000);
     const s = h.scene();
     s.card.openPeek();
-    assert(api.cardInfo().phase === 'PEEK', 'peek open');
+    await h.waitFor(() => api.cardInfo()?.phase === 'EXPANDED', 2000, 'EXPANDED phase');
+    const c = api.cardInfo();
+    near(c.x, QUESTION_CARD.CENTER.x, 2, 'expanded centered x');
+    near(c.y, QUESTION_CARD.CENTER.y, 2, 'expanded centered y');
+    near(c.scale, 1, 0.02, 'expanded at reading scale');
+    assert(c.expanded, 'expanded flag set');
     assert(!s.slingshot.enabled, 'slingshot blocked while reading enlarged');
+    assert(s.stateMachine.current === 'AIMING', 'gameplay state unchanged by peek');
     s.card.closePeek();
     await h.waitFor(() => api.cardInfo()?.phase === 'READY_TOP', 2000, 'peek closed');
+    const back = api.cardInfo();
+    near(back.x, QUESTION_CARD.TOP.x, 2, 'closed back at dock x');
+    near(back.y, QUESTION_CARD.TOP.y, 2, 'closed back at dock y');
+    near(back.scale, QUESTION_CARD.TOP.width / QUESTION_CARD.CENTER.width, 0.02, 'dock scale');
     assert(s.slingshot.enabled, 'slingshot restored after closing');
     assert(h.state() === 'AIMING', 'gameplay unchanged by peek');
+  });
+
+  await test('expanded view freezes the timer and consumes nothing', async () => {
+    api.setCardTimings(FAST);
+    await h.gotoLevel(2);
+    await h.waitForState('AIMING', 8000);
+    const s = h.scene();
+    const shotsBefore = s.shotsLeft;
+    const scoreBefore = s.scoring.liveScore();
+    await sleep(500); // timer demonstrably running first
+    const running = s.levelTimer.remainingMs;
+    assert(running < HUD.TIME_LIMIT_MS, 'timer running before expansion');
+    s.card.openPeek();
+    await h.waitFor(() => api.cardInfo()?.phase === 'EXPANDED', 2000, 'EXPANDED phase');
+    const frozen = s.levelTimer.remainingMs;
+    await sleep(600);
+    near(s.levelTimer.remainingMs, frozen, 40, 'timer frozen while expanded');
+    s.card.closePeek();
+    await h.waitFor(() => api.cardInfo()?.phase === 'READY_TOP', 2000, 'collapsed');
+    await sleep(400);
+    assert(s.levelTimer.remainingMs < frozen - 200, 'timer resumed after closing');
+    assert(s.shotsLeft === shotsBefore, 'expansion consumed no shot');
+    assert(s.scoring.liveScore() === scoreBefore, 'expansion touched no score');
+  });
+
+  await test('expansion refused while a shot is resolving', async () => {
+    api.setCardTimings(FAST);
+    await h.gotoLevel(1);
+    await h.waitForState('AIMING', 8000);
+    const s = h.scene();
+    assert(await answer(h), 'fired at the correct target');
+    await h.waitForState('PROJECTILE_FLYING', 3000, 'projectile in flight');
+    s.card.openPeek();
+    assert(api.cardInfo().phase === 'READY_TOP', 'expand refused mid-flight');
+    assert(!api.cardInfo().expanded, 'expanded flag stays false');
+    await h.waitFor(() => h.info().questionIndex === 1, 15000, 'question advanced normally');
+  });
+
+  await test('rapid open/close toggling never stacks tweens or gets stuck', async () => {
+    api.setCardTimings({ ...FAST, peekMs: 300 });
+    await h.gotoLevel(3);
+    await h.waitForState('AIMING', 8000);
+    const s = h.scene();
+    // reverse mid-expand, re-open mid-collapse, then settle closed
+    s.card.openPeek();
+    await sleep(120);
+    s.card.closePeek();
+    await sleep(120);
+    s.card.openPeek();
+    await sleep(120);
+    s.card.closePeek();
+    await h.waitFor(() => api.cardInfo()?.phase === 'READY_TOP', 3000, 'settled back at dock');
+    const c = api.cardInfo();
+    near(c.x, QUESTION_CARD.TOP.x, 2, 'final dock x exact');
+    near(c.y, QUESTION_CARD.TOP.y, 2, 'final dock y exact');
+    assert(s.card.tweens.length <= 2, `no tween leak (${s.card.tweens.length} live)`);
+    assert(s.slingshot.enabled, 'slingshot restored after the toggle storm');
+    // and the card still expands cleanly afterwards
+    s.card.openPeek();
+    await h.waitFor(() => api.cardInfo()?.phase === 'EXPANDED', 2000, 'clean expand after storm');
+    s.card.closePeek();
+    await h.waitFor(() => api.cardInfo()?.phase === 'READY_TOP', 2000, 'clean collapse');
   });
 
   await test('no speech engine → button honestly unavailable', async () => {

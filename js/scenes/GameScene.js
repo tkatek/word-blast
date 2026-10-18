@@ -217,11 +217,18 @@ export class GameScene extends Phaser.Scene {
 
     // Fix #9 — the animated wooden parchment question card (replaces the
     // old plain-text question/choices strips). It presents each question
-    // center-screen for a mandatory reading window, then glides to its top
-    // resting spot and arms gameplay. The card owns no gameplay state.
+    // center-screen for a mandatory reading window, then glides to its
+    // upper-left dock and arms gameplay. The card owns no gameplay state.
+    // Fix #21 — tapping the docked card opens the enlarged reading view;
+    // the scene allows that ONLY in safe states (never mid-shot).
     this.card = new QuestionCard(this, {
       markUi: () => { this.uiPointerConsumed = true; },
       reducedMotion: () => !!(this.save && this.save.data.settings.reducedMotion),
+      canExpand: () => {
+        if (!this.stateMachine || this.stateMachine.isPaused()) return false;
+        const s = this.stateMachine.current;
+        return s === STATES.QUESTION_READY || s === STATES.AIMING;
+      },
       depth: DEPTH.PANEL,
       scrimDepth: DEPTH.HUD - 1 // peek scrim dims gameplay but not the HUD
     });
@@ -682,8 +689,17 @@ export class GameScene extends Phaser.Scene {
 
   flashTarget(targetGo, color) {
     targetGo.setTintFill(color);
+    // Tween a proxy and apply with a guard: if the question changes inside
+    // the 130 ms flash window the plaque (a Matter image) is destroyed, and
+    // tweening scaleX directly on a body-less Matter image crashes inside
+    // Matter Body.scale. Same visual behaviour, race-proof (Fix #21 found).
+    const t = { k: 1 };
     this.tweens.add({
-      targets: targetGo, scaleX: 1.18, scaleY: 1.18, duration: 130, yoyo: true
+      targets: t, k: 1.18, duration: 130, yoyo: true,
+      onUpdate: () => {
+        if (!targetGo.active || !targetGo.body) return;
+        targetGo.setScale(t.k);
+      }
     });
     const qToken = this.questionIndex;
     this.time.delayedCall(420, () => {
@@ -728,8 +744,13 @@ export class GameScene extends Phaser.Scene {
     // Fix #9 — the mandatory question introduction is presentation time,
     // not playing time: the countdown must not advance while the card is
     // entering / being read / moving to its resting spot.
-    const intro = this.card ? this.card.introActive : false;
-    if (!intro && (s === STATES.QUESTION_READY || s === STATES.AIMING
+    // Fix #21 — the enlarged reading view is rereading time, not playing
+    // time either: the countdown freezes while the card is expanded and
+    // resumes by itself on close (it only ever ran via this frame gate,
+    // so nothing else has to be restored).
+    const card = this.card;
+    const hold = card ? (card.introActive || card.expanded) : false;
+    if (!hold && (s === STATES.QUESTION_READY || s === STATES.AIMING
       || s === STATES.PROJECTILE_FLYING || s === STATES.PHYSICS_RESOLVING)) {
       this.levelTimer.tick(delta);
       if (this.levelTimer.expired) this.timeUp();

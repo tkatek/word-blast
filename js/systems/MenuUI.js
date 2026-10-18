@@ -368,11 +368,14 @@ export class WoodButton {
     if (shine) this._addShine();
 
     c.setSize(width, height);
-    c.setInteractive(
-      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
-      Phaser.Geom.Rectangle.Contains,
-      { useHandCursor: true }
-    );
+    // NOTE: containers hardcode origin 0.5, and InputManager.pointWithinHitArea
+    // shifts the local point by +displayOrigin before testing — so a
+    // container hit area must be in TOP-LEFT space (0,0,w,h), not centered.
+    c.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, width, height),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true
+    });
     c.on('pointerover', () => this._setHover(true));
     c.on('pointerout', () => this._setHover(false));
     c.on('pointerdown', () => this._setPress(true));
@@ -434,11 +437,11 @@ export class WoodButton {
       this.scene.tweens.add({ targets: this._gHover, alpha: 0, duration: 90, overwrite: true });
       this.container.disableInteractive();
     } else {
-      this.container.setInteractive(
-        new Phaser.Geom.Rectangle(-this.width / 2, -this.height / 2, this.width, this.height),
-        Phaser.Geom.Rectangle.Contains,
-        { useHandCursor: true }
-      );
+      this.container.setInteractive({
+        hitArea: new Phaser.Geom.Rectangle(0, 0, this.width, this.height),
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+        useHandCursor: true
+      });
     }
   }
 

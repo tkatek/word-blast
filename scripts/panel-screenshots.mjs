@@ -45,31 +45,38 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
 }
 
 async function gotoQuestion(page, levelId, index) {
-  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  let armed = false;
+  let lastErr = '';
+  for (let attempt = 0; attempt < 4 && !armed; attempt++) {
+    await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
   const booted = async () => {
     try {
+      // NOTE: __WB__.save() returns undefined (not null) until the registry
+      // is populated — key on the actual registry contents instead.
       await page.waitForFunction(() => window.__WB__ && window.__WB__.scene()
-        && window.__WB__.save() !== null, { timeout: 90000 });
+        && window.__WB__.game.registry.get('levels')
+        && window.__WB__.game.registry.get('save'), { timeout: 90000 });
       return true;
     } catch {
       return false;
     }
   };
-  if (!await booted()) {
-    console.log('  (boot wait timed out — reloading once)');
-    await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-    if (!await booted()) throw new Error('game never finished booting');
-  }
-  for (let attempt = 0; attempt < 4; attempt++) {
+    if (!await booted()) {
+      lastErr = 'boot timeout';
+      continue;
+    }
+    // let the scene manager settle (MenuScene start queues process next frame)
+    await sleep(800);
     try {
-      const ok = await page.evaluate(([l, i]) => window.__WB__.gotoQuestion(l, i), [levelId, index]);
-      if (ok) break;
+      await page.evaluate(([l, i]) => window.__WB__.gotoQuestion(l, i), [levelId, index]);
+      await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 60000 });
+      armed = true;
     } catch (e) {
-      if (attempt === 3) throw e;
-      await sleep(1500);
+      lastErr = String(e.message).slice(0, 100);
+      console.log(`  (attempt ${attempt + 1} failed: ${lastErr} — reloading)`);
     }
   }
-  await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 30000 });
+  if (!armed) throw new Error(`never reached AIMING for L${levelId}Q${index + 1} (${lastErr})`);
   // a moment for the settle visuals + label sync
   await sleep(700);
 }
@@ -83,18 +90,17 @@ async function shot(page, name) {
 
 /** Crop a world-rectangle out of a full screenshot (canvas fills viewport). */
 async function cropWorld(file, out, { x, y, w, h, viewW, viewH }) {
+  const img = sharp(file);
+  const meta = await img.metadata();
   const scale = Math.min(viewW / 1280, viewH / 720);
   const offX = (viewW - 1280 * scale) / 2;
   const offY = (viewH - 720 * scale) / 2;
-  await sharp(file)
-    .extract({
-      left: Math.max(0, Math.round(offX + x * scale)),
-      top: Math.max(0, Math.round(offY + y * scale)),
-      width: Math.min(Math.round(w * scale), viewW),
-      height: Math.min(Math.round(h * scale), viewH)
-    })
-    .png().toFile(out);
-  console.log('  saved', join(OUT, basename(out)));
+  const left = Math.max(0, Math.round(offX + x * scale));
+  const top = Math.max(0, Math.round(offY + y * scale));
+  const width = Math.max(8, Math.min(Math.round(w * scale), meta.width - left));
+  const height = Math.max(8, Math.min(Math.round(h * scale), meta.height - top));
+  await img.extract({ left, top, width, height }).png().toFile(out);
+  console.log('  saved', basename(out));
 }
 const basename = (p) => p.split(/[\\/]/).pop();
 
@@ -103,6 +109,7 @@ if (!browserPath) throw new Error('no Chrome/Edge found');
 const browser = await puppeteer.launch({
   executablePath: browserPath,
   headless: 'new',
+  protocolTimeout: 180000,
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-gpu-sandbox']
 });
 try {
