@@ -661,7 +661,7 @@ export class AudioManager {
   }
 
   stopFlight(fadeMs = 180) {
-    if (this._flightTimer) { clearTimeout(this._flightTimer); this._flightTimer = null; }
+    if (this._flightTimer) { this._flightTimer.cancelled = true; this._flightTimer = null; }
     const s = this._flight;
     this._flight = null;
     if (!s) return;
