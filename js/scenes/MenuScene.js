@@ -46,7 +46,7 @@ const LAYOUT = {
   logo: { y: 146, width: 530 },
   subtitle: { y: 308, height: 46 },
   panel: { y: 378, height: 66, font: '22px' },
-  play: { y: 472, width: 300, height: 92 },
+  play: { y: 472, width: 350 },   // height follows the button art's aspect
   reset: { y: 566, width: 236, height: 54 }
 };
 
@@ -71,6 +71,11 @@ export class MenuScene extends Phaser.Scene {
     this.transitioning = false;
     this.dialog = null;
     this.reducedMotion = !!(save.data && save.data.settings && save.data.settings.reducedMotion);
+
+    // Fix #22 — cheerful menu music (idempotent: returning from gameplay
+    // crossfades back; on locked mobile audio it starts after the first
+    // user gesture — see AudioManager's unlock handling).
+    this.registry.get('audio')?.playMusic('music-menu');
 
     this.buildBackground();
     this.buildLogo();
@@ -278,10 +283,16 @@ export class MenuScene extends Phaser.Scene {
   /* ---------------------------------------------------------------- */
 
   buildButtons() {
+    // PLAY wears the supplied wooden-bar element (user follow-up): the
+    // art's aspect sets the height (350 / 4.39 ≈ 80) — scaled uniformly,
+    // never stretched, drawn at full source resolution (the GPU upscales
+    // smoothly on large-DPI screens). A missing texture (headless env)
+    // falls back to the procedural face under the same key.
     this.playButton = new WoodButton(this, {
       x: LAYOUT.centerX, y: LAYOUT.play.y,
-      width: LAYOUT.play.width, height: LAYOUT.play.height,
+      width: LAYOUT.play.width,
       label: 'PLAY', variant: 'primary', icon: 'play', leaves: true,
+      bgTexture: MENU_ART.playButton.key,
       shine: !this.reducedMotion,
       onClick: () => this.startPlay()
     });

@@ -13,6 +13,9 @@ export class LevelSelectScene extends Phaser.Scene {
   create() {
     const save = this.registry.get('save');
     const levels = this.registry.get('levels');
+    // Fix #22 — the menu theme keeps playing on the level select (never
+    // restarts: playMusic is idempotent per key).
+    this.registry.get('audio')?.playMusic('music-menu');
     // Full-bleed backdrop: covers the whole visible view on any aspect
     // ratio (Fix #2) — re-covered on every resize below.
     this.backdrop = this.add.rectangle(WORLD.WIDTH / 2, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x1b4332);
@@ -68,7 +71,10 @@ export class LevelSelectScene extends Phaser.Scene {
     const back = this.add.text(80, 60, '← MENU', {
       fontFamily: 'Arial', fontSize: '22px', color: '#ffffff'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    back.on('pointerdown', () => this.scene.start('MenuScene'));
+    back.on('pointerdown', () => {
+      this.registry.get('audio')?.emit('ui-click'); // Fix #22
+      this.scene.start('MenuScene');
+    });
 
     if (save.allCompleted) {
       this.add.text(WORLD.WIDTH / 2, WORLD.HEIGHT - 50, '🏆 ALL LEVELS COMPLETE — GAME FINISHED!', {

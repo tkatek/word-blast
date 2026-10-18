@@ -62,7 +62,14 @@ export function createDefaultSave() {
     version: SAVE.VERSION,
     unlockedLevel: 1,
     tutorialDone: false,
-    settings: { sound: true, reducedMotion: false },
+    // Fix #22 — audio settings: `sound` is the master gate (pre-existing,
+    // unchanged meaning); music/sfx/ambience are per-category toggles;
+    // `volumes` holds optional numeric bus levels (0..1) for future slider
+    // UI — the AudioManager reads all of these on attach().
+    settings: {
+      sound: true, music: true, sfx: true, ambience: true, reducedMotion: false,
+      volumes: { master: 0.9, music: 0.55, sfx: 1.0, ambience: 0.6 }
+    },
     levels: {} // id -> { completed, bestScore, bestStars, attempts }
   };
 }
@@ -87,11 +94,22 @@ export function sanitizeSave(data) {
     out.unlockedLevel = Math.max(1, Math.min(SAVE.MAX_LEVELS, data.unlockedLevel));
   }
   if (typeof data.tutorialDone === 'boolean') out.tutorialDone = data.tutorialDone;
-  if (data.settings && typeof data.settings === 'object' && typeof data.settings.sound === 'boolean') {
-    out.settings.sound = data.settings.sound;
-  }
-  if (data.settings && typeof data.settings === 'object' && typeof data.settings.reducedMotion === 'boolean') {
-    out.settings.reducedMotion = data.settings.reducedMotion;
+  if (data.settings && typeof data.settings === 'object') {
+    if (typeof data.settings.sound === 'boolean') out.settings.sound = data.settings.sound;
+    if (typeof data.settings.reducedMotion === 'boolean') out.settings.reducedMotion = data.settings.reducedMotion;
+    // Fix #22 — audio category toggles + numeric bus levels (absent on
+    // older saves → defaults from createDefaultSave apply)
+    for (const k of ['music', 'sfx', 'ambience']) {
+      if (typeof data.settings[k] === 'boolean') out.settings[k] = data.settings[k];
+    }
+    if (data.settings.volumes && typeof data.settings.volumes === 'object' && !Array.isArray(data.settings.volumes)) {
+      const clamped = {};
+      for (const k of ['master', 'music', 'sfx', 'ambience', 'voice']) {
+        const v = Number(data.settings.volumes[k]);
+        if (Number.isFinite(v)) clamped[k] = Math.max(0, Math.min(1, v));
+      }
+      out.settings.volumes = { ...out.settings.volumes, ...clamped };
+    }
   }
   if (data.levels && typeof data.levels === 'object' && !Array.isArray(data.levels)) {
     for (let id = 1; id <= SAVE.MAX_LEVELS; id++) {

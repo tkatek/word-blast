@@ -350,6 +350,10 @@ export class GameHUD {
     this.actions = actions;
     this.markUi = opts.markUi || (() => {});
     this.save = opts.save || null;
+    // Fix #22 — audio bus for click/hover polish (falls back to the
+    // registry copy; optional so headless HUD tests keep working)
+    this.audio = opts.audio || (scene.registry ? scene.registry.get('audio') : null) || null;
+    this.isDesktop = (scene.registry.get('device') || { type: 'desktop' }).type === 'desktop';
 
     ensureHudTextures(scene);
     const missing = ensureAllHudArt(scene);
@@ -407,7 +411,7 @@ export class GameHUD {
     this.pauseBtn.add([pauseBg, pauseIco]);
     this.pauseBtn.bg = pauseBg;
     this.pauseBtn.setSize(E.pause.hit, E.pause.hit).setInteractive({ useHandCursor: true });
-    this.pauseBtn.on('pointerover', () => pauseBg.setTint(0xfff1d6));
+    this.pauseBtn.on('pointerover', () => { pauseBg.setTint(0xfff1d6); if (this.isDesktop) this.audio?.emit('ui-hover'); });
     this.pauseBtn.on('pointerout', () => { pauseBg.clearTint(); this.pauseBtn.setScale(1); });
     this.pauseBtn.on('pointerdown', () => { this.pauseBtn.setScale(0.94); this.markUi(); });
     this.pauseBtn.on('pointerup', () => {
@@ -598,7 +602,11 @@ export class GameHUD {
 
     const mk = (color, label, y, onClick) => woodButton(s, {
       x: 0, y, w: 330, h: 58, label, color, size: 21,
-      onClick, markUi: () => this.markUi()
+      onClick: () => {
+        this.audio?.emit('ui-click'); // Fix #22 — click polish
+        onClick();
+      },
+      markUi: () => this.markUi()
     });
 
     this.resumeBtn = mk('green', 'RESUME', -150, () => this.actions.onResume && this.actions.onResume());
@@ -607,7 +615,16 @@ export class GameHUD {
       'RESTART LEVEL?', 'All progress in this level will be lost.',
       'YES, RESTART', 'red', () => this.actions.onRestartLevel && this.actions.onRestartLevel()
     ));
-    this.soundMenuBtn = mk('teal', 'SOUND: ON', 54, () => this.actions.onToggleSound && this.actions.onToggleSound());
+    // Fix #22 — audio settings row: three compact toggles (master gate,
+    // music channel, effects channel) replacing the single SOUND button.
+    const toggle = (x, label, action) => woodButton(s, {
+      x, y: 54, w: 132, h: 46, label, color: 'teal', size: 14,
+      // the GameScene toggle handlers emit their own ui-click — no double
+      onClick: action, markUi: () => this.markUi()
+    });
+    this.soundMenuBtn = toggle(-138, 'SOUND ON', () => this.actions.onToggleSound && this.actions.onToggleSound());
+    this.musicMenuBtn = toggle(0, 'MUSIC ON', () => this.actions.onToggleMusic && this.actions.onToggleMusic());
+    this.sfxMenuBtn = toggle(138, 'FX ON', () => this.actions.onToggleSfx && this.actions.onToggleSfx());
     this.exitBtn = mk('slate', 'EXIT TO LEVELS', 122, () => this.confirm(
       'EXIT LEVEL?', 'Your progress in this level will be lost.',
       'YES, EXIT', 'red', () => this.actions.onExitToLevels && this.actions.onExitToLevels()
@@ -643,8 +660,22 @@ export class GameHUD {
     this.confirmCard.add([cCard, cInner, this.confirmTitle, this.confirmBody, this.confirmYes, this.confirmNo]);
 
     this.menu.add([scrim, card, inner, title, this.resumeBtn, this.restartQBtn,
-      this.restartLBtn, this.soundMenuBtn, this.exitBtn, this.motionBtn, hint, this.confirmCard]);
+      this.restartLBtn, this.soundMenuBtn, this.musicMenuBtn, this.sfxMenuBtn,
+      this.exitBtn, this.motionBtn, hint, this.confirmCard]);
     this.menu.setScale(0.92).setAlpha(0);
+
+    // Fix #22 — subtle desktop-only hover ticks on the interactive targets
+    for (const b of [this.resumeBtn, this.restartQBtn, this.restartLBtn,
+      this.soundMenuBtn, this.musicMenuBtn, this.sfxMenuBtn, this.exitBtn,
+      this.motionBtn, this.confirmYes, this.confirmNo]) {
+      this.wireHover(b);
+    }
+  }
+
+  /** Very soft hover tick — desktop pointers only (Fix #22). */
+  wireHover(btn) {
+    if (!btn || !this.isDesktop) return;
+    btn.on('pointerover', () => this.audio?.emit('ui-hover'));
   }
 
   confirm(title, body, yesLabel, yesColor, action) {
@@ -718,9 +749,15 @@ export class GameHUD {
     ];
     this.setStars(lit, snap.questionsCompleted / snap.questionTotal);
 
-    // sound icon
+    // sound icon + Fix #22 audio toggles (music defaults ON for old saves)
     this.soundIco.setTexture(snap.soundOn ? TEX.soundOn : TEX.soundOff);
-    this.soundMenuBtn.labelText.setText(snap.soundOn ? 'SOUND: ON' : 'SOUND: OFF');
+    this.soundMenuBtn.labelText.setText(snap.soundOn ? 'SOUND ON' : 'SOUND OFF');
+    const musicOn = snap.musicOn !== false;
+    const sfxOn = snap.sfxOn !== false;
+    this.musicMenuBtn.labelText.setText(musicOn ? 'MUSIC ON' : 'MUSIC OFF');
+    this.sfxMenuBtn.labelText.setText(sfxOn ? 'FX ON' : 'FX OFF');
+    this.musicMenuBtn.setAlpha(musicOn && snap.soundOn ? 1 : 0.75);
+    this.sfxMenuBtn.setAlpha(sfxOn && snap.soundOn ? 1 : 0.75);
     this.motionBtn.labelText.setText(this.reducedMotion ? 'REDUCED MOTION: ON' : 'REDUCED MOTION: OFF');
 
     this.stateChip.setText(`STATE ${snap.state}`).setVisible(DebugLog.enabled);

@@ -367,10 +367,10 @@ export class WoodButton {
 
     if (leaves) {
       const gl = scene.add.graphics();
-      drawLeaf(gl, -width / 2 + 10, -height / 2 + 4, 30, -0.5);
-      drawLeaf(gl, width / 2 - 10, -height / 2 + 4, 30, 0.5);
-      drawLeaf(gl, -width / 2 + 26, height / 2 - 2, 22, 0.6);
-      drawLeaf(gl, width / 2 - 26, height / 2 - 2, 22, -0.6);
+      drawLeaf(gl, -width / 2 + 10, -btnH / 2 + 4, 30, -0.5);
+      drawLeaf(gl, width / 2 - 10, -btnH / 2 + 4, 30, 0.5);
+      drawLeaf(gl, -width / 2 + 26, btnH / 2 - 2, 22, 0.6);
+      drawLeaf(gl, width / 2 - 26, btnH / 2 - 2, 22, -0.6);
       c.add(gl);
     }
 
@@ -379,7 +379,7 @@ export class WoodButton {
     const style = {
       fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif',
       fontStyle: 'bold',
-      fontSize: fontSize || (variant === 'primary' ? Math.round(height * 0.44) + 'px' : '23px'),
+      fontSize: fontSize || (variant === 'primary' ? Math.round(btnH * 0.44) + 'px' : '23px'),
       color: PALETTE.cream,
       stroke: PALETTE.creamStroke,
       strokeThickness: variant === 'primary' ? 6 : 4
