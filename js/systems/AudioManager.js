@@ -324,9 +324,18 @@ export class AudioManager {
   }
 
   _applyMute() {
-    if (this.sound && typeof this.sound.mute !== 'undefined') {
-      try { this.sound.mute = !this.enabled; } catch { /* manager gone */ }
-    }
+    if (!this.sound) return;
+    const muted = !this.enabled;
+    try { this.sound.mute = muted; } catch { /* manager gone */ }
+    // Phaser 3.90 quirk: BaseSoundManager's constructor creates an OWN
+    // `mute` data property that shadows the WebAudio accessor, so the
+    // assignment above never reaches the graph. Set the node directly or
+    // master mute is cosmetic only.
+    try {
+      if (this.sound.masterMuteNode && this.sound.context) {
+        this.sound.masterMuteNode.gain.setValueAtTime(muted ? 0 : 1, 0);
+      }
+    } catch { /* not a WebAudio manager (HTML5 fallback uses .mute above) */ }
   }
 
   /* ------------------------------------------------------------------ */
