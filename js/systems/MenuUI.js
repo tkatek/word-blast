@@ -76,11 +76,12 @@ export function ensureMenuArtFallback(scene, key) {
     g.fillCircle(W * 0.78, H * 0.16, 46);
     g.generateTexture(key, W, H);
   } else if (key === MENU_ART.playButton.key) {
-    // wooden bar face, same 628×143 (4.39:1) as the supplied element
-    const W = 628, H = 143;
+    // wooden plate face, same 1254×1254 canvas as the supplied square art
+    // (content ≈ 1194×1048 centred with padding like the real trim)
+    const W = 1254, H = 1254;
     g.save();
     g.translateCanvas(W / 2, H / 2); // drawWoodSlab is centred on origin
-    drawWoodSlab(g, W - 6, H - 6, 26, 'primary');
+    drawWoodSlab(g, 1170, 1030, 120, 'primary');
     g.restore();
     g.generateTexture(key, W, H);
   } else {
