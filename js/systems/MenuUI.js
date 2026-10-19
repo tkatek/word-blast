@@ -611,6 +611,199 @@ export class WoodButton {
 }
 
 /* ------------------------------------------------------------------ */
+/* ArtButton — supplied-artwork game button                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Polished game button whose face IS the supplied transparent artwork
+ * (no procedural slab, no overlayed label — the art already carries its
+ * lettering). Everything is derived from the art's VISIBLE content:
+ *
+ *   - measureTextureTrim finds the non-transparent bounds, so sizing and
+ *     the interactive hit area match the painted button, never its
+ *     transparent padding (no invisible oversized click zones, no
+ *     mismatch between visual and interactive position);
+ *   - the art is scaled UNIFORMLY from those bounds (aspect preserved,
+ *     never stretched, never cropped) at full source resolution — the
+ *     GPU resamples smoothly on large-DPI screens;
+ *   - hover = ~5% grow plus (optionally) a soft warm glow behind the
+ *     art or a gentle additive brightening; press = compression to
+ *     ~95%; release returns smoothly. All scale animations target the
+ *     CONTAINER, whose resting scale is exactly 1 — the button's layout
+ *     scale lives on the image child, so hover/press can never break
+ *     the responsive layout;
+ *   - the click fires on pointerup-inside while enabled; setEnabled
+ *     silences input (popup / transition guards — rapid taps cannot
+ *     double-fire).
+ *
+ * Container hit areas are in TOP-LEFT space (same InputManager note as
+ * WoodButton). All coordinates are world-space.
+ */
+export class ArtButton {
+  /**
+   * @param {Phaser.Scene} scene
+   * @param {object} o
+   * @param {number} o.x o.y                 centre of the VISIBLE art
+   * @param {string} o.texture               artwork texture key
+   * @param {number} [o.width]               visible width  (world units)
+   * @param {number} [o.height]              visible height (world units)
+   *                                         — give exactly one; the other
+   *                                         follows the art's aspect
+   * @param {() => void} [o.onClick]
+   * @param {number} [o.hoverScale=1.05]
+   * @param {number} [o.pressScale=0.95]
+   * @param {boolean} [o.glow]       warm hover halo behind the art
+   * @param {number} [o.glowTint]    hover halo tint
+   * @param {boolean} [o.brightness] additive hover brightening
+   * @param {boolean} [o.reducedMotion] skip decorative hover motion
+   */
+  constructor(scene, o) {
+    const {
+      x = 0, y = 0, texture, width = null, height = null,
+      onClick = null, hoverScale = 1.05, pressScale = 0.95,
+      glow = false, glowTint = 0xffe7ae, brightness = false,
+      reducedMotion = false
+    } = o;
+    this.scene = scene;
+    this.enabled = true;
+    this._hover = false;
+    this._pressed = false;
+    this._onClick = onClick;
+    this._hoverScale = hoverScale;
+    this._pressScale = pressScale;
+    this._reducedMotion = reducedMotion;
+
+    const src = scene.textures.get(texture).getSourceImage();
+    const trim = measureTextureTrim(scene, texture);
+    if (!(trim.width > 0) || !(trim.height > 0)) {
+      trim.width = src.width; trim.height = src.height;
+      trim.x = 0; trim.y = 0;
+    }
+    const aspect = trim.width / trim.height;
+    const contentW = Math.round(width != null ? width : height * aspect);
+    const contentH = Math.round(width != null ? width / aspect : height);
+    this.width = contentW;
+    this.height = contentH;
+
+    // uniform art scale maps the VISIBLE content onto the requested box
+    const s = contentW / trim.width;
+    this.artScale = s;
+    // image offset centres the trimmed content on the container origin
+    const offX = (src.width / 2 - (trim.x + trim.width / 2)) * s;
+    const offY = (src.height / 2 - (trim.y + trim.height / 2)) * s;
+
+    const c = scene.add.container(x, y);
+    this.container = c;
+
+    if (glow && !reducedMotion) {
+      const glowKey = ensureGlowTexture(scene);
+      if (glowKey) {
+        this._glow = scene.add.image(0, 0, glowKey)
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setTint(glowTint)
+          .setDisplaySize(contentW * 1.85, contentH * 1.85)
+          .setAlpha(0);
+        c.add(this._glow);
+      }
+    }
+
+    this.art = scene.add.image(offX, offY, texture).setScale(s);
+    c.add(this.art);
+
+    if (brightness) {
+      // additive twin of the art — faded in on hover, follows the exact
+      // silhouette (transparent padding stays transparent)
+      this._bright = scene.add.image(offX, offY, texture)
+        .setScale(s)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(0);
+      c.add(this._bright);
+    }
+
+    c.setSize(contentW, contentH);
+    // NOTE: container hit areas are in TOP-LEFT space (see WoodButton) —
+    // the rectangle exactly covers the VISIBLE art content.
+    this._enableInput();
+
+    c.on('pointerover', () => this._setHover(true));
+    c.on('pointerout', () => this._setHover(false));
+    c.on('pointerdown', () => this._setPress(true));
+    c.on('pointerup', () => {
+      this._setPress(false);
+      if (this.enabled && this._onClick) this._onClick();
+    });
+    c.on('pointerupoutside', () => this._setPress(false));
+  }
+
+  _enableInput() {
+    this.container.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, this.width, this.height),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true
+    });
+  }
+
+  /** Resting/hover/press target for the container scale (always relative
+   *  to the layout resting scale of exactly 1). */
+  _targetScale() {
+    return this._pressed ? this._pressScale : (this._hover && !this._reducedMotion ? this._hoverScale : 1);
+  }
+
+  _scaleTo(target, duration = 110) {
+    this.scene.tweens.add({
+      targets: this.container, scale: target, duration,
+      ease: 'Sine.easeOut', overwrite: true
+    });
+  }
+
+  _setHover(on) {
+    if (!this.enabled) on = false;
+    this._hover = on;
+    if (!this._reducedMotion || this._pressed) this._scaleTo(this._targetScale());
+    if (this._glow) {
+      this.scene.tweens.add({
+        targets: this._glow, alpha: on ? 0.5 : 0, duration: 150, overwrite: true
+      });
+    }
+    if (this._bright) {
+      this.scene.tweens.add({
+        targets: this._bright, alpha: on ? 0.16 : 0, duration: 130, overwrite: true
+      });
+    }
+  }
+
+  _setPress(on) {
+    if (!this.enabled) on = false;
+    this._pressed = on;
+    this._scaleTo(this._targetScale(), 90);
+  }
+
+  setEnabled(enabled) {
+    this.enabled = enabled;
+    this.container.setAlpha(enabled ? 1 : 0.75);
+    if (enabled) {
+      this._enableInput();
+    } else {
+      this._hover = false;
+      this._pressed = false;
+      this.container.disableInteractive();
+      if (this._glow) this.scene.tweens.add({ targets: this._glow, alpha: 0, duration: 90, overwrite: true });
+      if (this._bright) this.scene.tweens.add({ targets: this._bright, alpha: 0, duration: 90, overwrite: true });
+      this._scaleTo(1, 90);
+    }
+  }
+
+  /** Layout/Diagnostic info (debug API). */
+  info() {
+    return { width: this.width, height: this.height, enabled: this.enabled };
+  }
+
+  destroy() {
+    this.container.destroy();
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* ConfirmDialog                                                       */
 /* ------------------------------------------------------------------ */
 
