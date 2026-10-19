@@ -5,19 +5,21 @@
  * ONE reusable component on the blank parchment artwork
  * (assets/images/ui/feedback-card.png, baked by scripts/build-feedback-card.mjs):
  *
- *   ┌──────────────────────────────────────┐
- *   │      [✓]  GREEN / RED HEADER         │  gradient banner + gold trim +
- *   │──────────────────────────────────────│  circular badge straddling its edge
- *   │   Correct answer: C — "dog"          │  bold ink highlight line
- *   │                                      │
- *   │   A dog is an animal. A spoon is     │  measured, wrapped explanation
- *   │   an object, and red is a color.     │  (from the real question data)
- *   │                                      │
- *   │           [ CONTINUE ]               │  wooden pill button (green/red)
- *   └──────────────────────────────────────┘
+ *   ┌────────────────────────────┐
+ *   │    [✓]  GREEN / RED        │  gradient banner + gold trim +
+ *   │────────────────────────────│  circular badge straddling its edge
+ *   │  Correct answer: C — "dog" │  bold ink highlight line
+ *   │                            │
+ *   │  A dog is an animal. A     │  measured, wrapped explanation
+ *   │  spoon is an object...     │  (from the real question data)
+ *   │                            │
+ *   │       [ CONTINUE ]         │  wooden pill button (green/red)
+ *   └────────────────────────────┘
  *
- * Everything except the blank parchment is drawn dynamically (header
- * gradient, badge, texts, button) — the PNG never bakes answer text.
+ * Final polish: a COMPACT card (406×290 world px — 72.5% of the old fixed
+ * width, same artwork aspect so nothing stretches). Everything except the
+ * blank parchment is drawn dynamically (header gradient, badge, texts,
+ * button) — the PNG never bakes answer text.
  *
  * Reliability contract (mirrors QuestionCard):
  *   - show() is one-shot per answer: a repeated call for the SAME token is
@@ -47,20 +49,29 @@ import { woodButton } from './GameHUD.js';
 /** Texture keys (blank parchment artwork + runtime-drawn header banners). */
 export const FEEDBACK_CARD = {
   TEXTURE: 'ui-feedback-card',
-  /** Card size in world px at scale 1 (artwork is 2× — stays crisp enlarged). */
-  WIDTH: 560,
-  HEIGHT: 400,
+  /**
+   * Card size in world px at scale 1 (artwork is 2× — stays crisp enlarged).
+   * Final polish: compact card — 72.5% of the previous width (406 vs 560),
+   * SAME artwork aspect (1.4) so the parchment frame is never stretched;
+   * long explanations grow it through the fitting ladder instead of a huge
+   * fixed panel (MAX_SCALE below).
+   */
+  WIDTH: 406,
+  HEIGHT: 290,
   ART: 'assets/images/ui/feedback-card.png'
 };
 
 /** Card layout (card-local px, origin = card center, scale-1 card). */
 const L = {
-  frame: 32,                            // parchment frame visual thickness
-  header: { w: 476, h: 108, top: 14 },  // banner inset from the card top
-  badge: { d: 66 },
-  answerY: -54,                         // answer line top
-  explainBottom: 114,                   // explanation box bottom (button top 124)
-  button: { w: 240, h: 56, y: 152 }
+  frame: 23,                            // parchment frame visual thickness
+  header: { w: 344, h: 78, top: 10 },   // banner inset from the card top
+  badge: { d: 48 },
+  answerY: -40,                         // answer line top
+  explainBottom: 74,                    // explanation box bottom (button top 82)
+  button: { w: 208, h: 52, y: 108 },
+  /** writing inset each side beyond the frame (old 36 — tightened for the
+   *  compact card so the fitting ladder keeps its capacity) */
+  writePad: 24
 };
 
 /** Header palettes (from the supplied reference). */
@@ -84,9 +95,11 @@ const THEMES = {
 };
 
 /** DISPLAY font targets (world px after the card scale is applied). */
-const FONT = { title: 30, answer: 22, explain: { max: 21, min: 15 }, explainAbs: 14 };
+const FONT = { title: 23, answer: 19, explain: { max: 16.5, min: 14 }, explainAbs: 14 };
 const LINE_SPACING = 0.34;   // × font
-const MAX_SCALE = 1.22;      // card may grow up to ~683×488 world px
+// Compact card: grows for long explanations up to ~609×435 world px — the
+// typical card stays at 406×290 (72.5% of the old fixed width).
+const MAX_SCALE = 1.5;
 
 /** Entrance / exit pacing (ms) — restrained, reduced-motion aware. */
 const TIMING = { enter: 340, settle: 130, stagger: 110, exit: 290, backdrop: 0.52 };
@@ -260,7 +273,7 @@ export class FeedbackCard {
     this.title = this.scene.add.text(banner.x, banner.y + 2, theme.title, {
       fontFamily: 'Arial, Helvetica, sans-serif', fontSize: `${FONT.title}px`, fontStyle: 'bold',
       color: '#ffffff', align: 'center'
-    }).setOrigin(0.5).setStroke('#123312', 6).setShadow(0, 3, 'rgba(10,20,8,0.5)', 3, false, true);
+    }).setOrigin(0.5).setStroke('#123312', 5).setShadow(0, 3, 'rgba(10,20,8,0.5)', 3, false, true);
 
     // circular status badge straddling the banner's top edge
     const badgeY = -FEEDBACK_CARD.HEIGHT / 2 + L.header.top;
@@ -269,24 +282,24 @@ export class FeedbackCard {
     const ring = this.scene.add.circle(0, 0, L.badge.d / 2, 0xffc107).setStrokeStyle(4, 0x9c6b1f);
     const disc = this.scene.add.circle(0, 1, L.badge.d / 2 - 6, theme.badgeFill);
     const mark = this.scene.add.graphics();
-    mark.lineStyle(7, 0xffffff, 1);
+    mark.lineStyle(5.5, 0xffffff, 1);
     if (kind === 'correct') {
       mark.beginPath();
-      mark.moveTo(-11, 1);
-      mark.lineTo(-3, 10);
-      mark.lineTo(13, -9);
+      mark.moveTo(-8, 1);
+      mark.lineTo(-2, 7);
+      mark.lineTo(9.5, -6.5);
       mark.strokePath();
     } else {
       mark.beginPath();
-      mark.moveTo(-9, -9); mark.lineTo(9, 9);
-      mark.moveTo(9, -9); mark.lineTo(-9, 9);
+      mark.moveTo(-6.5, -6.5); mark.lineTo(6.5, 6.5);
+      mark.moveTo(6.5, -6.5); mark.lineTo(-6.5, 6.5);
       mark.strokePath();
     }
     this.badge.add([glow, ring, disc, mark]);
     this.content.add([banner, this.title, this.badge]);
 
     /* --- layout: fit answer line + explanation into the parchment --- */
-    const boxW = FEEDBACK_CARD.WIDTH - (L.frame + 36) * 2; // writing width, local px
+    const boxW = FEEDBACK_CARD.WIDTH - (L.frame + L.writePad) * 2; // writing width, local px
     const body = hint ? `${explanation}\n\n${hint}` : explanation;
 
     // Card-scale fitting loop. All measurement is in card-LOCAL units; a
@@ -365,7 +378,7 @@ export class FeedbackCard {
     /* --- action button (starts DISABLED until physics allow) -------- */
     this.button = woodButton(this.scene, {
       x: 0, y: L.button.y, w: L.button.w, h: L.button.h,
-      label: buttonText || theme.buttonText, color: theme.button, size: 24,
+      label: buttonText || theme.buttonText, color: theme.button, size: 21,
       onClick: () => this.act(),
       markUi: this.opts.markUi
     });

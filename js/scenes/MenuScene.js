@@ -29,7 +29,7 @@ import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
 import {
   MENU_ART, menuPreloadList, ensureMenuArtFallback, isFallbackTexture,
-  WoodButton, ConfirmDialog, PALETTE,
+  WoodButton, ConfirmDialog, PALETTE, PLAY_ICON_GOLD,
   drawParchment, drawRibbon, drawStar, drawCheckBadge, menuText
 } from '../systems/MenuUI.js';
 
@@ -46,8 +46,11 @@ const LAYOUT = {
   logo: { y: 146, width: 530 },
   subtitle: { y: 308, height: 46 },
   panel: { y: 378, height: 66, font: '22px' },
-  play: { y: 472, width: 350 },   // height follows the button art's aspect
-  reset: { y: 566, width: 236, height: 54 }
+  // Final polish: PLAY is the hero action — a wider wooden bar (height
+  // follows the art's aspect ≈ 100) with a GOLDEN play triangle; the
+  // destructive reset sits smaller and muted below it.
+  play: { y: 478, width: 440 },   // height follows the button art's aspect
+  reset: { y: 586, width: 200, height: 48 }
 };
 
 export class MenuScene extends Phaser.Scene {
@@ -282,26 +285,33 @@ export class MenuScene extends Phaser.Scene {
 
   buildButtons() {
     // PLAY wears the supplied wooden-bar element (user follow-up): the
-    // art's aspect sets the height (350 / 4.39 ≈ 80) — scaled uniformly,
+    // art's aspect sets the height (440 / 4.39 ≈ 100) — scaled uniformly,
     // never stretched, drawn at full source resolution (the GPU upscales
-    // smoothly on large-DPI screens). A missing texture (headless env)
-    // falls back to the procedural face under the same key.
+    // smoothly on large-DPI screens). Final polish: the wide hero bar with
+    // a GOLDEN play symbol (cream text keeps the contrast). A missing
+    // texture (headless env) falls back to the procedural face under the
+    // same key.
     this.playButton = new WoodButton(this, {
       x: LAYOUT.centerX, y: LAYOUT.play.y,
       width: LAYOUT.play.width,
       label: 'PLAY', variant: 'primary', icon: 'play', leaves: true,
+      iconColors: PLAY_ICON_GOLD,
       bgTexture: MENU_ART.playButton.key,
       shine: !this.reducedMotion,
       onClick: () => this.startPlay()
     });
     this.playButton.setEnabled(false); // armed after the entrance (≈0.9 s)
 
+    // Reset stays reachable but deliberately quiet: small, dark secondary
+    // wood at reduced opacity, still confirmed before anything is erased.
     this.resetButton = new WoodButton(this, {
       x: LAYOUT.centerX, y: LAYOUT.reset.y,
       width: LAYOUT.reset.width, height: LAYOUT.reset.height,
       label: 'RESET SAVE', variant: 'secondary', icon: 'reset',
+      fontSize: '18px',
       onClick: () => this.openResetDialog()
     });
+    this.resetButton.container.setAlpha(0.82);
     this.resetButton.setEnabled(false);
   }
 

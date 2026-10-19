@@ -224,8 +224,11 @@ export function drawLeaf(g, cx, cy, len, rot = 0) {
   g.restore();
 }
 
-/** Cream play triangle with a dark carved edge. */
-export function drawPlayIcon(g, cx, cy, size) {
+/**
+ * Play triangle with a dark carved edge — cream by default, golden for the
+ * main-menu PLAY button (fill/edge overridable).
+ */
+export function drawPlayIcon(g, cx, cy, size, fill = PALETTE.cream, edge = 0x4d2e12) {
   const h = size, w = size * 0.9;
   const big = [
     { x: cx - w * 0.56, y: cy - h * 0.58 },
@@ -237,11 +240,14 @@ export function drawPlayIcon(g, cx, cy, size) {
     { x: cx + w * 0.44, y: cy },
     { x: cx - w * 0.4, y: cy + h * 0.42 }
   ];
-  g.fillStyle(0x4d2e12, 1);
+  g.fillStyle(edge, 1);
   g.fillPoints(big, true);
-  g.fillStyle(PALETTE.cream, 1);
+  g.fillStyle(fill, 1);
   g.fillPoints(small, true);
 }
+
+/** Golden play-icon colors for the menu PLAY button (design tokens). */
+export const PLAY_ICON_GOLD = { fill: 0xffd257, edge: 0x7a4c12 };
 
 /** Circular reset arrow. */
 export function drawResetIcon(g, cx, cy, r, color = PALETTE.cream, edge = 0x4d2e12) {
@@ -305,6 +311,7 @@ export class WoodButton {
    * @param {string} o.label
    * @param {'primary'|'secondary'|'danger'} [o.variant]
    * @param {'play'|'reset'|null} [o.icon]
+   * @param {{fill:number,edge:number}} [o.iconColors] icon fill/edge override
    * @param {() => void} [o.onClick]
    * @param {boolean} [o.leaves]     decorative corner leaves (primary look)
    * @param {boolean} [o.shine]      periodic light sweep (decorative)
@@ -314,7 +321,7 @@ export class WoodButton {
   constructor(scene, o) {
     const {
       x = 0, y = 0, width = 300, height = null, label = '',
-      variant = 'primary', icon = null, onClick = null,
+      variant = 'primary', icon = null, iconColors = null, onClick = null,
       leaves = false, shine = false, fontSize = null, bgTexture = null
     } = o;
     this.scene = scene;
@@ -402,7 +409,9 @@ export class WoodButton {
       const gi = scene.add.graphics();
       const icx = -scaledTotal / 2 + (iconSize * groupScale) / 2;
       const icy = 2;
-      drawPlayIcon(gi, icx, icy, iconSize * groupScale);
+      drawPlayIcon(gi, icx, icy, iconSize * groupScale,
+        iconColors ? iconColors.fill : PALETTE.cream,
+        iconColors ? iconColors.edge : 0x4d2e12);
       c.add(gi);
     } else if (icon === 'reset') {
       const gi = scene.add.graphics();

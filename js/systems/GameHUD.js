@@ -512,7 +512,9 @@ export class GameHUD {
     this.scoreText = chunkyText(s, cx0 + TY.scoreIcon + 6, E.score.y, '0', TY.score,
       '#ffe9b3', 0x3a2410, 2.5).setOrigin(0, 0.5);
     // reserve the widest live score ("888,888") so counting never jiggles
-    this.scoreText.setFixedSize(Math.ceil(TY.score * 0.64 * 7) + 4, Math.ceil(TY.score * 1.3));
+    // (0.6 em/char — measured Arial bold digits, fits the enlarged counter
+    // panels' inner window without touching the carved frame)
+    this.scoreText.setFixedSize(Math.ceil(TY.score * 0.6 * 7) + 4, Math.ceil(TY.score * 1.3));
 
     this.soundBtn = s.add.container(E.sound.x, E.sound.y);
     this.soundBg = s.add.image(0, 0, HUD_ART.soundBtn.key)
