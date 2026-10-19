@@ -135,32 +135,97 @@ export class LevelSelectBackground {
 /* ------------------------------------------------------------------ */
 
 /**
- * Subtle atmospheric separation for the card grid: a soft warm haze
- * (SCREEN blend) centred behind the cards so they read clearly against
- * the scenery while the landscape stays bright. Returns the container
- * (scene-owned lifetime).
+ * Subtle atmospheric separation for the card grid: one SMOOTH radial
+ * canvas gradient (scrim that settles the scenery behind the cards,
+ * warmed back up by a light haze) so the landscape stays bright while the
+ * cards pop and painted details can't read as interface artifacts through
+ * the gaps. Radial falloff = no visible layer edges on any aspect ratio.
+ * Falls back to layered graphics when canvas gradients are unavailable.
+ * Returns the container (scene-owned lifetime).
  *
  * @param {Phaser.Scene} scene
  * @param {{x:number,y:number,width:number,height:number}} rect grid bounds
  */
 export function buildLevelSelectAtmosphere(scene, rect) {
-  const c = scene.add.container(rect.x + rect.width / 2, rect.y + rect.height / 2)
-    .setDepth(-50);
-  const g = scene.add.graphics().setBlendMode(Phaser.BlendModes.SCREEN);
-  // concentric soft washes — brightest behind the cards, feathering out
-  const layers = [
-    { pad: 30, alpha: 0.10 },
-    { pad: 90, alpha: 0.07 },
-    { pad: 160, alpha: 0.05 },
-    { pad: 240, alpha: 0.035 }
-  ];
-  for (const { pad, alpha } of layers) {
-    g.fillStyle(0xfff6dd, alpha);
-    g.fillRoundedRect(
+  const cx = rect.x + rect.width / 2;
+  const cy = rect.y + rect.height / 2;
+  const c = scene.add.container(cx, cy).setDepth(-50);
+
+  const texture = ensureAtmosphereTexture(scene, rect);
+  if (texture) {
+    // drawn once at grid scale + generous feather, uniform scale to fit
+    const img = scene.add.image(0, 0, texture.key)
+      .setDisplaySize(rect.width + 520, rect.height + 520);
+    c.add(img);
+    return c;
+  }
+
+  // headless fallback: layered rounded rects (no canvas gradients there)
+  const scrim = scene.add.graphics();
+  for (const { pad, alpha } of [{ pad: 24, alpha: 0.13 }, { pad: 80, alpha: 0.085 }, { pad: 150, alpha: 0.05 }]) {
+    scrim.fillStyle(0x2b2416, alpha);
+    scrim.fillRoundedRect(
       -rect.width / 2 - pad, -rect.height / 2 - pad,
       rect.width + pad * 2, rect.height + pad * 2, 60
     );
   }
-  c.add(g);
+  c.add(scrim);
+  const haze = scene.add.graphics().setBlendMode(Phaser.BlendModes.SCREEN);
+  for (const { pad, alpha } of [{ pad: 16, alpha: 0.07 }, { pad: 90, alpha: 0.045 }, { pad: 170, alpha: 0.03 }]) {
+    haze.fillStyle(0xfff6dd, alpha);
+    haze.fillRoundedRect(
+      -rect.width / 2 - pad, -rect.height / 2 - pad,
+      rect.width + pad * 2, rect.height + pad * 2, 60
+    );
+  }
+  c.add(haze);
   return c;
+}
+
+/**
+ * Paint the atmosphere as a canvas texture: an elliptical warm-dark scrim
+ * (radial gradient, smooth falloff) + a soft cream haze on top. One
+ * texture, cached under a fixed key (grid geometry is fixed in the world).
+ * Returns { key } or null when canvas gradients are unavailable.
+ */
+const ATMO_KEY = 'lvlsel-atmo';
+function ensureAtmosphereTexture(scene, rect) {
+  try {
+    if (scene.textures.exists(ATMO_KEY)) return { key: ATMO_KEY };
+    const W = 1200, H = 900;
+    const canvasTex = scene.textures.createCanvas(ATMO_KEY, W, H);
+    if (!canvasTex) return null;
+    const ctx = canvasTex.getContext();
+    if (!ctx || typeof ctx.createRadialGradient !== 'function') {
+      scene.textures.remove(ATMO_KEY);
+      return null;
+    }
+    ctx.clearRect(0, 0, W, H);
+    // settling scrim — elliptical via scaled transform
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(1, (H * 0.62) / (W * 0.62));
+    let g = ctx.createRadialGradient(0, 0, W * 0.16, 0, 0, W * 0.5);
+    g.addColorStop(0, 'rgba(43, 36, 22, 0.15)');
+    g.addColorStop(0.62, 'rgba(43, 36, 22, 0.075)');
+    g.addColorStop(1, 'rgba(43, 36, 22, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-W, -W, W * 2, W * 2);
+    ctx.restore();
+    // warm haze — lighter, wider
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(1, (H * 0.72) / (W * 0.72));
+    g = ctx.createRadialGradient(0, 0, W * 0.2, 0, 0, W * 0.5);
+    g.addColorStop(0, 'rgba(255, 246, 221, 0.10)');
+    g.addColorStop(0.65, 'rgba(255, 246, 221, 0.05)');
+    g.addColorStop(1, 'rgba(255, 246, 221, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-W, -W, W * 2, W * 2);
+    ctx.restore();
+    canvasTex.refresh();
+    return { key: ATMO_KEY };
+  } catch (e) {
+    return null;
+  }
 }

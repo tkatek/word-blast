@@ -44,7 +44,7 @@ const SEEN_KEY = 'lvlselSeenUnlocked';
 /** Fixed-world layout (1280×720; the camera always shows the whole world). */
 const LAYOUT = {
   title: { x: WORLD.WIDTH / 2, y: 116, w: 540, h: 104 },
-  back: { x: 110, y: 54, w: 142, h: 60 },
+  back: { x: 112, y: 54, w: 152, h: 64 },
   toastY: 188
 };
 
@@ -98,6 +98,7 @@ export class LevelSelectScene extends Phaser.Scene {
     this.buildTitleSign();
     this.buildBackButton();
     this.buildCards();
+    this.buildDecorativeBird();
 
     // 5) golden next-playable highlight
     this.applyHighlight();
@@ -341,6 +342,35 @@ export class LevelSelectScene extends Phaser.Scene {
   }
 
   /* ---------------------------------------------------------------- */
+  /* Decorative red bird (bottom-left, in front of the scenery)        */
+  /* ---------------------------------------------------------------- */
+
+  /**
+   * The cute red bird the level-select reference shows at the bottom-left.
+   * The game's own bird artwork, perched in the clear corner margin left
+   * of the last card (never overlapping the grid), with a gentle idle
+   * bob. Purely decorative — skipped when the texture is unavailable
+   * (headless envs) and frozen under Reduced Motion.
+   */
+  buildDecorativeBird() {
+    if (!this.textures.exists('bird-red')) return;
+    const x = 40, y = 668, size = 56;
+    this.bird = this.add.image(x, y, 'bird-red')
+      .setDisplaySize(size, size)
+      .setDepth(10);
+    // soft contact shadow so it reads as standing on the grass
+    const shadow = this.add.ellipse(x + 2, y + size * 0.46, size * 0.7, size * 0.16, 0x000000, 0.22)
+      .setDepth(9);
+    this.birdShadow = shadow;
+    if (!this.reducedMotion) {
+      this.tweens.add({
+        targets: this.bird, y: y - 3.5, duration: 2400, yoyo: true,
+        repeat: -1, ease: 'Sine.easeInOut'
+      });
+    }
+  }
+
+  /* ---------------------------------------------------------------- */
   /* All-complete ribbon                                               */
   /* ---------------------------------------------------------------- */
 
@@ -531,6 +561,8 @@ export class LevelSelectScene extends Phaser.Scene {
     this.toast = null;
     this.toastTween = null;
     this.allCompleteRibbon = null;
+    this.bird = null;
+    this.birdShadow = null;
   }
 
   /** Developer/debug-only snapshot (window.__WB__.levelSelect()). */

@@ -300,22 +300,22 @@ export class LevelCard {
     c.add(this.hoverGlow);
 
     // dynamic content — unlocked look
-    this.kicker = menuText(scene, 0, -height * 0.345, 'LEVEL', {
+    this.kicker = menuText(scene, 0, -height * 0.35, 'LEVEL', {
       fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.085) + 'px', color: '#8a5a2b', letterSpacing: 2.5
+      fontSize: Math.round(height * 0.095) + 'px', color: '#7a4c1f', letterSpacing: 2.5
     });
     this.number = menuText(scene, 0, -height * 0.125, String(levelId), {
       fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif', fontStyle: 'bold',
       fontSize: Math.round(height * 0.33) + 'px', color: '#fff8e7',
       stroke: '#5b3a13', strokeThickness: Math.max(5, Math.round(height * 0.04))
     }).setResolution(3);
-    this.name = menuText(scene, 0, height * 0.155, levelName, {
+    this.name = menuText(scene, 0, height * 0.15, levelName, {
       fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
       fontSize: Math.round(height * 0.095) + 'px', color: '#3d2814',
       align: 'center', wordWrap: { width: width - 36 }
     });
-    const starSize = height * 0.175;
-    const step = starSize * 1.2;
+    const starSize = height * 0.20;
+    const step = starSize * 1.15;
     this.starsRow = [-1, 0, 1].map((i, idx) =>
       scene.add.image(i * step, height * 0.325, idx < stars ? CARD_ART.star : CARD_ART.starEmpty)
         .setDisplaySize(starSize, starSize)
