@@ -33,11 +33,22 @@ export const CARD_ART = {
   glow: 'lvlsel-card-glow'
 };
 
+/**
+ * The user-supplied blank wooden parchment card (scripts/build-level-card-art.mjs
+ * installs it, alpha-trimmed). Preloaded under the SAME key as the procedural
+ * fallback so headless environments simply paint the stand-in instead.
+ */
+export const CARD_ART_FILE = 'assets/images/ui/level-card.png';
+
 /** texture px per world px */
 const S = 3;
 
-/** World-space design size of the card art (grid cards scale to fit). */
-export const CARD_DESIGN = { w: 213, h: 143, shadowPad: 12 };
+/**
+ * World-space design size of the card art (grid cards scale to fit).
+ * Aspect matches the supplied artwork (1192×1047 after trimming); the
+ * procedural fallback painter draws to the same proportions.
+ */
+export const CARD_DESIGN = { w: 195, h: 171, shadowPad: 0 };
 
 /**
  * y-origin that maps the FRAME region's centre (not the padded canvas
@@ -86,6 +97,7 @@ function paintCardFrame(scene) {
   const P = CARD_DESIGN.shadowPad * S;
   const r = Math.round(W * 0.063);
   const g = scene.add.graphics();
+  // procedural stand-in for the supplied parchment card art (headless envs)
 
   // soft ground shadow (two stacked passes)
   g.fillStyle(0x000000, 0.10);
@@ -122,7 +134,7 @@ function paintCardFrame(scene) {
   // warm parchment centre (recessed writing surface)
   g.save();
   g.translateCanvas(W / 2, H / 2);
-  drawParchment(g, W - 80, H - 80, 26);
+  drawParchment(g, W - 78, H - 72, 26);
   g.restore();
 
   // metal bolts on the four corners of the frame band
@@ -217,7 +229,10 @@ function paintStars(scene) {
  * 84 texture px inset).
  */
 function paintGlow(scene) {
-  const W = 269 * S, H = 199 * S;
+  // canvas = card + 56 world px margins; insets keep the crisp golden
+  // border straddling the card edge for ANY card aspect (derived, not
+  // hardcoded, since the supplied artwork is near-square).
+  const W = (CARD_DESIGN.w + 56) * S, H = (CARD_DESIGN.h + 56) * S;
   const g = scene.add.graphics();
   // faint wash that survives around the card edges
   g.fillStyle(0xffd257, 0.05);
@@ -299,28 +314,24 @@ export class LevelCard {
     this.hoverGlow.setAlpha(0);
     c.add(this.hoverGlow);
 
-    // dynamic content — unlocked look
-    this.kicker = menuText(scene, 0, -height * 0.35, 'LEVEL', {
-      fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.095) + 'px', color: '#7a4c1f', letterSpacing: 2.5
-    });
-    this.number = menuText(scene, 0, -height * 0.125, String(levelId), {
+    // dynamic content — unlocked look per the level-select reference: one
+    // BIG golden number (dark carved outline) with a small arc of earned
+    // stars tucked underneath; no kicker/name text on the card face.
+    this.number = menuText(scene, 0, -height * 0.07, String(levelId), {
       fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.33) + 'px', color: '#fff8e7',
-      stroke: '#5b3a13', strokeThickness: Math.max(5, Math.round(height * 0.04))
+      fontSize: Math.round(height * 0.42) + 'px', color: '#ffd24a',
+      stroke: '#5d3a1a', strokeThickness: Math.max(6, Math.round(height * 0.055))
     }).setResolution(3);
-    this.name = menuText(scene, 0, height * 0.15, levelName, {
-      fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.102) + 'px', color: '#3d2814',
-      align: 'center', wordWrap: { width: width - 36 }
-    });
-    const starSize = height * 0.20;
-    const step = starSize * 1.15;
+    this.number.setShadow(0, 4, 'rgba(40,20,4,0.45)', 5, false, true);
+    const starSize = height * 0.19;
+    const step = starSize * 1.12;
     this.starsRow = [-1, 0, 1].map((i, idx) =>
-      scene.add.image(i * step, height * 0.325, idx < stars ? CARD_ART.star : CARD_ART.starEmpty)
+      scene.add.image(i * step, height * 0.30 + (i === 0 ? starSize * 0.14 : 0),
+        idx < stars ? CARD_ART.star : CARD_ART.starEmpty)
         .setDisplaySize(starSize, starSize)
+        .setAngle(i * -9)
     );
-    c.add([this.kicker, this.number, this.name, ...this.starsRow]);
+    c.add([this.number, ...this.starsRow]);
 
     // locked look — big metallic padlock + clear dimming overlay
     const lockH = height * 0.62;
@@ -360,9 +371,7 @@ export class LevelCard {
   applyLook(unlocked) {
     this.unlocked = unlocked;
     const u = unlocked;
-    this.kicker.setVisible(u);
     this.number.setVisible(u);
-    this.name.setVisible(u);
     this.starsRow.forEach((s) => s.setVisible(u));
     this.lock.setVisible(!u);
     this.dim.setVisible(!u);

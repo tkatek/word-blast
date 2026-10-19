@@ -28,8 +28,8 @@
 import Phaser from 'phaser';
 import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
-import { PALETTE, menuText, drawWoodSlab, drawParchment, drawLeaf } from '../systems/MenuUI.js';
-import { LevelCard, ensureLevelCardTextures, paintBolt, CARD_ART } from '../systems/LevelCard.js';
+import { PALETTE, menuText, drawParchment } from '../systems/MenuUI.js';
+import { LevelCard, ensureLevelCardTextures, CARD_ART, CARD_ART_FILE, CARD_DESIGN } from '../systems/LevelCard.js';
 import { computeLevelGrid } from '../systems/LevelGridLayout.js';
 import {
   LEVEL_SELECT_ART, levelSelectPreloadList, ensureLevelSelectArtFallback,
@@ -41,9 +41,12 @@ import { playLevelUnlock } from '../systems/LevelUnlockAnimation.js';
  *  displayed (drives the one-time unlock celebration). */
 const SEEN_KEY = 'lvlselSeenUnlocked';
 
+/** The supplied WORD BLAST lettering logo (level-select title). */
+const LOGO_ART = { key: 'lvlsel-logo', file: 'assets/images/ui/level-select-logo.png' };
+
 /** Fixed-world layout (1280×720; the camera always shows the whole world). */
 const LAYOUT = {
-  title: { x: WORLD.WIDTH / 2, y: 116, w: 540, h: 104 },
+  logo: { y: 104, width: 470 },
   back: { x: 112, y: 54, w: 152, h: 64 },
   toastY: 188
 };
@@ -60,7 +63,18 @@ export class LevelSelectScene extends Phaser.Scene {
     for (const { key, file } of levelSelectPreloadList()) {
       this.load.image(key, BASE + file);
     }
-    this.load.on('loaderror', (file) => ensureLevelSelectArtFallback(this, file.key));
+    // The supplied blank wooden card art under the procedural fallback's own
+    // key: when the PNG is reachable the painter simply never runs.
+    this.load.image(CARD_ART.frame, ((import.meta.env && import.meta.env.BASE_URL) || '/') + CARD_ART_FILE);
+    // The supplied WORD BLAST lettering (screen title).
+    this.load.image(LOGO_ART.key, ((import.meta.env && import.meta.env.BASE_URL) || '/') + LOGO_ART.file);
+    this.load.on('loaderror', (file) => {
+      if (file.key === CARD_ART.frame || file.key === LOGO_ART.key) {
+        ensureLevelCardTextures(this); // procedural card stand-in
+        return;
+      }
+      ensureLevelSelectArtFallback(this, file.key);
+    });
   }
 
   create() {
