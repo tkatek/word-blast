@@ -97,9 +97,10 @@ const THEMES = {
 /** DISPLAY font targets (world px after the card scale is applied). */
 const FONT = { title: 23, answer: 19, explain: { max: 16.5, min: 14 }, explainAbs: 14 };
 const LINE_SPACING = 0.34;   // × font
-// Compact card: grows for long explanations up to ~609×435 world px — the
-// typical card stays at 406×290 (72.5% of the old fixed width).
-const MAX_SCALE = 1.5;
+// Compact card: grows for long explanations up to ~630×450 world px (still
+// below the old fixed-growth ceiling of ~683) — the typical card stays at
+// 406×290 (72.5% of the old fixed width).
+const MAX_SCALE = 1.55;
 
 /** Entrance / exit pacing (ms) — restrained, reduced-motion aware. */
 const TIMING = { enter: 340, settle: 130, stagger: 110, exit: 290, backdrop: 0.52 };

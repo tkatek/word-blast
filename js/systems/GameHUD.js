@@ -86,6 +86,7 @@ const TEX = {
   starEmpty: 'wbhud-star-empty',
   clock: 'wbhud-clock',
   pauseIcon: 'wbhud-pause-ico',
+  playIcon: 'wbhud-play-ico',
   soundOn: 'wbhud-sound-on',
   soundOff: 'wbhud-sound-off',
   coin: 'wbhud-coin',
@@ -211,6 +212,22 @@ export function ensureHudTextures(scene) {
       g.fillStyle(0x4d3218, 1); g.fillRoundedRect(x - 1, 9, 11, 27, 5);
       g.fillStyle(PAL.parchLight, 1); g.fillRoundedRect(x, 10, 9, 25, 4);
     }
+  });
+
+  /* --- golden play triangle (pause-overlay RESUME button) ------------ */
+  tex(TEX.playIcon, 48, 48, () => {
+    g.fillStyle(0x6b400f, 1);
+    g.fillPoints([
+      new Phaser.Geom.Point(13, 8), new Phaser.Geom.Point(41, 24),
+      new Phaser.Geom.Point(13, 40)
+    ], true);
+    g.fillStyle(0xffd257, 1);
+    g.fillPoints([
+      new Phaser.Geom.Point(17, 13), new Phaser.Geom.Point(35, 24),
+      new Phaser.Geom.Point(17, 35)
+    ], true);
+    g.fillStyle(0xfff3c0, 0.85);
+    g.fillTriangle(19, 15, 28, 21.5, 19, 24);
   });
 
   /* --- speaker icons ------------------------------------------------ */
