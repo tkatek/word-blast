@@ -21,9 +21,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   await h.waitFor(() => !!h.game.registry.get('questions'), 8000, 'boot');
 
-  h.game.scene.start('LevelSelectScene');
+  // visit 1 — the real path: MenuScene → LevelSelectScene (plugin stops Menu)
+  await h.waitFor(() => h.api.menu().active, 8000, 'menu from boot');
+  const menu = h.game.scene.getScene('MenuScene');
+  menu.scene.start('LevelSelectScene');
   await h.waitFor(() => h.api.levelSelect().active, 5000, 'scene active');
   await sleep(300);
+  const scene = h.game.scene.getScene('LevelSelectScene');
 
   let info = h.api.levelSelect();
   check('scene active with 15 cards', info.cards.length === 15, `${info.cards.length}`);
@@ -40,7 +44,6 @@ try {
   check('highlightId is 1', info.highlightId === 1);
   check('no celebration on first visit', info.celebrationId === 0);
 
-  const scene = h.game.scene.getScene('LevelSelectScene');
   const n1 = scene.cards.get(1).name.text;
   const n15 = scene.cards.get(15).name.text;
   check('names come from level data', n1 === 'First Shot' && n15 === 'Final Challenge', `${n1} | ${n15}`);
@@ -50,7 +53,6 @@ try {
   save.recordLevelResult(1, 5000, 2);
   scene.scene.start('MenuScene'); // ScenePlugin: stops LS first
   await h.waitFor(() => h.api.menu().active, 5000, 'menu');
-  const menu = h.game.scene.getScene('MenuScene');
   menu.scene.start('LevelSelectScene');
   await h.waitFor(() => h.api.levelSelect().active, 5000, 'scene 2');
   info = h.api.levelSelect();
@@ -58,10 +60,15 @@ try {
   check('highlight moves to level 2', info.highlightId === 2);
   const card2 = scene.cards.get(2);
   check('celebration card starts in locked look', card2.unlocked === false);
-  await sleep(1400 + 1100); // reveal at 1400ms scene-time, completes ~1980ms
+  // headless rendering is slow, so Phaser's smoothed deltas lag wall time —
+  // POLL for the reveal instead of a fixed sleep (browser runs are 1:1)
+  const revealed = await h.waitFor(() => {
+    const c = scene.cards.get(2);
+    return c.unlocked && c.highlighted;
+  }, 10000, 'unlock reveal');
   info = h.api.levelSelect();
   const c2b = info.cards.find((c) => c.id === 2);
-  check('card 2 revealed unlocked after celebration', c2b.unlocked === true && c2b.highlighted === true);
+  check('card 2 revealed unlocked after celebration', revealed && c2b.unlocked === true && c2b.highlighted === true);
   check('card 1 shows saved 2 stars', info.cards.find((c) => c.id === 1).stars === 2);
 
   // no re-animation on the next visit
