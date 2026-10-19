@@ -203,34 +203,33 @@ function paintStars(scene) {
   drawStar(g, 39, 41, 31, 0xffc93c, 0xb8860b, 3);
   g.generateTexture(CARD_ART.star, 78, 78);
   g.clear();
-  drawStar(g, 39, 41, 31, 0x9a917f, 0x6b6355, 3);
+  drawStar(g, 39, 41, 31, 0x857c6c, 0x565045, 3.5);
   g.generateTexture(CARD_ART.starEmpty, 78, 78);
   g.destroy();
 }
 
 /**
- * Soft golden glow ring for the highlighted (next playable) card: layered
- * rounded-rect strokes around the card + a faint warm wash. Rendered with
- * ADD blend at runtime alpha ≈0.7 — bright enough to guide, never glaring.
+ * Soft golden glow ring for the highlighted (next playable) card: a CRISP
+ * warm-gold border hugging the card edge plus a short tight halo — bright
+ * enough to guide, never muddy. Rendered with ADD blend behind the frame
+ * (the opaque card covers the canvas centre, so only the outer ring and
+ * halo read). Glow canvas = card + 56 world px margins (card edge sits at
+ * 84 texture px inset).
  */
 function paintGlow(scene) {
   const W = 269 * S, H = 199 * S;
   const g = scene.add.graphics();
-  const inset = (px) => {
-    g.strokeRoundedRect(px, px, W - px * 2, H - px * 2, 118);
-  };
+  // faint wash that survives around the card edges
   g.fillStyle(0xffd257, 0.05);
   g.fillRoundedRect(8, 8, W - 16, H - 16, 124);
-  g.lineStyle(54, 0xffd257, 0.10);
-  inset(27);
-  g.lineStyle(36, 0xffd257, 0.15);
-  inset(18);
-  g.lineStyle(20, 0xffd257, 0.24);
-  inset(10);
-  g.lineStyle(10, 0xffd257, 0.55);
-  inset(5);
-  g.lineStyle(5, 0xffe9a8, 0.95);
-  inset(2.5);
+  // tight halo just outside the card edge
+  g.lineStyle(30, 0xffc93c, 0.14);
+  g.strokeRoundedRect(69, 69, W - 138, H - 138, 100);
+  // crisp golden border straddling the card edge (outer half visible)
+  g.lineStyle(15, 0xffe08a, 0.95);
+  g.strokeRoundedRect(76, 76, W - 152, H - 152, 96);
+  g.lineStyle(4, 0xfff3c0, 0.9);
+  g.strokeRoundedRect(64, 64, W - 128, H - 128, 104);
   g.generateTexture(CARD_ART.glow, W, H);
   g.destroy();
 }
@@ -301,34 +300,34 @@ export class LevelCard {
     c.add(this.hoverGlow);
 
     // dynamic content — unlocked look
-    this.kicker = menuText(scene, 0, -height * 0.335, 'LEVEL', {
+    this.kicker = menuText(scene, 0, -height * 0.345, 'LEVEL', {
       fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.082) + 'px', color: '#8a5a2b', letterSpacing: 2.5
+      fontSize: Math.round(height * 0.085) + 'px', color: '#8a5a2b', letterSpacing: 2.5
     });
     this.number = menuText(scene, 0, -height * 0.125, String(levelId), {
       fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.30) + 'px', color: '#fff8e7',
-      stroke: '#5b3a13', strokeThickness: Math.max(5, Math.round(height * 0.036))
+      fontSize: Math.round(height * 0.33) + 'px', color: '#fff8e7',
+      stroke: '#5b3a13', strokeThickness: Math.max(5, Math.round(height * 0.04))
     }).setResolution(3);
     this.name = menuText(scene, 0, height * 0.155, levelName, {
       fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.088) + 'px', color: '#3d2814',
-      align: 'center', wordWrap: { width: width - 40 }
+      fontSize: Math.round(height * 0.095) + 'px', color: '#3d2814',
+      align: 'center', wordWrap: { width: width - 36 }
     });
     const starSize = height * 0.175;
-    const step = starSize * 1.18;
+    const step = starSize * 1.2;
     this.starsRow = [-1, 0, 1].map((i, idx) =>
-      scene.add.image(i * step, height * 0.315, idx < stars ? CARD_ART.star : CARD_ART.starEmpty)
+      scene.add.image(i * step, height * 0.325, idx < stars ? CARD_ART.star : CARD_ART.starEmpty)
         .setDisplaySize(starSize, starSize)
     );
     c.add([this.kicker, this.number, this.name, ...this.starsRow]);
 
-    // locked look — padlock + gentle dimming overlay
-    const lockH = height * 0.46;
-    this.lock = scene.add.image(0, -height * 0.02, CARD_ART.lock)
+    // locked look — big metallic padlock + clear dimming overlay
+    const lockH = height * 0.62;
+    this.lock = scene.add.image(0, -height * 0.03, CARD_ART.lock)
       .setDisplaySize(lockH * (144 / 222), lockH);
     this.dim = scene.add.graphics();
-    this.dim.fillStyle(0x241a10, 0.26);
+    this.dim.fillStyle(0x241a10, 0.34);
     this.dim.fillRoundedRect(-width / 2 + 4, -height / 2 + 4, width - 8, height - 8, 22);
     c.add([this.dim, this.lock]);
 
@@ -367,7 +366,7 @@ export class LevelCard {
     this.starsRow.forEach((s) => s.setVisible(u));
     this.lock.setVisible(!u);
     this.dim.setVisible(!u);
-    this.frame.setTint(u ? 0xffffff : 0xd8d0c2); // locked wood reads muted
+    this.frame.setTint(u ? 0xffffff : 0xcfc6b8); // locked wood reads muted
   }
 
   /** Called by the unlock celebration (or instantly on first paint). */
@@ -400,9 +399,9 @@ export class LevelCard {
       this.glow.setAlpha(0.8); // static glow, no pulsing
       return;
     }
-    this.glow.setAlpha(0.7);
+    this.glow.setAlpha(0.85);
     this._pulseTween = this.scene.tweens.add({
-      targets: this.glow, alpha: { from: 0.55, to: 0.85 },
+      targets: this.glow, alpha: { from: 0.72, to: 1 },
       duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
     });
   }

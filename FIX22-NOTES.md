@@ -1,204 +1,223 @@
-# FIX #22 — Professional Sound Effects, Music and Dynamic Audio Engine
+# FIX #22 — Professional Sound Effects and Dynamic Audio Engine (silence-first)
 
-Word Blast now has a complete, playable, event-driven audio system: **47
-original sound files (4.82 MB)** covering every gameplay event, a mixer with
-category buses, cooldown/concurrency protection against audio spam, music
-crossfades tied to scenes, quiet environmental ambience, mobile unlock
-handling and persisted audio settings. All sounds are real and connected —
-there are **no placeholder or empty audio functions**.
+Word Blast now has a complete, playable, event-driven audio system built on
+a **silence-first design**: the game is sound-effects-only, and a settled
+scene with no input is *truly silent* (measured 0.00 RMS on the direct
+output tap). **47 sound files (1.5 MB)** cover every gameplay event; the
+slingshot stretch is real recorded leather, driven by actual pouch motion.
+There are no placeholder or empty audio functions — every event routes to a
+real, decoded, playable asset.
 
-Verification: **39 new automated audio tests** + the full existing suite
-(67 unit + 15 integration + 16 lifecycle + 26 ammo + 1357 battery) all pass,
-and a **real-browser production verification** (`npm run verify:audio`)
-confirms every sound decodes in Chrome and that launch, impacts, music
-switching, ambience, pause/resume and muting work through actual gameplay.
+Verification: **49 automated audio tests** + the full existing suite
+(67 unit + 15 integration + 16 lifecycle + 26 ammo + 1357 battery) all
+pass, and the **real-browser acceptance suite**
+(`npm run build && npm run verify:audio`) measures the game's DIRECT audio
+output (AnalyserNode tapped onto Phaser's master volume node) through 13
+scenarios including pull-and-hold, max-pull overshoot, 20 dud-release
+cycles, pause/mute during stretch, question-card transitions and a
+landscape-mobile touch pass — all green, with evidence WAVs captured to
+`wb-audio-evidence/`.
 
 ---
 
-## 1. Files created and modified
+## 1. Design — silence-first
 
-**Created**
-| File | Purpose |
-|---|---|
-| `scripts/generate-audio.mjs` | Deterministic pure-Node synthesizer that renders every WAV asset (seeded RNG, QC pass: no NaN / no clipping / seamless loops) |
-| `public/assets/audio/**` (47 files) | The audio library — see inventory below |
-| `tests/audio-tests.mjs` | 39 automated tests: unit (fake sound manager + pumpable game clock) + headless real-game integration |
-| `scripts/verify-audio.mjs` | Production verification in headless Chrome against `dist/` |
-| `FIX22-NOTES.md` | This report |
+An earlier iteration of this fix shipped menu/gameplay music loops and a
+forest ambience bed. The final design deliberately removed them:
 
-**Modified (audio-only or audio-hook changes — no gameplay/physics/scoring changes)**
-| File | Change |
-|---|---|
-| `js/systems/AudioManager.js` | Full playback engine behind the unchanged event-bus API |
-| `js/systems/Slingshot.js` | Emits `sling-stretch-start` / `sling-stretch` (tension feed) / `sling-cancel`; refused launch behaves like a dud |
-| `js/systems/PhysicsObjects.js` | Collision/destruction/explosion emits now carry `{severity, x, y, material, otherKind, frozen}`; `bird-impact` on first projectile contact; `explode()` emits for TNT chains |
-| `js/scenes/GameScene.js` | Launch payload `{power}`; `shot-missed`, `question-ready`, `game-pause/resume`, `level-complete {stars, allCompleted}`; music/ambience per scene + shutdown cleanup; `toggleMusic`/`toggleSfx`; bird-selected emit; overlay-button clicks |
-| `js/scenes/BootScene.js` | Preloads the audio manifest; creates/attaches the single AudioManager with the save settings |
-| `js/scenes/MenuScene.js`, `js/scenes/LevelSelectScene.js` | Menu theme (idempotent — continues, never restarts, across menu ↔ level select) |
-| `js/systems/GameHUD.js` | Pause menu: three compact toggles (SOUND / MUSIC / FX); click + desktop-only hover sounds |
-| `js/systems/SaveManager.js` | Settings gain `music`, `sfx`, `ambience` booleans + clamped `volumes` map (legacy saves default everything on) |
-| `js/systems/BirdSelector.js` | Card click no longer double-plays (selection pop comes from the scene) |
-| `js/systems/MenuUI.js` | Confirmation dialogs emit a click |
-| `js/dev/DebugAPI.js` | `window.__WB__.audio()` diagnostics (engine state, per-key play/drop counters) |
-| `package.json` | `test:audio`, `audio:generate`, `verify:audio` scripts; `test` chain includes the audio suite |
+- No background music, no ambience loops, no flight whistle — nothing
+  drones under the English questions or the pronunciation voice.
+- Every sound is a **one-shot tied to a physical or UI event**; when the
+  world settles, output returns to true silence (verified in-browser).
+- The slingshot stretch plays **only while the pouch actually moves** and
+  fades out ~120 ms after it stops — a held, fully-stretched pouch is
+  silent (verified with a 5-second hold at 118 px stretch).
+- The music/ambience settings and mixer buses still exist and persist, so
+  a future soundtrack can be added without touching gameplay code (this
+  build simply ships no tracks).
 
-**Untouched (per the restrictions):** all 15 levels, 60 questions, bird
-ammunition/powers, physics constants, slingshot trajectory math, tower
-layouts, ground, background, question progression, scoring, stars, level
-unlocking. The only physics-file changes are `audio.emit(...)` calls with
-richer payloads — no physics behavior changed (the full physics/lifecycle/
-ammo suites pass byte-for-byte unchanged).
+## 2. Audio asset inventory (47 files, all in `public/assets/audio/`)
 
-## 2. Audio asset inventory
-
-All mono 16-bit 22050 Hz WAV, generated by `scripts/generate-audio.mjs`.
-Deterministic: re-running reproduces identical files.
-
-| Category | Files | Design |
+| Category | Files | Source |
 |---|---|---|
-| slingshot | `stretch-loop` (1.8 s loop), `release`, `cancel` | Leather/rubber creak loop whose volume+pitch track drag tension; punchy snap + elastic "thwang" + whoosh on release; soft return on cancel |
-| wood | `hit-light-1..3`, `hit-heavy-1..2`, `crack`, `break`, `collapse` | Damped knock partials + knap noise; heavy adds a lower body + creak; break = crack + splinter scatter + thud; collapse = staggered multi-knock rumble |
-| glass | `hit-1..2`, `crack`, `shatter` | Bright ping partials; shatter = burst + ~22 falling shard clinks |
-| stone | `hit-light-1..2`, `hit-heavy-1..2`, `crack`, `collapse` | Dull thuds with grit/scrape; heavy adds sub body; collapse = multi-thud rumble |
-| abilities | `boost`, `split`, `explosion`, `freeze`, `ice-shatter` | Boost = rising airy whoosh; split = pop + 5 light staggered accents (never ×5 full volume); explosion = layered blast + sub drop + debris + fading rumble; freeze = icy swell + crystalline arpeggio; ice-shatter = high crystalline crack |
-| birds | `launch`, `flight-loop` (1.4 s loop), `hit` | Cartoon gliss "wheee" with vibrato; quiet flight air bed stopped at first impact; soft feathery "oof" |
-| pigs | `pop` | Soft poof + friendly squeak |
-| ui | `click`, `hover`, `select`, `pause`, `resume`, `correct`, `wrong`, `star`, `heart-lost`, `level-complete`, `level-failed`, `missed`, `question-ready` | Woody clicks; correct = major arpeggio + sparkle; wrong = two gentle low "womp" tones (no harsh buzzer); star chime (pitch-shifted per star at runtime); 2.9 s fanfare; gentle 2.3 s descending failure cue |
-| ambience | `forest-loop` (16 s loop) | Pink-noise wind bed with slow organic swells + sparse distant bird chirps; RMS −34 dB (well under gameplay SFX) |
-| music | `menu-theme` (33.1 s loop), `gameplay-theme` (36 s loop), `victory-theme` (3.4 s) | Menu: bright Karplus-Strong plucks, C major, 116 BPM, 16 bars A/A'. Gameplay: calm 80 BPM F-major arps + soft pads + sparse melody. Victory: brass-ish rising run + major hit |
+| slingshot | `grab`, `release`, `return`, `stretch-1..5` (8) | **Recorded leather** — segments cut from the user-supplied Pixabay recording *Slow Leather Stretch* (id 63057, by OldCouches, Pixabay Content License — full attribution: `assets-src/audio-stretch/ATTRIBUTION.md`) |
+| wood | `hit-light-1..3`, `hit-heavy-1..2`, `crack`, `break`, `collapse` (8) | Original synthesis (`scripts/generate-audio.mjs`) |
+| glass | `hit-1..2`, `crack`, `shatter` (4) | Original synthesis |
+| stone | `hit-light-1..2`, `hit-heavy-1..2`, `crack`, `collapse` (6) | Original synthesis |
+| abilities | `boost`, `split`, `explosion`, `freeze`, `ice-shatter` (5) | Original synthesis |
+| birds | `launch`, `hit` (2) | Original synthesis |
+| pigs | `pop` (1) | Original synthesis |
+| ui | `click`, `hover`, `select`, `pause`, `resume`, `correct`, `wrong`, `star`, `heart-lost`, `level-complete`, `level-failed`, `missed`, `question-ready` (13) | Original synthesis |
 
-Loudness tiers (measured): explosion −10.5 dB RMS / collapses −13.5…−14 /
-impacts −17…−27 / UI −19…−26 / music −19 (menu) and −23 (gameplay) /
-ambience −34. Peaks ≤ −2.2 dBFS everywhere (QC refuses > −1 dB).
+All mono 16-bit 22050 Hz WAV (universally decoded by every supported
+browser — no codec fallback needed). The synthesized set is regenerated
+deterministically by `node scripts/audio:generate`; the slingshot segments
+by `node scripts/prepare-stretch-audio.mjs` (cuts, 70 Hz HP, fades,
+RMS-matched, peak ≤ −6 dBFS — see `segments-report.json` for exact source
+ranges).
 
-## 3. Source and license
+## 3. Source and license details
 
-**Every sound is ORIGINAL, synthesized procedurally** by
-`scripts/generate-audio.mjs` from oscillators, filtered noise, damped
-partials, Karplus-Strong strings and a small Schroeder reverb — no external
-or copyrighted samples exist anywhere in the project, and nothing was
-extracted from Angry Birds or any other game. No third-party audio licenses
-apply; the assets are as original as the rest of this codebase.
+- **One external asset**: the slingshot leather recording — Pixabay sound
+  63057, "Slow Leather Stretch" by OldCouches, Pixabay Content License
+  (free for commercial use; attribution recorded in
+  `assets-src/audio-stretch/ATTRIBUTION.md` along with the untouched source
+  copy). Earlier comments mislabeled this as "Freesound #63057" — corrected
+  (Freesound #63057 is an unrelated music-box sample).
+- **Everything else is original synthesized material** (oscillators,
+  filtered noise, damped partials, Karplus-Strong strings, Schroeder
+  reverb) produced in-repo by `scripts/generate-audio.mjs`. Nothing is
+  extracted from Angry Birds or any commercial game.
 
 ## 4. AudioManager architecture
 
 One manager per game, created once in `BootScene.create()` and kept in the
-scene registry (survives every scene restart). Two layers:
+registry (survives every scene restart; `attach()` is idempotent). Two
+layers:
 
-1. **Event bus** (API unchanged): gameplay emits semantic events; physics
-   and scoring know nothing about audio.
-2. **Playback engine** (bound by idempotent `attach(scene)`):
-   manifest → cache-existence check → category mute check → per-key
-   cooldown → voice caps (severity priority for impacts) → variation pick
-   (no immediate repeat) → ± detune jitter → play at `base × event × bus ×
-   master` volume.
+1. **Event bus** (API unchanged): gameplay emits semantic events with
+   physics-derived payloads (`hit-wood {severity, otherKind…}`); no
+   gameplay code knows about audio.
+2. **Playback engine**: manifest → cache-existence check → category mute →
+   per-key cooldown → voice caps (impact-tagged voices use severity
+   priority — strongest wins) → variation pick (no immediate repeat) →
+   ± detune jitter → play at `base × event × bus` volume.
 
-**Timing runs on the game's `poststep` clock, never on a scene clock**
-(scenes shut down and freeze — an early build had exactly that bug:
-cooldowns froze after boot and the menu theme never faded; the browser
-verification caught both, and the fix moved all cooldowns, fades and
-delayed chimes onto the always-alive game loop).
+**All engine timing runs on the game's `poststep` clock** (cooldowns,
+fades, delayed chimes) — never on a scene clock, which freezes when a scene
+shuts down (that exact bug shipped briefly and was caught by the browser
+suite: cooldowns froze after boot and the first menu theme never faded).
 
-Other engine duties: music crossfade with desired-track memory (scene
-switches never restart the right track, muted music remembers what to
-restore), ducking for educational feedback, ambience channel, explosion
-dedupe by time+distance, collapse detection (≥3 breaks / 700 ms window,
-1.6 s lockout), voice tracking with automatic cleanup, and a diagnostics
-snapshot (`audioDebugInfo()`).
+Other engine duties:
+
+- **Motion-driven slingshot voice** — ONE voice per drag session: smoothed
+  pouch speed (EMA, spike-guarded) starts/stops segment playback, segments
+  chain on natural completion, `RETRIG_GAP` prevents machine-gunning, and
+  the voice fades 120 ms after real motion stops. Grab is a single subtle
+  contact creak; dud/cancel is a soft leather return — never launch audio.
+- **Speech ducking** — while the question voice speaks
+  (`QuestionCard` → `duckForSpeech(true/false)`), competing sfx voices dip
+  to 35% and ramp back smoothly.
+- Explosion dedupe by time+distance (bomb + TNT chains never stack);
+  collapse accent when ≥3 breaks land inside 700 ms (1.6 s lockout).
+- **Phaser 3.90 mute quirk workaround**: `BaseSoundManager`'s constructor
+  creates an own `mute` data property that shadows the WebAudio accessor,
+  so master mute writes `masterMuteNode.gain` directly.
+- Mobile unlock (gesture listeners + suspended-context resume +
+  desired-state retry), pause/resume via one choke point, missing-asset
+  degradation (per-key cache check, drops counted, never a crash).
 
 ## 5. Event → sound mapping
 
-| Event (payload) | Sound behavior |
+| Event (payload) | Sound |
 |---|---|
-| `sling-stretch-start {tension}` | starts the creak loop above 5% tension |
-| `sling-stretch {tension}` | loop volume 0.35→0.95 and detune −140→+160 cents |
-| `sling-cancel` | smooth loop stop + soft elastic return (never launch audio) |
-| `launch {power}` | release snap (0.72–1.0 × power) + bird cry + flight loop |
-| `bird-impact {severity}` | stops flight loop + one soft "oof" (260 ms cooldown so the 5-way split fan = one vocal) |
-| `hit-wood/glass/stone {severity, otherKind}` | light layer < 22 damage, heavy ≥ 22; volume 0.45+sev/55; ×0.8 on terrain; 70 ms material cooldown |
-| `hit-pig` | soft low knock variant |
-| `break-wood/glass/stone {severity, frozen}` | material break once per destroyed body; frozen = ice-shatter, never wood |
-| `break-pig` | pig pop |
-| `explode {x, y}` | one layered explosion; dedupe: <120 ms global or <450 ms within 90 px; music ducks; flight loop stops |
-| ≥3 breaks / 700 ms | ONE collapse accent (wood or stone by majority), 1.6 s lockout |
-| `boost` / `split` / `freeze` | one activation sound each (guarded by the physics-side `abilityUsed`) |
-| `answer-correct` | success jingle once + music ducked to 45% for 1.2 s (collapse stays audible) |
-| `answer-wrong` | gentle two-tone feedback |
-| `shot-missed` / `question-ready` | quiet whiff / soft card whoosh (also stops stale loops) |
-| `heart-lost` | soft thud + minor drop |
-| `level-complete {stars, allCompleted}` | music fades; staggered star chimes (pitch +2 st each); fanfare; victory sting only when all 15 levels completed |
-| `level-failed` | music fades + gentle descending cue |
-| `game-pause` / `game-resume` | pause/resume cues + `sound.pauseAll()/resumeAll()` (single choke point for menu, portrait rotation and hidden tabs) |
-| `ui-click` / `ui-hover` (desktop) / `bird-selected` | click / very soft tick / selection pop |
+| `sling-grab` | one subtle leather contact creak (300 ms cooldown) |
+| `sling-stretch {tension, speed, towardRest}` | motion-driven creak segments; volume/pitch track speed + tension; toward-rest moves pick the softer variant |
+| `sling-cancel` | fade motion voice + soft leather return — never launch audio |
+| `launch {power}` | one snap (0.72–1.0 × power) + one bird cry; no flight loop |
+| `bird-impact {severity}` | one soft "oof" (260 ms cooldown — the 5-way split fan = one vocal) |
+| `hit-wood/glass/stone/pig/boom {severity, otherKind}` | light layer < 22 damage, heavy ≥ 22; volume 0.45+sev/55; ×0.8 on terrain; 70 ms material cooldown |
+| `break-{mat} {severity, frozen}` | material break once per destroyed body; frozen = ice-shatter, never wood |
+| ≥3 breaks / 700 ms | ONE collapse accent (wood/stone by majority), 1.6 s lockout |
+| `explode {x, y}` | one layered explosion; dedupe < 120 ms global / < 450 ms within 90 px |
+| `boost` / `split` / `freeze` | one activation sound each (physics-side `abilityUsed` guards) |
+| `answer-correct` / `answer-wrong` | success arpeggio / gentle two-tone (no harsh buzzer) |
+| `card-open` / `card-close` | one soft whoosh per transition (emitted by QuestionCard at the phase change, never per tween frame) |
+| `question-ready` / `shot-missed` / `heart-lost` | soft whoosh / quiet whiff / soft thud+drop |
+| `level-complete {stars}` | staggered star chimes (pitch +2 st each) then the fanfare cue |
+| `level-failed` | gentle descending cue (150 ms in) |
+| `game-pause` / `game-resume` | pauseAll FIRST then the cue (a pre-pause click would freeze mid-play); resume cue after resumeAll |
+| `ui-click` / `ui-hover` (desktop) / `bird-selected` | woody click / very soft tick / selection pop |
+
+The answer flow itself is **player-paced**: physics settles, the wooden
+feedback card arms its CONTINUE button, and the question advances only on
+the click — audio follows that contract (the browser suite clicks through
+the card exactly like a player).
 
 ## 6. Volume and mixing configuration
 
-Buses (defaults): `master 0.9 · music 0.55 · sfx 1.0 · ui 0.9 · ambience
-0.6 · voice 1.0` — important gameplay feedback is always louder than music,
-ambience far below everything. Continuous numeric control exists via
-`setBusVolume(bus, 0..1)` (persisted); the pause menu exposes three ON/OFF
-toggles — **SOUND** (master, the pre-existing control), **MUSIC**, **FX** —
-matching the existing wooden UI. Anti-clipping: modest per-sound levels +
-per-bus mixing + tanh soft-saturation baked into dense assets + voice caps.
+Buses: `master 0.9 · sfx 1.0 · ui 0.9` (music/ambience/voice buses exist,
+unused by this build). Voice caps: 8 sfx / 4 ui / 6 impact. The pause menu
+exposes three ON/OFF toggles — **SOUND** (master, pre-existing control),
+**MUSIC**, **FX** — persisted through the existing SaveManager
+(`settings.sound/music/sfx/ambience` + clamped `volumes` map; legacy saves
+default everything on). Anti-clipping: per-sound levels, bus mixing, tanh
+soft-saturation baked into dense assets, voice caps, and the master mute
+node hard-gate.
 
 ## 7. Mobile / browser compatibility
 
-- WAV PCM is decoded natively by Chrome, Edge, Firefox and Safari
-  (desktop + iOS/Android) — no codec fallback needed.
-- Mobile autoplay: music starts on the first user gesture — the engine
-  listens for Phaser's `unlocked` AND document-level
-  pointer/touch/key gestures, resumes a suspended AudioContext and replays
-  the desired track (desired-music memory makes this exactly-once).
-- Tab hidden / blur: Phaser's `muteOnBlur` + the game's existing auto-pause
-  funnel into the one pause choke point — audio suspends with gameplay and
-  resumes once; music never duplicates and a muted player is never
-  auto-unmuted.
-- Missing files degrade to silence per-key (cache-checked, counted in
-  `stats.dropped`, never a crash) — headless Node runs (no audio stack at
-  all) prove it: the full integration battery passes there.
+- WAV PCM decodes natively in Chrome, Edge, Firefox and Safari
+  (desktop + iOS/Android) — no codec fallbacks.
+- Mobile autoplay: music-free design makes this trivial, but the engine
+  still unlocks on first gesture (document-level pointer/touch/key +
+  Phaser `unlocked` + suspended-context resume) for the one-shots.
+- A **landscape-mobile emulation pass** runs in the browser suite
+  (Pixel-7 viewport, touch events): idle silent, touch pull audible.
+  Physical-device listening remains a manual step (see honest list).
+- Pause (menu, portrait rotation, hidden tab) funnels through one choke
+  point: audio suspends with gameplay, resumes without duplication, and a
+  muted player is never auto-unmuted.
+- Missing files degrade to silence per key (counted, never a crash) —
+  proven by the headless Node suite, which has no audio stack at all.
 
 ## 8. Tests run — actual results
 
-- `node tests/audio-tests.mjs` → **39 passed, 0 failed** (routing,
-  cooldowns, voice caps + severity priority, explosion dedupe, collapse
-  detector, ducking, music idempotence, pause/resume, mutes, persistence,
-  legacy saves, missing-asset safety, double-attach safety, and real-game
-  headless integration: launch→impact ordering, restart without listener
-  stacking).
-- Full suite (`npm test`) → 67 + 15 + 16 + 26 + 1357 + 39, **all passing,
-  zero regressions**.
-- `npm run build && node scripts/verify-audio.mjs` (headless Chrome,
-  production `dist/`, served under `/wb/`): 47/47 sounds decoded, menu
-  theme playing, crossfade to gameplay theme + ambience verified, 2 real
-  launches, 3 impact plays, correct-answer jingle through real gameplay,
-  pause suspends / resume does not duplicate, master mute persists and
-  restores, zero HTTP/page errors. **PASSED** (run twice — stable).
+- `node tests/audio-tests.mjs` → **49 passed, 0 failed** (routing,
+  cooldowns, caps + severity priority, explosion dedupe, collapse
+  detector, speech ducking, mutes, persistence, legacy saves,
+  missing-asset safety, double-attach safety, headless real-game flow).
+- `node tests/feedback-card-tests.mjs` → passing (the player-paced
+  feedback card the audio integrates with).
+- Full suite (`npm test`) → 67 + 15 + 16 + 26 + 1357 + 49 + feedback-card,
+  **all passing, zero regressions** — re-run after the slingshot fix below.
+- `npm run build && node scripts/verify-audio.mjs` → **PASSED** (twice;
+  13 scenarios against the direct output tap, evidence WAVs in
+  `wb-audio-evidence/`): 47/47 decoded, idle silence, stretch audible only
+  while moving, 5 s hold silent, one voice on resume, max-pull overshoot
+  silent, one snap + one cry per shot, post-shot silence, collapse audible
+  then silent, pause-during-stretch drops the voice, card open/close one
+  whoosh each + quiet reading, **20 dud releases = 20 soft returns, 0
+  firing sounds, 0 ammunition lost, no voice growth**, master mute
+  functionally silent (click into the muted graph = 0.00 RMS), unmute
+  replays nothing, mobile-emulation pass, zero HTTP/page errors.
+
+### Gameplay bug found and fixed by this suite
+
+The dud-release path called `cancelDrag()` *after* clearing
+`this.dragging`, and `cancelDrag`'s own guard turned it into a no-op: the
+pouch stayed pulled out, each subsequent grab accumulated the offset
+(5 px → 10 px → 17 px, measured in-browser), and after a few "tiny" drags
+the game **fired a shot the player never intended**. Fixed in
+`Slingshot.onPointerUp` (the dud cancel now runs while the drag flag is
+still set); the lifecycle scenario now shows 20/20 clean cancellations.
 
 ## 9. Missing / incomplete — honest list
 
-- **Nothing is missing from the manifest**: every event above maps to a
-  real generated file, and all 47 decode in the browser.
-- Perceptual listening / loudness balance on real speakers and phones
-  requires human ears — assets pass numerical QC (levels, no clipping,
-  loop seamlessness) but the mix should get one manual listening pass.
+- **Nothing missing from the manifest** — all 47 files exist and decode in
+  the browser; every routed event has a real asset.
+- Background **music and ambience are intentionally absent** (silence-first
+  redesign). The mixer, settings and persistence for them remain in place
+  for a future soundtrack; nothing needs to be re-architected to add one.
+- Perceptual listening on real speakers/phones (loudness balance, leather
+  texture feel) requires human ears — everything machine-checkable is
+  verified; the evidence WAVs in `wb-audio-evidence/` exist so a listener
+  can hear exactly what the suite measured.
 - Speech pronunciation still uses the browser's `speechSynthesis`
-  (QuestionCard, unchanged); the mixer reserves a `voice` bus for future
+  (unchanged); the mixer's `voice` bus + speech ducking are ready for
   recorded narration.
-- No OGG/MP3 variants shipped: WAV is universally supported and the whole
-  library is 4.82 MB; re-encoding is a size optimization, not a
-  compatibility need (the generator makes regenerating trivial if wanted).
 
 ## 10. Testing audio locally
 
 ```bash
 cd word-blast
-npm run audio:generate        # regenerate all 47 assets (deterministic)
-npm test                      # full suite incl. 39 audio tests
-npm run build                 # production build
-npm run verify:audio          # real-browser verification of the build
-npm run dev                   # then just PLAY — sound needs one click/tap
+npm run audio:generate          # regenerate the synthesized SFX set
+node scripts/prepare-stretch-audio.mjs   # re-cut the leather segments
+npm test                        # full suite incl. audio + feedback-card
+npm run build && npm run verify:audio    # browser acceptance + evidence WAVs
+npm run dev                     # play: first click/tap unlocks audio
 ```
 
-In-game: `window.__WB__.audio()` shows live engine state (current music,
+In-game diagnostics: `window.__WB__.audio()` (engine state, sling voice,
 active voices, per-key play/drop counters). The pause menu's SOUND / MUSIC
-/ FX toggles persist across reloads via the existing SaveManager.
+/ FX toggles persist across reloads.
