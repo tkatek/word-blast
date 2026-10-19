@@ -161,8 +161,7 @@ async function outputLevel(page, ms) {
 const SILENT = 0.0025;   // ≈ -52 dBFS on the master tap → true silence
 const AUDIBLE = 0.006;   // clearly-above-silence floor for stretch texture
 
-/** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */
-async function dragPouch(page, dx, dy, ms = 700) {
+/** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */async function dragPouch(page, dx, dy, ms = 700) {
   const start = await page.evaluate(() => {
     const s = window.__WB__.scene();
     const a = s.slingshot.anchor;
