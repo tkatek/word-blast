@@ -425,11 +425,19 @@ try {
   // a safe state (AIMING/QUESTION_READY with the card docked); after the
   // collapse shot the scene may still be in FEEDBACK, so wait for BOTH.
   await ensurePlayable(page);
-  await page.waitForFunction(() => {
+  const cardWaitDebug = await page.waitForFunction(() => {
     const s = window.__WB__.state();
     const c = window.__WB__.cardInfo();
     return (s === 'AIMING' || s === 'QUESTION_READY') && c && c.phase === 'READY_TOP';
-  }, { timeout: 15000 });
+  }, { timeout: 15000 }).catch(() => page.evaluate(() => ({
+    state: window.__WB__.state(),
+    phase: window.__WB__.cardInfo() ? window.__WB__.cardInfo().phase : null,
+    audioPaused: window.__WB__.audio().paused,
+    sling: window.__WB__.audio().sling
+  })));
+  if (cardWaitDebug && cardWaitDebug.state !== undefined) {
+    console.log('  ?? card-wait timed out:', JSON.stringify(cardWaitDebug));
+  }
   const cardBefore = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   const docked = await page.evaluate(() => {
     const c = window.__WB__.cardInfo();

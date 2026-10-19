@@ -108,6 +108,17 @@ export function installDebugAPI(game) {
       return s.menuDebugInfo();
     },
 
+    /**
+     * Fix #23 — level-select diagnostics (cards, grid, highlight, unlock
+     * celebration, transition guards). Like the menu, the screen itself is
+     * developer-text-free; this is the only diagnostic channel.
+     */
+    levelSelect() {
+      const s = game.scene.getScene('LevelSelectScene');
+      if (!s || !s.sys.isActive()) return { active: false };
+      return s.levelSelectDebugInfo();
+    },
+
     /** Await a game state (polling — robust across scene restarts). */
     waitForState(target, timeoutMs = 12000) {
       const start = Date.now();
