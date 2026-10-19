@@ -44,9 +44,11 @@ try {
   check('highlightId is 1', info.highlightId === 1);
   check('no celebration on first visit', info.celebrationId === 0);
 
-  const n1 = scene.cards.get(1).name.text;
-  const n15 = scene.cards.get(15).name.text;
-  check('names come from level data', n1 === 'First Shot' && n15 === 'Final Challenge', `${n1} | ${n15}`);
+  // The card face shows the big golden number (level-select reference
+  // look); level names stay in the data layer, not on the card.
+  const n1 = scene.cards.get(1).number.text;
+  const n15 = scene.cards.get(15).number.text;
+  check('numbers come from level ids', n1 === '1' && n15 === '15', `${n1} | ${n15}`);
 
   // sequential unlock celebration — via the real back/re-enter path
   const save = h.game.registry.get('save');

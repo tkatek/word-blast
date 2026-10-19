@@ -127,13 +127,13 @@ async function runDesktopPass() {
     check('levels 2–15 locked (14 padlocks)', locked.length === 14 && locked.every((c) => c.id > 1));
     await snap('desktop-fresh.png');
 
-    /* card names come from the live LevelManager */
+    /* card numbers come from the live level ids */
     const names = await page.evaluate(() => {
       const s = window.__WB__.game.scene.getScene('LevelSelectScene');
-      return [1, 7, 15].map((id) => s.cards.get(id).name.text);
+      return [1, 7, 15].map((id) => s.cards.get(id).number.text);
     });
-    check('level names come from level data',
-      names[0] === 'First Shot' && names[1] === 'Sentence Completion' && names[2] === 'Final Challenge',
+    check('card numbers match level ids',
+      names[0] === '1' && names[1] === '7' && names[2] === '15',
       names.join(' | '));
 
     /* 2 — locked feedback: tap L2 → stays on level select, toast shows */

@@ -28,7 +28,7 @@
 import Phaser from 'phaser';
 import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
-import { PALETTE, menuText, drawParchment } from '../systems/MenuUI.js';
+import { PALETTE, menuText, drawParchment, drawWoodSlab, drawLeaf } from '../systems/MenuUI.js';
 import { LevelCard, ensureLevelCardTextures, CARD_ART, CARD_ART_FILE, CARD_DESIGN } from '../systems/LevelCard.js';
 import { computeLevelGrid } from '../systems/LevelGridLayout.js';
 import {
@@ -69,10 +69,11 @@ export class LevelSelectScene extends Phaser.Scene {
     // The supplied WORD BLAST lettering (screen title).
     this.load.image(LOGO_ART.key, ((import.meta.env && import.meta.env.BASE_URL) || '/') + LOGO_ART.file);
     this.load.on('loaderror', (file) => {
-      if (file.key === CARD_ART.frame || file.key === LOGO_ART.key) {
+      if (file.key === CARD_ART.frame) {
         ensureLevelCardTextures(this); // procedural card stand-in
         return;
       }
+      if (file.key === LOGO_ART.key) return; // text-logo fallback in buildTitle
       ensureLevelSelectArtFallback(this, file.key);
     });
   }
@@ -89,8 +90,14 @@ export class LevelSelectScene extends Phaser.Scene {
     // Decorative card artwork — generated once, cached game-wide.
     ensureLevelCardTextures(this);
 
-    // Grid geometry first (pure) — the atmosphere centres on it.
-    this.grid = computeLevelGrid(WORLD.WIDTH, WORLD.HEIGHT, SAVE.MAX_LEVELS);
+    // Grid geometry first (pure) — the atmosphere centres on it. The card
+    // aspect follows the supplied artwork (near-square parchment card), and
+    // the slim lettering logo leaves more vertical room than the old
+    // hanging sign, so the cards grow accordingly.
+    this.grid = computeLevelGrid(WORLD.WIDTH, WORLD.HEIGHT, SAVE.MAX_LEVELS, {
+      cardAspect: CARD_DESIGN.w / CARD_DESIGN.h,
+      top: 178
+    });
 
     // A genuinely-new unlock renders in its LOCKED look first so the
     // celebration has something to reveal (snapshot updates immediately).
@@ -126,83 +133,40 @@ export class LevelSelectScene extends Phaser.Scene {
   /* Title sign                                                        */
   /* ---------------------------------------------------------------- */
 
+  /**
+   * Screen title: the supplied WORD BLAST lettering logo, top-centre (the
+   * level-select reference look). The old hanging SELECT LEVEL plank is
+   * retired. When the logo PNG is unreachable (headless envs) a golden
+   * text stand-in keeps the layout working.
+   */
   buildTitleSign() {
-    const { x, y, w, h } = LAYOUT.title;
-    const c = this.add.container(x, y).setDepth(20);
+    const c = this.add.container(WORLD.WIDTH / 2, LAYOUT.logo.y).setDepth(20);
     this.titleSign = c;
 
-    // hanging ropes (drawn to exit the top of ANY aspect's visible view)
-    const ropes = this.add.graphics();
-    for (const side of [-1, 1]) {
-      const x0 = side * (w / 2 - 41), y0 = -h / 2 + 10;
-      const x1 = side * 560, y1 = -298;
-      ropes.lineStyle(8, 0x6b4a26, 1);
-      ropes.beginPath();
-      ropes.moveTo(x0, y0);
-      ropes.lineTo(x1, y1);
-      ropes.strokePath();
-      ropes.lineStyle(2.5, 0x93683a, 0.9);
-      ropes.beginPath();
-      ropes.moveTo(x0 - side * 2, y0 - 2);
-      ropes.lineTo(x1 - side * 2, y1 - 2);
-      ropes.strokePath();
-      // knots where the ropes meet the plank
-      ropes.fillStyle(0x000000, 0.2);
-      ropes.fillCircle(x0, y0 + 3, 9);
-      ropes.fillStyle(0x4d3218, 1);
-      ropes.fillCircle(x0, y0, 8);
-      ropes.fillStyle(0x8a6238, 1);
-      ropes.fillCircle(x0, y0 - 1, 4.5);
+    if (this.textures.exists(LOGO_ART.key)) {
+      const src = this.textures.get(LOGO_ART.key).getSourceImage();
+      const logo = this.add.image(0, 0, LOGO_ART.key)
+        .setDisplaySize(LAYOUT.logo.width, LAYOUT.logo.width * (src.height / src.width));
+      c.add(logo);
+    } else {
+      const label = menuText(this, 0, 0, 'WORD BLAST', {
+        fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif',
+        fontStyle: 'bold', fontSize: '56px', color: '#ffd24a',
+        stroke: '#5d3a1a', strokeThickness: 7
+      });
+      label.setShadow(0, 4, 'rgba(0,0,0,0.45)', 6, false, true);
+      c.add(label);
     }
-    c.add(ropes);
-
-    // carved wooden plank
-    const slab = this.add.graphics();
-    slab.fillStyle(0x000000, 0.10);
-    slab.fillRoundedRect(-w / 2 - 3, -h / 2 + 8, w + 6, h + 3, 34);
-    slab.fillStyle(0x000000, 0.22);
-    slab.fillRoundedRect(-w / 2, -h / 2 + 5, w, h, 30);
-    drawWoodSlab(slab, w, h, 30, 'primary');
-    slab.lineStyle(2.5, 0x8a5a2b, 0.7);
-    slab.strokeRoundedRect(-w / 2 + 12, -h / 2 + 12, w - 24, h - 24, 22);
-    c.add(slab);
-
-    // metal bolts on the corners
-    const bolts = this.add.graphics();
-    const bx = w / 2 - 30, by = h / 2 - 26;
-    paintBolt(bolts, -bx, -by, 9);
-    paintBolt(bolts, bx, -by, 9);
-    paintBolt(bolts, -bx, by, 9);
-    paintBolt(bolts, bx, by, 9);
-    c.add(bolts);
-
-    // decorative leaves over the top corners
-    const leaves = this.add.graphics();
-    drawLeaf(leaves, -w / 2 + 16, -h / 2 + 2, 34, -0.55);
-    drawLeaf(leaves, w / 2 - 16, -h / 2 + 2, 34, 0.55);
-    drawLeaf(leaves, -w / 2 + 34, h / 2 - 4, 24, 0.6);
-    drawLeaf(leaves, w / 2 - 34, h / 2 - 4, 24, -0.6);
-    c.add(leaves);
-
-    // golden lettering with a white outline + soft carved shadow
-    const label = menuText(this, 0, 2, 'SELECT LEVEL', {
-      fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif',
-      fontStyle: 'bold', fontSize: '46px', color: '#ffdd55',
-      stroke: '#ffffff', strokeThickness: 5
-    });
-    label.setShadow(0, 4, '#000000', 7, false, true);
-    c.add(label);
   }
 
-  /** Entrance: slide down + a short settling swing (once). */
+  /** Entrance settle: a single soft scale dip after the slide-in (once). */
   swingSign() {
+    if (this.reducedMotion) return;
     this.tweens.chain({
       targets: this.titleSign,
       tweens: [
-        { angle: 2.4, duration: 220, ease: 'Sine.easeInOut' },
-        { angle: -1.4, duration: 260, ease: 'Sine.easeInOut' },
-        { angle: 0.6, duration: 220, ease: 'Sine.easeInOut' },
-        { angle: 0, duration: 180, ease: 'Sine.easeInOut' }
+        { scale: 1.025, duration: 200, ease: 'Sine.easeOut' },
+        { scale: 1, duration: 220, ease: 'Sine.easeInOut' }
       ]
     });
   }
@@ -533,10 +497,10 @@ export class LevelSelectScene extends Phaser.Scene {
 
     this.cameras.main.fadeIn(240, 0, 0, 0);
 
-    // sign slides gently downward, then settles with a short swing
-    this.titleSign.setY(LAYOUT.title.y - 240).setAlpha(0);
+    // logo slides gently downward, then settles with a soft scale dip
+    this.titleSign.setY(LAYOUT.logo.y - 170).setAlpha(0);
     this.tweens.add({
-      targets: this.titleSign, y: LAYOUT.title.y, alpha: 1,
+      targets: this.titleSign, y: LAYOUT.logo.y, alpha: 1,
       duration: 460, delay: 60, ease: 'Cubic.easeOut',
       onComplete: () => this.swingSign()
     });
