@@ -30,6 +30,10 @@ export const MENU_ART = {
   playButton: { key: 'menu-play-btn', file: 'play-button.webp' }
 };
 
+/** The supplied MENU button artwork for the level-select screen (same
+ *  prepare pipeline; loaded by LevelSelectScene under this key). */
+export const MENU_BUTTON_ART = { key: 'lvlsel-menu-btn', file: 'assets/images/ui/menu-button.webp' };
+
 /** Loader list for MenuScene.preload (mirrors hudPreloadList). */
 export function menuPreloadList() {
   return Object.values(MENU_ART).map(({ key, file }) => ({ key, file }));
