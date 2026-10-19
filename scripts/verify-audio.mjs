@@ -166,21 +166,40 @@ const AUDIBLE = 0.006;   // clearly-above-silence floor for stretch texture
  * card docked. The real shots earlier in the suite can legitimately
  * finish questions and even complete the level (terminal states never
  * return to AIMING on their own), so this recovers by restarting level 1.
- * Returns true when reached within `timeoutMs`.
+ * The answer flow is also PLAYER-PACED: after physics settle, a pending
+ * feedback card waits for its CONTINUE button — this clicks through any
+ * ARMED card first, exactly like a player. Returns {ok, restarts}.
  */
 async function awaitInteractive(page, timeoutMs = 25000) {
   const t0 = Date.now();
   let restarts = 0;
+  let clickedFeedback = 0;
   while (Date.now() - t0 < timeoutMs) {
     const snap = await page.evaluate(() => {
       const s = window.__WB__.state();
       const c = window.__WB__.cardInfo();
+      const fc = window.__WB__.scene().feedbackCard;
       return {
         ready: s === 'AIMING' && !!c && c.phase === 'READY_TOP',
+        feedbackArmed: s === 'ANSWER_FEEDBACK' && !!fc && fc.visible && fc.actionEnabled,
         terminal: ['LEVEL_COMPLETE', 'LEVEL_FAILED', 'GAME_COMPLETE'].includes(s)
       };
     });
-    if (snap.ready) return { ok: true, restarts };
+    if (snap.ready) return { ok: true, restarts, clickedFeedback };
+    if (snap.feedbackArmed) {
+      const pt = await page.evaluate(() => {
+        const fc = window.__WB__.scene().feedbackCard;
+        if (!fc || !fc.button) return null;
+        const m = fc.button.getWorldTransformMatrix();
+        return window.__WB__.worldToClient(m.tx, m.ty);
+      });
+      if (pt) {
+        clickedFeedback++;
+        await page.mouse.click(pt.x, pt.y);
+        await sleep(900); // exit animation → onAction → state transition
+        continue;
+      }
+    }
     if (snap.terminal && restarts < 3) {
       restarts++;
       await page.evaluate(() => { window.__WB__.setAutoPause(false); window.__WB__.gotoLevel(1); });
@@ -189,7 +208,7 @@ async function awaitInteractive(page, timeoutMs = 25000) {
       await sleep(400);
     }
   }
-  return { ok: false, restarts };
+  return { ok: false, restarts, clickedFeedback };
 }
 
 /** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */
@@ -491,17 +510,21 @@ try {
   // 11. lifecycle — 20 drag/cancel cycles + question restarts, no growth.
   // Each cycle: settle to AIMING with a docked card, grab, drift ~10 px
   // (far below MIN_POWER_RATIO), release → dud cancel.
-  await ensurePlayable(page);
+  await awaitInteractive(page);
   const lifecycleBase = await page.evaluate(() => ({
     sounds: window.__WB__.game.sound.sounds.length,
     voices: window.__WB__.audio().activeVoices,
-    release: window.__WB__.audio().stats.plays['sling-release'] || 0
+    release: window.__WB__.audio().stats.plays['sling-release'] || 0,
+    cancel: window.__WB__.audio().stats.plays['sling-cancel'] || 0
   }));
+  let lifecycleReady = { ok: true, restarts: 0 };
+  let skippedCycles = 0;
   for (let i = 0; i < 20; i++) {
-    await page.waitForFunction(() => {
-      const c = window.__WB__.cardInfo();
-      return window.__WB__.state() === 'AIMING' && c && c.phase === 'READY_TOP';
-    }, { timeout: 15000 }).catch(() => {});
+    if (!lifecycleReady.ok) {
+      skippedCycles++;
+      lifecycleReady = await awaitInteractive(page, 8000);
+      continue;
+    }
     const c = await pouchClient(page);
     await page.mouse.move(c.x, c.y);
     await page.mouse.down();
@@ -517,6 +540,8 @@ try {
     await sleep(80);
     await page.mouse.up(); // below MIN_POWER_RATIO → cancel path
     await sleep(320); // snap-back (140 ms) fully settles before re-grab
+    // the question timer can expire mid-run and re-present the card
+    lifecycleReady = await awaitInteractive(page, 12000);
   }
   await page.evaluate(() => window.__WB__.scene().restartQuestionFromMenu
     ? window.__WB__.scene().restartQuestionFromMenu()
@@ -535,8 +560,9 @@ try {
   check('lifecycle: 20 dud releases played no firing sound',
     cancelStats.release === lifecycleBase.release,
     `release ${lifecycleBase.release} → ${cancelStats.release}`);
-  check('lifecycle: soft return used for cancellations', cancelStats.cancel >= 15,
-    `${cancelStats.cancel} returns`);
+  check('lifecycle: soft return used for cancellations',
+    cancelStats.cancel - lifecycleBase.cancel >= 15 - skippedCycles,
+    `${cancelStats.cancel - lifecycleBase.cancel} returns (${skippedCycles} skipped)`);
   check('lifecycle: no sound-instance growth after 20 cycles + restart',
     endCounts.sounds <= lifecycleBase.sounds + 4 && endCounts.voices <= 6,
     JSON.stringify(lifecycleBase) + ' → ' + JSON.stringify(endCounts));
@@ -546,8 +572,11 @@ try {
   // 12. master mute covers the custom path; unmute revives nothing.
   // Deterministic: set the engine state directly (toggleSound's parity
   // with the saved setting is covered by the unit tests). The Phaser
-  // `.mute` property is shadowed by an own data field, so the REAL proof
-  // is the masterMuteNode gain + functional silence on the output tap.
+  // `.mute` property is shadowed by an own data field, and Chrome's
+  // AudioParam `.value` getter does NOT reflect setValueAtTime automation
+  // (it keeps reading the intrinsic 1) — so the REAL proof is FUNCTIONAL
+  // SILENCE on the output tap while a click plays into the muted graph,
+  // plus the persisted setting and the engine's own state.
   const preMute = await page.evaluate(() => ({
     enabled: window.__WB__.audio().enabled,
     sound: window.__WB__.save().data.settings.sound
@@ -556,18 +585,21 @@ try {
     const g = window.__WB__.game;
     g.registry.get('audio').setMasterEnabled(false);
     return {
-      gain: g.sound.masterMuteNode ? g.sound.masterMuteNode.gain.value : null,
+      engineEnabled: g.registry.get('audio').enabled,
       setting: window.__WB__.save().data.settings.sound
     };
   });
-  await page.evaluate(() => window.__WB__.game.registry.get('audio').emit('ui-click'));
+  // play() is not gated by master-enabled (only by category mutes), so the
+  // click genuinely plays INTO the muted graph — silence must come from
+  // the master mute node itself.
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').play('ui-click'));
   const mutedOutput = await outputLevel(page, 700); // click plays but must be silent
   await page.evaluate(() => window.__WB__.game.registry.get('audio').setMasterEnabled(true));
   await sleep(1200); // let any in-flight one-shot finish
   const unmutedPlaying = await page.evaluate(() =>
     window.__WB__.game.sound.sounds.filter((s) => s.isPlaying).length);
   check('master mute silences the whole output path + persists',
-    muted.gain === 0 && muted.setting === false && mutedOutput.max < SILENT,
+    muted.engineEnabled === false && muted.setting === false && mutedOutput.max < SILENT,
     `pre=${JSON.stringify(preMute)} post=${JSON.stringify(muted)} clickMax=${mutedOutput.max.toExponential(2)}`);
   check('unmute replays nothing old', unmutedPlaying === 0, `${unmutedPlaying} playing`);
 

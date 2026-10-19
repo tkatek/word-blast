@@ -333,7 +333,9 @@ export class AudioManager {
     // master mute is cosmetic only.
     try {
       if (this.sound.masterMuteNode && this.sound.context) {
-        this.sound.masterMuteNode.gain.setValueAtTime(muted ? 0 : 1, 0);
+        // schedule at the current clock — time 0 is a past event and the
+        // value readback is unreliable across browsers
+        this.sound.masterMuteNode.gain.setValueAtTime(muted ? 0 : 1, this.sound.context.currentTime);
       }
     } catch { /* not a WebAudio manager (HTML5 fallback uses .mute above) */ }
   }
