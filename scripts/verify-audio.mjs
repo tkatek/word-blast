@@ -176,7 +176,8 @@ async function ensurePlayable(page) {
   return true;
 }
 
-/** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */async function dragPouch(page, dx, dy, ms = 700) {
+/** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */
+async function dragPouch(page, dx, dy, ms = 700) {
   const start = await page.evaluate(() => {
     const s = window.__WB__.scene();
     const a = s.slingshot.anchor;
