@@ -40,14 +40,25 @@ const jobs = [
     desc: 'WORD BLAST logo (transparent, aspect preserved)'
   },
   {
-    // Supplied wooden bar element (628×143) — the PLAY button face. Kept
-    // at FULL source resolution (≥ the button's device-pixel size across
-    // the support matrix); the game scales it to the button, aspect
-    // preserved, and centre-crops nothing.
+    // Supplied square wooden plate (1254×1254, "PLAY" + golden triangle
+    // painted in, corner leaves) — the PLAY button face. Kept at FULL
+    // source resolution (≥ the button's device-pixel size across the
+    // support matrix); the game scales it uniformly, aspect preserved,
+    // and centre-crops nothing. Transparent padding is measured at
+    // runtime (MenuUI.measureTextureTrim) so the hit area matches the
+    // visible plate.
     src: join(SRC_DIR, 'play-button.png'),
     out: join(OUT_DIR, 'play-button.webp'),
     transform: (img) => img.webp({ quality: 95, effort: 5 }),
-    desc: 'PLAY button wooden face (supplied element)'
+    desc: 'PLAY button wooden plate (supplied element)'
+  },
+  {
+    // Supplied wide wooden bar (2172×724, back arrow + "MENU" painted in)
+    // — the level-select MENU button face (assets-src/levelselect).
+    src: join(root, '..', 'assets-src', 'levelselect', 'menu-button.png'),
+    out: join(root, '..', 'public', 'assets', 'images', 'ui', 'menu-button.webp'),
+    transform: (img) => img.webp({ quality: 95, effort: 5 }),
+    desc: 'MENU button wooden bar (supplied element)'
   }
 ];
 

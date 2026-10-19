@@ -261,23 +261,36 @@ try {
   await tablet.close();
 
   /* ---- 6. Q4 CONTINUE → LEVEL COMPLETE ------------------------------- */
-  const q4before = await page.evaluate(() => window.__WB__.scene().questionIndex);
-  for (let q = q4before; q < 3; q++) {
+  // Fresh easy level: the L13 towers left behind by the long-text stage are
+  // collapsed rubble whose arcs the auto-aim solver cannot always clear —
+  // a physics flake of the HELPER, not of the card. A fresh tower keeps the
+  // stage deterministic, and a miss-retry budget guards the rest.
+  await page.evaluate(() => window.__WB__.gotoLevel(2));
+  await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 30000 });
+  await sleep(600);
+  let qAt = await page.evaluate(() => window.__WB__.scene().questionIndex);
+  const qStart = qAt;
+  let retries = 0;
+  while (qAt < 3 && retries < 6) {
     await shootAt(page, null);
-    await waitForCard(page);
+    const card = await waitForCard(page, 12000);
+    if (!card) { retries++; continue; } // shot missed — same question retried
     await waitForArmed(page);
     await clickWorld(page, ...(Object.values(await buttonWorldPos(page))));
     await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 15000 }).catch(() => {});
     await sleep(400);
+    qAt = await page.evaluate(() => window.__WB__.scene().questionIndex);
   }
+  ok(qAt === 3, `advanced through all four questions (${qStart} → ${qAt})`);
   await shootAt(page, null); // Q4
-  await waitForCard(page);
+  const q4card = await waitForCard(page);
+  ok(!!q4card, 'Q4 shows its feedback card');
   await waitForArmed(page);
   await page.screenshot({ path: join(OUT, '7-q4-correct.png') });
   await clickWorld(page, ...(Object.values(await buttonWorldPos(page))));
   const complete = await page.waitForFunction(() => window.__WB__.state() === 'LEVEL_COMPLETE', { timeout: 12000 })
     .then(() => true).catch(() => false);
-  ok(complete, 'Q4 CONTINUE opens LEVEL COMPLETE (never Question 5)');
+  ok(complete, 'Q4 CONTINUE opens LEVEL_COMPLETE (never Question 5)');
   await page.screenshot({ path: join(OUT, '8-level-complete.png') });
 } finally {
   await browser.close();
