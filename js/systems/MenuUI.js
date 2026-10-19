@@ -134,7 +134,7 @@ export function measureTextureTrim(scene, key) {
       ctx.drawImage(src, 0, 0);
       const data = ctx.getImageData(0, 0, cv.width, cv.height).data;
       let minX = cv.width, minY = cv.height, maxX = -1, maxY = -1;
-      for (let y = 0; y < cv.height && maxY < cv.height; y++) {
+      for (let y = 0; y < cv.height; y++) {
         const row = y * cv.width * 4;
         for (let x = 0; x < cv.width; x++) {
           if (data[row + x * 4 + 3] > 8) {
