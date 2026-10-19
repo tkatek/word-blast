@@ -232,9 +232,9 @@ export class LevelSelectScene extends Phaser.Scene {
     arrow.fillRoundedRect(ax + 6, -2.5, 11, 5, 2);
     c.add(arrow);
 
-    const label = menuText(this, 16, 2, 'MENU', {
+    const label = menuText(this, 20, 2, 'MENU', {
       fontFamily: '"Arial Black", "Segoe UI Black", Arial, sans-serif',
-      fontStyle: 'bold', fontSize: '22px',
+      fontStyle: 'bold', fontSize: '23px',
       color: PALETTE.cream, stroke: PALETTE.creamStroke, strokeThickness: 4
     });
     c.add(label);

@@ -226,10 +226,10 @@ function paintGlow(scene) {
   g.lineStyle(30, 0xffc93c, 0.14);
   g.strokeRoundedRect(69, 69, W - 138, H - 138, 100);
   // crisp golden border straddling the card edge (outer half visible)
-  g.lineStyle(15, 0xffe08a, 0.95);
-  g.strokeRoundedRect(76, 76, W - 152, H - 152, 96);
-  g.lineStyle(4, 0xfff3c0, 0.9);
-  g.strokeRoundedRect(64, 64, W - 128, H - 128, 104);
+  g.lineStyle(21, 0xffe08a, 0.95);
+  g.strokeRoundedRect(75, 75, W - 150, H - 150, 96);
+  g.lineStyle(5, 0xfff3c0, 0.9);
+  g.strokeRoundedRect(62, 62, W - 124, H - 124, 104);
   g.generateTexture(CARD_ART.glow, W, H);
   g.destroy();
 }
@@ -311,7 +311,7 @@ export class LevelCard {
     }).setResolution(3);
     this.name = menuText(scene, 0, height * 0.15, levelName, {
       fontFamily: 'Arial, sans-serif', fontStyle: 'bold',
-      fontSize: Math.round(height * 0.095) + 'px', color: '#3d2814',
+      fontSize: Math.round(height * 0.102) + 'px', color: '#3d2814',
       align: 'center', wordWrap: { width: width - 36 }
     });
     const starSize = height * 0.20;
