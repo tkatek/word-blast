@@ -211,7 +211,7 @@ try {
   await shootAt(page, null);
   const long1 = await waitForCard(page);
   ok(long1 && long1.fit && long1.fit.displayFont >= 14, `long explanation fitted at ${long1 && long1.fit ? long1.fit.displayFont : '?'}px display font`);
-  ok(long1 && long1.explainBottomLocal <= 126, `explanation stops above the button (bottom ${long1 && long1.explainBottomLocal})`);
+  ok(long1 && long1.explainBottomLocal <= 68.5, `explanation stops above the button (bottom ${long1 && long1.explainBottomLocal})`);
   await waitForArmed(page);
   await page.screenshot({ path: join(OUT, '5-long-explanation.png') });
   await clickWorld(page, ...(Object.values(await buttonWorldPos(page))));
@@ -230,7 +230,7 @@ try {
   const mobileFit = await phone.evaluate(() => {
     const c = window.__WB__.scene().feedbackCard;
     const cam = window.__WB__.scene().cameras.main;
-    const half = (560 * c.root.scaleX) / 2;
+    const half = (c.skin.displayWidth * c.root.scaleX) / 2;
     return { left: c.root.x - half, right: c.root.x + half, zoom: cam.zoom, font: c.fit.displayFont };
   });
   ok(mobileFit.left >= 0 && mobileFit.right <= 1280,
@@ -239,6 +239,26 @@ try {
   await sleep(250);
   await phone.screenshot({ path: join(OUT, '6-mobile-landscape.png') });
   await phone.close();
+
+  /* ---- 5b. tablet portrait-forced-landscape (1024×768) --------------- */
+  const tablet = await browser.newPage();
+  await tablet.setViewport({ width: 1024, height: 768, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  await tablet.goto(BASE, { waitUntil: 'networkidle2', timeout: 60000 });
+  await tablet.waitForFunction(() => window.__WB__ && window.__WB__.scene(), { timeout: 30000 });
+  await tablet.evaluate(() => window.__WB__.setAutoPause(false));
+  await tablet.evaluate(() => window.__WB__.gotoLevel(2));
+  await tablet.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 30000 });
+  await tablet.evaluate(() => {
+    const s = window.__WB__.scene();
+    const wrong = s.factory.targets.find((t) => t.wb.choiceId !== s.prepared.question.correctAnswerId && !t.wb.hit);
+    window.__WB__.autoAim(wrong ? wrong.wb.choiceId : null);
+  });
+  const tabletWrong = await waitForCard(tablet);
+  ok(tabletWrong && tabletWrong.kind === 'wrong', 'tablet shows the wrong-answer card');
+  await waitForArmed(tablet);
+  await sleep(250);
+  await tablet.screenshot({ path: join(OUT, '6b-tablet-wrong.png') });
+  await tablet.close();
 
   /* ---- 6. Q4 CONTINUE → LEVEL COMPLETE ------------------------------- */
   const q4before = await page.evaluate(() => window.__WB__.scene().questionIndex);

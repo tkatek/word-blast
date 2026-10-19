@@ -2,24 +2,27 @@
  * FeedbackCard — the wooden-parchment answer-feedback card (correct /
  * wrong), replacing the old plain dark-blue rectangle.
  *
- * ONE reusable component on the blank parchment artwork
- * (assets/images/ui/feedback-card.png, baked by scripts/build-feedback-card.mjs):
+ * ONE reusable component on the supplied blank parchment artwork
+ * (assets/images/ui/feedback-card.png, installed verbatim — alpha-trimmed
+ * only — by scripts/prepare-feedback-card.mjs from the uploaded PNG):
  *
- *   ┌────────────────────────────┐
- *   │    [✓]  GREEN / RED        │  gradient banner + gold trim +
- *   │────────────────────────────│  circular badge straddling its edge
- *   │  Correct answer: C — "dog" │  bold ink highlight line
- *   │                            │
- *   │  A dog is an animal. A     │  measured, wrapped explanation
- *   │  spoon is an object...     │  (from the real question data)
- *   │                            │
- *   │       [ CONTINUE ]         │  wooden pill button (green/red)
- *   └────────────────────────────┘
+ *   ╔════════════════════════╗
+ *   ║   ┌──[✓] GREEN/RED──┐  ║  gradient banner + gold trim +
+ *   ║   └─────────────────┘  ║  circular badge straddling its edge
+ *   ║ Correct answer: C — "dog"  bold ink highlight line
+ *   ║                        ║
+ *   ║ A dog is an animal. A  ║  measured, wrapped explanation
+ *   ║ spoon is an object...  ║  (from the real question data)
+ *   ║                        ║
+ *   ║      [ CONTINUE ]      ║  wooden pill button (green/red)
+ *   ╚════════════════════════╝
  *
- * Final polish: a COMPACT card (406×290 world px — 72.5% of the old fixed
- * width, same artwork aspect so nothing stretches). Everything except the
- * blank parchment is drawn dynamically (header gradient, badge, texts,
- * button) — the PNG never bakes answer text.
+ * Compact card (428×292 world px) at the uploaded artwork's exact aspect
+ * (1424×972 = 1.465), so the painting is never stretched. Everything
+ * except the blank parchment is drawn dynamically (header gradient,
+ * badge, texts, button) — the PNG never bakes answer text. The layout
+ * constants below mirror the artwork's measured frame: side insets
+ * ≈ 9.2%/10.1% of width, top ≈ 16.7%, bottom ≈ 13.5% of height.
  *
  * Reliability contract (mirrors QuestionCard):
  *   - show() is one-shot per answer: a repeated call for the SAME token is
@@ -50,28 +53,30 @@ import { woodButton } from './GameHUD.js';
 export const FEEDBACK_CARD = {
   TEXTURE: 'ui-feedback-card',
   /**
-   * Card size in world px at scale 1 (artwork is 2× — stays crisp enlarged).
-   * Final polish: compact card — 72.5% of the previous width (406 vs 560),
-   * SAME artwork aspect (1.4) so the parchment frame is never stretched;
-   * long explanations grow it through the fitting ladder instead of a huge
-   * fixed panel (MAX_SCALE below).
+   * Card size in world px at scale 1 (artwork is 1424×972 @ ~3.3× — stays
+   * crisp enlarged). Exact uploaded-artwork aspect (1.465) so the wooden
+   * frame is never stretched; long explanations grow the card through the
+   * fitting ladder instead of a huge fixed panel (MAX_SCALE below).
    */
-  WIDTH: 406,
-  HEIGHT: 290,
+  WIDTH: 428,
+  HEIGHT: 292,
   ART: 'assets/images/ui/feedback-card.png'
 };
 
-/** Card layout (card-local px, origin = card center, scale-1 card). */
+/** Card layout (card-local px, origin = card center, scale-1 card).
+ *  Geometry measured from the uploaded artwork (1424×972): the parchment
+ *  writing surface starts ≈9.2% in from the left, 10.1% from the right,
+ *  16.7% from the top (leafy top rail) and 13.5% from the bottom. */
 const L = {
-  frame: 23,                            // parchment frame visual thickness
-  header: { w: 344, h: 78, top: 10 },   // banner inset from the card top
-  badge: { d: 48 },
+  frame: 41,                            // parchment frame visual thickness (widest side inset)
+  header: { w: 352, h: 62, top: 36 },   // banner — straddles the parchment's top inner edge
+  badge: { d: 46 },
   answerY: -40,                         // answer line top
-  explainBottom: 74,                    // explanation box bottom (button top 82)
-  button: { w: 208, h: 52, y: 108 },
-  /** writing inset each side beyond the frame (old 36 — tightened for the
-   *  compact card so the fitting ladder keeps its capacity) */
-  writePad: 24
+  explainBottom: 68,                    // explanation box bottom (button top 76)
+  button: { w: 212, h: 52, y: 102 },
+  /** writing inset each side beyond the frame — keeps every text glyph
+   *  inside the painted parchment, clear of the wooden border */
+  writePad: 8
 };
 
 /** Header palettes (from the supplied reference). */
@@ -95,11 +100,10 @@ const THEMES = {
 };
 
 /** DISPLAY font targets (world px after the card scale is applied). */
-const FONT = { title: 23, answer: 19, explain: { max: 16.5, min: 14 }, explainAbs: 14 };
+const FONT = { title: 22, answer: 19, explain: { max: 16.5, min: 14 }, explainAbs: 14 };
 const LINE_SPACING = 0.34;   // × font
-// Compact card: grows for long explanations up to ~630×450 world px (still
-// below the old fixed-growth ceiling of ~683) — the typical card stays at
-// 406×290 (72.5% of the old fixed width).
+// Compact card: grows for long explanations up to ~663×453 world px — the
+// typical card stays at 428×292.
 const MAX_SCALE = 1.55;
 
 /** Entrance / exit pacing (ms) — restrained, reduced-motion aware. */
@@ -155,7 +159,7 @@ export class FeedbackCard {
     const T = this.scene.textures;
     if (T.exists(FEEDBACK_CARD.TEXTURE)) return FEEDBACK_CARD.TEXTURE;
     const g = this.scene.add.graphics();
-    const W = 280, H = 200, r = 22, f = 16;
+    const W = 293, H = 200, r = 22, f = 30;
     g.fillStyle(0x5d3a1a, 1); g.fillRoundedRect(0, 0, W, H, r);
     g.fillStyle(0xa06e3f, 1); g.fillRoundedRect(3, 3, W - 6, H - 6, r - 3);
     g.fillStyle(0xb98b5e, 0.7); g.fillRoundedRect(6, 6, W - 12, f - 6, 8);
@@ -453,6 +457,9 @@ export class FeedbackCard {
     if (this.acted || !this.visible || !this.actionEnabled) return;
     this.acted = true;
     this.button?.disableInteractive();
+    // short UI click through the shared audio bus (same sound the HUD
+    // buttons use); optional-chained so headless envs without audio work
+    this.scene.registry.get('audio')?.emit('ui-click');
     this.hide(() => {
       if (this.onAction) {
         const cb = this.onAction;
