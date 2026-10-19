@@ -100,6 +100,92 @@ export function ensureMenuArtFallback(scene, key) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Artwork helpers: alpha-trim measurement + soft glow texture         */
+/* ------------------------------------------------------------------ */
+
+/** Measured trims, keyed by texture key (textures are game-wide and
+ *  immutable once loaded, so one measurement serves every scene). */
+const TRIM_CACHE = new Map();
+
+/**
+ * Bounding box of the NON-TRANSPARENT content of a texture (the supplied
+ * button artwork ships with transparent padding, so positioning and hit
+ * areas must follow the visible art, not the full canvas).
+ *
+ * Browser: rasterise the source into a scratch canvas and scan alpha.
+ * Headless/Node (fake 2D context reports no opaque pixels) or any read
+ * failure: fall back to the full canvas — the layout stays functional.
+ *
+ * @returns {{x:number,y:number,width:number,height:number}} content box
+ *          in TEXTURE pixels (never larger than the source).
+ */
+export function measureTextureTrim(scene, key) {
+  if (TRIM_CACHE.has(key)) return TRIM_CACHE.get(key);
+  const full = { x: 0, y: 0, width: 0, height: 0 };
+  let trim = null;
+  try {
+    if (!scene.textures.exists(key)) return full;
+    const src = scene.textures.get(key).getSourceImage();
+    full.width = src.width; full.height = src.height;
+    if (typeof document !== 'undefined' && src.width > 0 && src.height > 0) {
+      const cv = document.createElement('canvas');
+      cv.width = src.width; cv.height = src.height;
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(src, 0, 0);
+      const data = ctx.getImageData(0, 0, cv.width, cv.height).data;
+      let minX = cv.width, minY = cv.height, maxX = -1, maxY = -1;
+      for (let y = 0; y < cv.height && maxY < cv.height; y++) {
+        const row = y * cv.width * 4;
+        for (let x = 0; x < cv.width; x++) {
+          if (data[row + x * 4 + 3] > 8) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX >= minX && maxY >= minY) {
+        trim = { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+      }
+    }
+  } catch (e) {
+    trim = null; // tainted canvas / exotic environment — full-canvas layout
+  }
+  const result = trim || full;
+  TRIM_CACHE.set(key, result);
+  return result;
+}
+
+/** Radial white glow texture for the PLAY hover halo (ADD-blended). */
+export const GLOW_TEXTURE_KEY = 'wb-ui-glow';
+
+/**
+ * Create the shared radial glow texture once (canvas radial gradient:
+ * solid core → transparent rim). Returns the key, or null when the
+ * environment cannot paint canvases (headless tests — callers then
+ * simply skip the glow layer).
+ */
+export function ensureGlowTexture(scene) {
+  if (scene.textures.exists(GLOW_TEXTURE_KEY)) return GLOW_TEXTURE_KEY;
+  try {
+    const size = 256;
+    const tex = scene.textures.createCanvas(GLOW_TEXTURE_KEY, size, size);
+    const ctx = tex.getContext();
+    const grad = ctx.createRadialGradient(size / 2, size / 2, size * 0.10, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+    grad.addColorStop(0.45, 'rgba(255,255,255,0.38)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+    tex.refresh();
+    return GLOW_TEXTURE_KEY;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Shared palette + small drawing helpers                              */
 /* ------------------------------------------------------------------ */
 
