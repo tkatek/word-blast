@@ -162,18 +162,34 @@ const SILENT = 0.0025;   // ≈ -52 dBFS on the master tap → true silence
 const AUDIBLE = 0.006;   // clearly-above-silence floor for stretch texture
 
 /**
- * The real shots earlier in the suite can legitimately finish questions
- * and even the whole level (terminal states never return to AIMING), so
- * state-dependent tests recover by restarting level 1 and re-settling.
+ * Wait until the scene is fully interactive: AIMING with the question
+ * card docked. The real shots earlier in the suite can legitimately
+ * finish questions and even complete the level (terminal states never
+ * return to AIMING on their own), so this recovers by restarting level 1.
+ * Returns true when reached within `timeoutMs`.
  */
-async function ensurePlayable(page) {
-  const terminal = await page.evaluate(() =>
-    ['LEVEL_COMPLETE', 'LEVEL_FAILED', 'GAME_COMPLETE'].includes(window.__WB__.state()));
-  if (!terminal) return false;
-  await page.evaluate(() => { window.__WB__.setAutoPause(false); window.__WB__.gotoLevel(1); });
-  await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 20000 });
-  await sleep(2000); // intro one-shots finish
-  return true;
+async function awaitInteractive(page, timeoutMs = 25000) {
+  const t0 = Date.now();
+  let restarts = 0;
+  while (Date.now() - t0 < timeoutMs) {
+    const snap = await page.evaluate(() => {
+      const s = window.__WB__.state();
+      const c = window.__WB__.cardInfo();
+      return {
+        ready: s === 'AIMING' && !!c && c.phase === 'READY_TOP',
+        terminal: ['LEVEL_COMPLETE', 'LEVEL_FAILED', 'GAME_COMPLETE'].includes(s)
+      };
+    });
+    if (snap.ready) return { ok: true, restarts };
+    if (snap.terminal && restarts < 3) {
+      restarts++;
+      await page.evaluate(() => { window.__WB__.setAutoPause(false); window.__WB__.gotoLevel(1); });
+      await sleep(2500);
+    } else {
+      await sleep(400);
+    }
+  }
+  return { ok: false, restarts };
 }
 
 /** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */
@@ -401,6 +417,9 @@ try {
   // 9. pause/mute during stretch. The pause cue plays AFTER pauseAll (by
   // design), so give it its fraction of a second, then require a fully
   // quiet, movement-free paused state.
+  const pauseReady = await awaitInteractive(page);
+  check('pause test precondition: interactive AIMING state', pauseReady.ok,
+    `restarts=${pauseReady.restarts}`);
   await dragPouch(page, -90, 60, 700);
   await sleep(250);
   await page.evaluate(() => window.__WB__.scene().togglePause());
@@ -422,21 +441,14 @@ try {
     resumedStill.max < SILENT, `maxRMS=${resumedStill.max.toExponential(2)}`);
 
   // 10. question card transitions — the tap only opens when the game is in
-  // a safe state (AIMING/QUESTION_READY with the card docked); after the
-  // collapse shot the scene may still be in FEEDBACK, so wait for BOTH.
-  await ensurePlayable(page);
-  const cardWaitDebug = await page.waitForFunction(() => {
-    const s = window.__WB__.state();
-    const c = window.__WB__.cardInfo();
-    return (s === 'AIMING' || s === 'QUESTION_READY') && c && c.phase === 'READY_TOP';
-  }, { timeout: 15000 }).catch(() => page.evaluate(() => ({
-    state: window.__WB__.state(),
-    phase: window.__WB__.cardInfo() ? window.__WB__.cardInfo().phase : null,
-    audioPaused: window.__WB__.audio().paused,
-    sling: window.__WB__.audio().sling
-  })));
-  if (cardWaitDebug && cardWaitDebug.state !== undefined) {
-    console.log('  ?? card-wait timed out:', JSON.stringify(cardWaitDebug));
+  // a safe state; awaitInteractive handles feedback/level-complete recovery.
+  const cardReady = await awaitInteractive(page);
+  check('card test precondition: interactive AIMING state', cardReady.ok,
+    `restarts=${cardReady.restarts}`);
+  if (!cardReady.ok) {
+    check('card: open/close transition phases worked', false, 'precondition failed');
+    check('card: one whoosh per open/close transition', false, 'precondition failed');
+    check('card: reading period is quiet', false, 'precondition failed');
   }
   const cardBefore = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
   const docked = await page.evaluate(() => {

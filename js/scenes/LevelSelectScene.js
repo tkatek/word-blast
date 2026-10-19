@@ -78,6 +78,11 @@ export class LevelSelectScene extends Phaser.Scene {
     // Grid geometry first (pure) — the atmosphere centres on it.
     this.grid = computeLevelGrid(WORLD.WIDTH, WORLD.HEIGHT, SAVE.MAX_LEVELS);
 
+    // A genuinely-new unlock renders in its LOCKED look first so the
+    // celebration has something to reveal (snapshot updates immediately).
+    this.celebrationId = this.computeCelebrationId();
+    this.highlightId = this.computeHighlightId();
+
     // 1) scenery + atmospheric separation
     this.background = new LevelSelectBackground(this);
     this.atmosphere = buildLevelSelectAtmosphere(this, {
@@ -94,9 +99,7 @@ export class LevelSelectScene extends Phaser.Scene {
     this.buildBackButton();
     this.buildCards();
 
-    // 5–6) highlight + one-time unlock celebration
-    this.highlightId = this.computeHighlightId();
-    this.celebrationId = this.computeCelebrationId();
+    // 5) golden next-playable highlight
     this.applyHighlight();
     this.buildAllCompleteRibbon();
 
@@ -283,13 +286,15 @@ export class LevelSelectScene extends Phaser.Scene {
       const lvl = this.levels ? this.levels.getLevel(id) : null;
       const entry = this.save ? this.save.getLevelEntry(id) : { bestStars: 0 };
       const unlocked = this.save ? this.save.isLevelUnlocked(id) : id === 1;
+      // The celebration card waits in its locked look until the reveal.
+      const visualUnlocked = unlocked && id !== this.celebrationId;
       const card = new LevelCard(this, {
         x: pos.x, y: pos.y,
         width: this.grid.cardW, height: this.grid.cardH,
         levelId: id,
         levelName: lvl ? lvl.name : '',
         stars: entry.bestStars,
-        unlocked,
+        unlocked: visualUnlocked,
         reducedMotion: this.reducedMotion,
         onSelect: (c) => this.selectLevel(c.levelId),
         onLockedTap: (c) => this.onLockedCardTap(c)
