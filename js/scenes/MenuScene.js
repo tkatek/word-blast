@@ -46,11 +46,13 @@ const LAYOUT = {
   logo: { y: 146, width: 530 },
   subtitle: { y: 308, height: 46 },
   panel: { y: 378, height: 66, font: '22px' },
-  // Final polish: PLAY is the hero action — a wider wooden bar (height
-  // follows the art's aspect ≈ 100) with a GOLDEN play triangle; the
-  // destructive reset sits smaller and muted below it.
-  play: { y: 478, width: 440 },   // height follows the button art's aspect
-  reset: { y: 586, width: 200, height: 48 }
+  // PLAY is the hero action — the supplied square wooden plate (the art
+  // carries its own PLAY lettering + golden triangle + leaves). Its
+  // visible content is sized by HEIGHT (≈208 → width ≈237 from the art's
+  // 1194×1048 trim) so the hero sits clear of the progress panel above
+  // and the quiet reset below on the 720-tall world.
+  play: { y: 534, height: 208 },  // width follows the button art's aspect
+  reset: { y: 680, width: 190, height: 38 }
 };
 
 export class MenuScene extends Phaser.Scene {
