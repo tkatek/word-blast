@@ -450,45 +450,43 @@ try {
     check('card: one whoosh per open/close transition', false, 'precondition failed');
     check('card: reading period is quiet', false, 'precondition failed');
   }
-  const cardBefore = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
-  const docked = await page.evaluate(() => {
-    const c = window.__WB__.cardInfo();
-    return window.__WB__.worldToClient(c.x, c.y);
-  });
-  await page.mouse.click(docked.x, docked.y);
-  await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 3000 }).catch(() => {});
-  let openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
-  if (openedPhase !== 'EXPANDED') { // one retry for a state-boundary race
-    await page.waitForFunction(() => {
-      const s = window.__WB__.state();
-      const c = window.__WB__.cardInfo();
-      return (s === 'AIMING' || s === 'QUESTION_READY') && c && c.phase === 'READY_TOP';
-    }, { timeout: 8000 }).catch(() => {});
-    const c2 = await page.evaluate(() => {
+  if (cardReady.ok) {
+    const cardBefore = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
+    const docked = await page.evaluate(() => {
       const c = window.__WB__.cardInfo();
       return window.__WB__.worldToClient(c.x, c.y);
     });
-    await page.mouse.click(c2.x, c2.y);
+    await page.mouse.click(docked.x, docked.y);
     await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 3000 }).catch(() => {});
-    openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
+    let openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
+    if (openedPhase !== 'EXPANDED') { // one retry for a state-boundary race
+      await awaitInteractive(page, 8000);
+      const c2 = await page.evaluate(() => {
+        const c = window.__WB__.cardInfo();
+        return window.__WB__.worldToClient(c.x, c.y);
+      });
+      await page.mouse.click(c2.x, c2.y);
+      await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'EXPANDED', { timeout: 3000 }).catch(() => {});
+      openedPhase = await page.evaluate(() => window.__WB__.cardInfo().phase);
+    }
+    const cardOpened = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
+    await sleep(900); // the open whoosh is a one-shot — let it finish
+    const readingQuiet = await outputLevel(page, 1500);
+    const expandedPt = await page.evaluate(() => {
+      const c = window.__WB__.cardInfo();
+      return window.__WB__.worldToClient(c.x, c.y);
+    });
+    await page.mouse.click(expandedPt.x, expandedPt.y); // close via the card tap zone
+    await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'READY_TOP', { timeout: 4000 }).catch(() => {});
+    const cardClosed = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
+    check('card: open/close transition phases worked',
+      openedPhase === 'EXPANDED', `phase after open tap: ${openedPhase}`);
+    check('card: one whoosh per open/close transition',
+      cardOpened - cardBefore === 1 && cardClosed - cardOpened === 1,
+      `open+${cardOpened - cardBefore}, close+${cardClosed - cardOpened}`);
+    check('card: reading period is quiet', readingQuiet.max < SILENT,
+      `maxRMS=${readingQuiet.max.toExponential(2)}`);
   }
-  const cardOpened = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
-  await sleep(900); // the open whoosh is a one-shot — let it finish
-  const readingQuiet = await outputLevel(page, 1500);
-  const expandedPt = await page.evaluate(() => {
-    const c = window.__WB__.cardInfo();
-    return window.__WB__.worldToClient(c.x, c.y);
-  });
-  await page.mouse.click(expandedPt.x, expandedPt.y); // close via the card tap zone
-  await page.waitForFunction(() => window.__WB__.cardInfo().phase === 'READY_TOP', { timeout: 4000 }).catch(() => {});
-  const cardClosed = await page.evaluate(() => window.__WB__.audio().stats.plays['ui-question'] || 0);
-  check('card: open/close transition phases worked',
-    openedPhase === 'EXPANDED', `phase after open tap: ${openedPhase}`);
-  check('card: one whoosh per open/close transition',
-    cardOpened - cardBefore === 1 && cardClosed - cardOpened === 1,
-    `open+${cardOpened - cardBefore}, close+${cardClosed - cardOpened}`);
-  check('card: reading period is quiet', readingQuiet.max < SILENT,
-    `maxRMS=${readingQuiet.max.toExponential(2)}`);
 
   // 11. lifecycle — 20 drag/cancel cycles + question restarts, no growth.
   // Each cycle: settle to AIMING with a docked card, grab, drift ~10 px
