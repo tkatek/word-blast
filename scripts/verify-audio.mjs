@@ -161,6 +161,21 @@ async function outputLevel(page, ms) {
 const SILENT = 0.0025;   // ≈ -52 dBFS on the master tap → true silence
 const AUDIBLE = 0.006;   // clearly-above-silence floor for stretch texture
 
+/**
+ * The real shots earlier in the suite can legitimately finish questions
+ * and even the whole level (terminal states never return to AIMING), so
+ * state-dependent tests recover by restarting level 1 and re-settling.
+ */
+async function ensurePlayable(page) {
+  const terminal = await page.evaluate(() =>
+    ['LEVEL_COMPLETE', 'LEVEL_FAILED', 'GAME_COMPLETE'].includes(window.__WB__.state()));
+  if (!terminal) return false;
+  await page.evaluate(() => { window.__WB__.setAutoPause(false); window.__WB__.gotoLevel(1); });
+  await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 20000 });
+  await sleep(2000); // intro one-shots finish
+  return true;
+}
+
 /** Drag the pouch from rest toward (dx, dy) over `ms` in smooth steps. */async function dragPouch(page, dx, dy, ms = 700) {
   const start = await page.evaluate(() => {
     const s = window.__WB__.scene();
@@ -242,6 +257,7 @@ try {
   check('idle: direct game output silent for 10 s', idle.max < SILENT,
     `maxRMS=${idle.max.toExponential(2)} over 10s (${idleSounds} playing)`);
   check('idle: no sound instances remain', idleSounds === 0);
+  await saveRecording(page, 'after-idle-silence.wav');
 
   // 3. pull-and-hold: stretch while moving, silence while held
   await page.evaluate(() => window.__wbTap.recStart());
@@ -407,6 +423,7 @@ try {
   // 10. question card transitions — the tap only opens when the game is in
   // a safe state (AIMING/QUESTION_READY with the card docked); after the
   // collapse shot the scene may still be in FEEDBACK, so wait for BOTH.
+  await ensurePlayable(page);
   await page.waitForFunction(() => {
     const s = window.__WB__.state();
     const c = window.__WB__.cardInfo();
@@ -455,6 +472,7 @@ try {
   // 11. lifecycle — 20 drag/cancel cycles + question restarts, no growth.
   // Each cycle: settle to AIMING with a docked card, grab, drift ~10 px
   // (far below MIN_POWER_RATIO), release → dud cancel.
+  await ensurePlayable(page);
   const lifecycleBase = await page.evaluate(() => ({
     sounds: window.__WB__.game.sound.sounds.length,
     voices: window.__WB__.audio().activeVoices,

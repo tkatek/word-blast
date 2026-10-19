@@ -516,10 +516,12 @@ export class AudioManager {
       };
       // one-shots RELEASE their source + nodes when they finish — a long
       // session must not accumulate dead Sound instances in the manager.
-      // (Phaser emits 'complete' on natural end, 'destroy' after teardown.)
+      // (Phaser emits 'complete' on natural end. manager.remove() destroys
+      // AND splices the list — plain destroy() leaves a nulled husk that
+      // throws if anything reads e.g. .loop before the next frame.)
       s.once('complete', () => {
         drop();
-        try { s.destroy(); } catch { /* already gone */ }
+        try { this.sound.remove(s); } catch { /* already gone */ }
       });
       s.once('destroy', drop);
     }
@@ -527,7 +529,7 @@ export class AudioManager {
   }
 
   _stopVoice(rec) {
-    try { rec.s.stop(); rec.s.destroy(); } catch { /* already gone */ }
+    try { this.sound.remove(rec.s); } catch { /* already gone */ }
     const i = this._voices.indexOf(rec);
     if (i !== -1) this._voices.splice(i, 1);
   }
@@ -643,7 +645,7 @@ export class AudioManager {
           this._sling.voice = null; // next updateSlingMotion chains or fades
           this._sling.key = null;
         }
-        try { voice.destroy(); } catch { /* gone */ }
+        try { this.sound.remove(voice); } catch { /* gone */ }
       });
       this.stats.plays['sling-stretch'] = (this.stats.plays['sling-stretch'] || 0) + 1;
     } catch { /* blocked */ }
@@ -659,11 +661,12 @@ export class AudioManager {
     s.voice = null;
     s.key = null;
     if (!voice) return;
+    const release = () => { try { this.sound.remove(voice); } catch { /* gone */ } };
     if (fadeMs <= 0) {
-      try { voice.stop(); voice.destroy(); } catch { /* gone */ }
+      release();
       return;
     }
-    this._ramp(voice, 0, fadeMs, () => { try { voice.stop(); voice.destroy(); } catch { /* gone */ } });
+    this._ramp(voice, 0, fadeMs, release);
   }
 
   /* ------------------------------------------------------------------ */

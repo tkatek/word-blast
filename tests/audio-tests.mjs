@@ -90,6 +90,13 @@ function makeFakeSound() {
       this.sounds.push(s);
       return s;
     },
+    remove(sound) {
+      // mirror Phaser BaseSoundManager#remove: destroy + splice, atomically
+      const i = this.sounds.indexOf(sound);
+      if (i !== -1) this.sounds.splice(i, 1);
+      try { sound.stop(); sound.destroy(); } catch { /* gone */ }
+      return true;
+    },
     pauseAll() { this.pauseAllCount++; },
     resumeAll() { this.resumeAllCount++; },
     unlock() { this.unlockCount = (this.unlockCount || 0) + 1; },
