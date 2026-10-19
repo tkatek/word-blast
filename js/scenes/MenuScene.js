@@ -29,7 +29,7 @@ import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
 import {
   MENU_ART, menuPreloadList, ensureMenuArtFallback, isFallbackTexture,
-  WoodButton, ConfirmDialog, PALETTE, PLAY_ICON_GOLD,
+  WoodButton, ArtButton, ConfirmDialog, PALETTE,
   drawParchment, drawRibbon, drawStar, drawCheckBadge, menuText
 } from '../systems/MenuUI.js';
 
