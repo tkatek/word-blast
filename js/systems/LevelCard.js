@@ -34,9 +34,10 @@ export const CARD_ART = {
 };
 
 /**
- * The user-supplied blank wooden parchment card (scripts/build-level-card-art.mjs
- * installs it, alpha-trimmed). Preloaded under the SAME key as the procedural
- * fallback so headless environments simply paint the stand-in instead.
+ * Optional supplied card artwork (alpha-trimmed) under the SAME key as the
+ * procedural painter — when the PNG is absent the painter simply runs
+ * instead (the supplied square plate turned out to be the PLAY button art
+ * and moved to the main menu, so the procedural frame is the live design).
  */
 export const CARD_ART_FILE = 'assets/images/ui/level-card.png';
 

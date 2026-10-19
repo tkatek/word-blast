@@ -76,7 +76,11 @@ const L = {
   button: { w: 212, h: 52, y: 102 },
   /** writing inset each side beyond the frame — keeps every text glyph
    *  inside the painted parchment, clear of the wooden border */
-  writePad: 8
+  writePad: 8,
+  /** the painted parchment window is ~2px left of the card center (the
+   *  artwork's side rails are asymmetric: 9.2% vs 10.1%) — shifting the
+   *  content by the same amount centers the text in the PARCHMENT */
+  centerX: 2
 };
 
 /** Header palettes (from the supplied reference). */
@@ -268,7 +272,7 @@ export class FeedbackCard {
 
     // rebuild content (cheap; keeps tokens safe)
     this.content?.destroy();
-    this.content = this.scene.add.container(0, 0);
+    this.content = this.scene.add.container(L.centerX, 0);
     this.root.add(this.content);
 
     /* --- header banner + title + badge ----------------------------- */

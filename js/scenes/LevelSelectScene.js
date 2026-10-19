@@ -12,7 +12,8 @@
  *   2. a large wooden hanging SELECT LEVEL sign — ropes from above,
  *      golden lettering, leaves, metal bolts — entering with a gentle
  *      slide + settling swing (once, never looping);
- *   3. a wooden MENU button (golden back arrow + leaves) upper-left;
+ *   3. the supplied wooden MENU bar (arrow + lettering in the art)
+ *      upper-left — hover brightens, press compresses;
  *   4. exactly 15 LevelCard components in the classic 5×3 grid, generated
  *      from LevelManager data + SaveManager progress (numbers, names and
  *      stars are never hardcoded; locked levels wear a metallic padlock);
@@ -28,7 +29,10 @@
 import Phaser from 'phaser';
 import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
-import { PALETTE, menuText, drawParchment, drawWoodSlab, drawLeaf } from '../systems/MenuUI.js';
+import {
+  PALETTE, menuText, drawParchment, drawWoodSlab, drawLeaf,
+  ArtButton, MENU_BUTTON_ART
+} from '../systems/MenuUI.js';
 import { LevelCard, ensureLevelCardTextures, CARD_ART, CARD_ART_FILE, CARD_DESIGN } from '../systems/LevelCard.js';
 import { computeLevelGrid } from '../systems/LevelGridLayout.js';
 import {
@@ -41,13 +45,17 @@ import { playLevelUnlock } from '../systems/LevelUnlockAnimation.js';
  *  displayed (drives the one-time unlock celebration). */
 const SEEN_KEY = 'lvlselSeenUnlocked';
 
-/** The supplied WORD BLAST lettering logo (level-select title). */
+/** Optional level-select title lettering (absent → golden text title). */
 const LOGO_ART = { key: 'lvlsel-logo', file: 'assets/images/ui/level-select-logo.png' };
 
 /** Fixed-world layout (1280×720; the camera always shows the whole world). */
 const LAYOUT = {
   logo: { y: 104, width: 470 },
-  back: { x: 112, y: 54, w: 152, h: 64 },
+  // MENU bar (supplied art ≈ 3.09:1): visible content 176×57 world units,
+  // centred at (124, 52) → 36px clear of the left edge, 23px of the top —
+  // comfortable on every device, and the CSS safe-area padding on the
+  // canvas shell keeps it clear of notches on phones.
+  back: { x: 124, y: 52, w: 176, h: 57 },
   toastY: 188
 };
 
@@ -66,14 +74,17 @@ export class LevelSelectScene extends Phaser.Scene {
     // The supplied blank wooden card art under the procedural fallback's own
     // key: when the PNG is reachable the painter simply never runs.
     this.load.image(CARD_ART.frame, ((import.meta.env && import.meta.env.BASE_URL) || '/') + CARD_ART_FILE);
-    // The supplied WORD BLAST lettering (screen title).
+    // Optional lettering art (screen title).
     this.load.image(LOGO_ART.key, ((import.meta.env && import.meta.env.BASE_URL) || '/') + LOGO_ART.file);
+    // The supplied wooden MENU bar (arrow + lettering painted in).
+    this.load.image(MENU_BUTTON_ART.key, ((import.meta.env && import.meta.env.BASE_URL) || '/') + MENU_BUTTON_ART.file);
     this.load.on('loaderror', (file) => {
       if (file.key === CARD_ART.frame) {
         ensureLevelCardTextures(this); // procedural card stand-in
         return;
       }
       if (file.key === LOGO_ART.key) return; // text-logo fallback in buildTitle
+      if (file.key === MENU_BUTTON_ART.key) return; // procedural slab in buildBackButton
       ensureLevelSelectArtFallback(this, file.key);
     });
   }
@@ -177,6 +188,27 @@ export class LevelSelectScene extends Phaser.Scene {
 
   buildBackButton() {
     const { x, y, w, h } = LAYOUT.back;
+
+    // Supplied wooden MENU bar (arrow + MENU lettering painted in the
+    // art): ArtButton sizes/hits from the art's VISIBLE (alpha-trimmed)
+    // bounds — no transparent-padding click zone, uniform scale, aspect
+    // preserved. Hover gently brightens (additive twin of the art), press
+    // compresses to 95%, and goMenu() already guards transitions.
+    if (this.textures.exists(MENU_BUTTON_ART.key)) {
+      this.backButton = new ArtButton(this, {
+        x, y, width: w,
+        texture: MENU_BUTTON_ART.key,
+        hoverScale: 1.05, pressScale: 0.95,
+        brightness: true,
+        reducedMotion: this.reducedMotion,
+        onClick: () => this.goMenu()
+      });
+      this.backButton.container.setDepth(20);
+      return;
+    }
+
+    // Headless envs (art unreachable): the procedural wooden slab with
+    // golden arrow + label — same position contract, same behaviour.
     const c = this.add.container(x, y).setDepth(20);
     this.backButton = { container: c };
 

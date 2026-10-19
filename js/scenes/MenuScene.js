@@ -13,10 +13,11 @@
  *      read from the SaveManager (never hardcoded), with a short count
  *      animation only when the values genuinely changed since the last
  *      visit;
- *   5. a large wooden PLAY button (fade transition into LevelSelectScene,
- *      rapid-click guarded) and a smaller RESET SAVE button behind a
- *      confirmation popup (Cancel preserves progress; only the confirmed
- *      action calls the existing SaveManager.reset()).
+ *   5. the supplied square wooden PLAY plate (hover glow +5%, press −5%,
+ *      fade transition into LevelSelectScene, rapid-click guarded) and a
+ *      smaller RESET SAVE button behind a confirmation popup (Cancel
+ *      preserves progress; only the confirmed action calls the existing
+ *      SaveManager.reset()).
  *
  * Decorative motion (logo sparkles, scenery dust, button shine) is skipped
  * entirely when the player has Reduced Motion enabled in the save settings.
@@ -286,22 +287,25 @@ export class MenuScene extends Phaser.Scene {
   /* ---------------------------------------------------------------- */
 
   buildButtons() {
-    // PLAY wears the supplied wooden-bar element (user follow-up): the
-    // art's aspect sets the height (440 / 4.39 ≈ 100) — scaled uniformly,
-    // never stretched, drawn at full source resolution (the GPU upscales
-    // smoothly on large-DPI screens). Final polish: the wide hero bar with
-    // a GOLDEN play symbol (cream text keeps the contrast). A missing
-    // texture (headless env) falls back to the procedural face under the
+    // PLAY wears the supplied square wooden plate AS-IS (user follow-up):
+    // the art carries its own PLAY lettering, golden triangle and corner
+    // leaves — no overlayed label or icon, no procedural face on top.
+    // ArtButton sizes and hits from the art's VISIBLE (alpha-trimmed)
+    // bounds, scales it uniformly at full source resolution, and animates
+    // only the container (resting scale 1) so hover (+5% + warm glow) and
+    // press (−5%) can never fight the responsive layout. A missing
+    // texture (headless env) falls back to the procedural plate under the
     // same key.
-    this.playButton = new WoodButton(this, {
+    this.playButton = new ArtButton(this, {
       x: LAYOUT.centerX, y: LAYOUT.play.y,
-      width: LAYOUT.play.width,
-      label: 'PLAY', variant: 'primary', icon: 'play', leaves: true,
-      iconColors: PLAY_ICON_GOLD,
-      bgTexture: MENU_ART.playButton.key,
-      shine: !this.reducedMotion,
+      height: LAYOUT.play.height,
+      texture: MENU_ART.playButton.key,
+      hoverScale: 1.05, pressScale: 0.95,
+      glow: !this.reducedMotion,
+      reducedMotion: this.reducedMotion,
       onClick: () => this.startPlay()
     });
+    this.playButton.container.setDepth(1); // same layer as the panel above
     this.playButton.setEnabled(false); // armed after the entrance (≈0.9 s)
 
     // Reset stays reachable but deliberately quiet: small, dark secondary
@@ -310,7 +314,7 @@ export class MenuScene extends Phaser.Scene {
       x: LAYOUT.centerX, y: LAYOUT.reset.y,
       width: LAYOUT.reset.width, height: LAYOUT.reset.height,
       label: 'RESET SAVE', variant: 'secondary', icon: 'reset',
-      fontSize: '18px',
+      fontSize: '17px',
       onClick: () => this.openResetDialog()
     });
     this.resetButton.container.setAlpha(0.82);
