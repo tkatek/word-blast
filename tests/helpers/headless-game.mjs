@@ -213,6 +213,9 @@ export async function createHeadlessGame() {
     } catch { /* scene mid-restart */
     }
   }, 60);
+  // Never hold the Node process open: suites that destroy the game
+  // without calling h.destroy() must still exit when their work is done.
+  feedbackPoller.unref?.();
 
   return harness;
 }

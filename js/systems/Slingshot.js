@@ -210,17 +210,23 @@ export class Slingshot {
 
   onPointerUp() {
     if (!this.dragging) return;
-    this.dragging = false;
-    this.grabOffset = null;
     const p = this.pouchPoint();
     const dx = this.anchor.x - p.x;
     const dy = this.anchor.y - p.y;
     const dragLen = Math.hypot(dx, dy);
     const power = dragLen / SLINGSHOT.MAX_DRAG;
     if (power < SLINGSHOT.MIN_POWER_RATIO) {
-      this.cancelDrag(); // dud — spring back gently instead of launching
+      // dud — spring back gently instead of launching. MUST run while
+      // `dragging` is still true: cancelDrag's own guard makes it a NO-OP
+      // otherwise, which left the pouch pulled out after a dud release —
+      // the next grab then accumulated the offset (5px → 10px → 17px…)
+      // until a "tiny" drag crossed the power threshold and fired a shot
+      // the player never intended (caught by the audio lifecycle suite).
+      this.cancelDrag();
       return;
     }
+    this.dragging = false;
+    this.grabOffset = null;
     const speed = Math.min(power, 1) * SLINGSHOT.MAX_SPEED;
     const vx = (dx / dragLen) * speed;
     const vy = (dy / dragLen) * speed;
