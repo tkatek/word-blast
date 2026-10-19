@@ -154,6 +154,15 @@ export class GameScene extends Phaser.Scene {
 
     this.matter.world.on('collisionstart', this.onCollisionStart, this);
     this.input.keyboard.on('keydown-P', () => this.togglePause());
+    // Escape pauses/resumes too (final polish): with the exit confirmation
+    // card on screen it simply cancels that dialog instead.
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this.hud && this.hud.pauseOpen && this.hud.confirmVisible) {
+        this.hud.hideConfirm();
+        return;
+      }
+      this.togglePause();
+    });
     this.input.keyboard.on('keydown-R', () => this.restartLevel());
     this.input.keyboard.on('keydown-M', () => this.exitToMenu());
     // Fix #19 — Space activates the flying bird's ability (desktop). The
@@ -305,22 +314,27 @@ export class GameScene extends Phaser.Scene {
     this.overlayButton(this.failOverlay, 'RESTART LEVEL', 390, () => this.restartLevel(), 'orange');
     this.overlayButton(this.failOverlay, 'LEVELS', 458, () => this.exitToLevelSelect(), 'slate');
 
-    // victory overlay
+    // victory overlay — same wooden/parchment system as every other panel
+    // (final polish: was plain white text on a black scrim)
     this.winOverlay = this.add.container(0, 0).setDepth(DEPTH.OVERLAY).setVisible(false);
-    this.winOverlay.add(this.add.rectangle(fx, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x000000, 0.65));
-    this.winTitle = this.add.text(fx, 150, 'LEVEL COMPLETE!', {
-      fontFamily: 'Arial', fontSize: '46px', fontStyle: 'bold', color: '#90be6d'
+    this.winOverlay.add(this.add.rectangle(fx, WORLD.HEIGHT / 2, WORLD.WIDTH, WORLD.HEIGHT, 0x08131f, 0.62));
+    const winCard = woodPanel(this, fx, 296, 500, 420);
+    const winInner = woodPanel(this, fx, 296, 462, 382, 'parch');
+    this.winTitle = chunkyText(this, fx, 158, 'LEVEL COMPLETE!', 40, '#4f9d69', 0x2c4a1e, 0).setOrigin(0.5);
+    // three DRAWN stars (earned gold / unearned dark), popped in per result
+    this.winStarIcons = [-1, 0, 1].map((i) => {
+      const empty = this.add.image(fx + i * 78, 238, 'wbhud-star-empty').setDisplaySize(62, 62);
+      const full = this.add.image(fx + i * 78, 238, 'wbhud-star').setDisplaySize(62, 62).setVisible(false);
+      return { empty, full };
+    });
+    this.winScore = this.add.text(fx, 302, '', {
+      fontFamily: 'Arial', fontSize: '24px', fontStyle: 'bold', color: '#5c3a1e'
     }).setOrigin(0.5);
-    this.winStars = this.add.text(fx, 225, '', {
-      fontFamily: 'Arial', fontSize: '54px', color: '#ffd60a'
-    }).setOrigin(0.5);
-    this.winScore = this.add.text(fx, 290, '', {
-      fontFamily: 'Arial', fontSize: '24px', color: '#ffffff'
-    }).setOrigin(0.5);
-    this.winOverlay.add([this.winTitle, this.winStars, this.winScore]);
-    this.overlayButton(this.winOverlay, 'NEXT LEVEL ▶', 360, () => this.goNextLevel(), 'green');
-    this.overlayButton(this.winOverlay, 'REPLAY', 425, () => this.restartLevel(), 'blue');
-    this.overlayButton(this.winOverlay, 'MENU', 490, () => this.exitToMenu(), 'slate');
+    this.winOverlay.add([winCard, winInner, this.winTitle, ...this.winStarIcons.map((p) => p.empty),
+      ...this.winStarIcons.map((p) => p.full), this.winScore]);
+    this.overlayButton(this.winOverlay, 'NEXT LEVEL ▶', 346, () => this.goNextLevel(), 'green');
+    this.overlayButton(this.winOverlay, 'REPLAY', 408, () => this.restartLevel(), 'blue');
+    this.overlayButton(this.winOverlay, 'MENU', 470, () => this.exitToMenu(), 'slate');
 
     // rotate-device overlay (phones in portrait — gameplay is frozen behind it)
     this.rotateOverlay = this.add.container(WORLD.WIDTH / 2, WORLD.HEIGHT / 2).setDepth(200).setVisible(false);
@@ -1031,7 +1045,21 @@ export class GameScene extends Phaser.Scene {
     this.save.recordLevelResult(this.levelId, score, stars);
     this.stateMachine.set(STATES.LEVEL_COMPLETE);
 
-    this.winStars.setText('★'.repeat(stars) + '☆'.repeat(3 - stars));
+    // drawn stars pop in one by one (the audio chimes stagger the same way)
+    const reducedWin = !!(this.save && this.save.data.settings && this.save.data.settings.reducedMotion);
+    this.winStarIcons.forEach((pair, i) => {
+      const lit = i < stars;
+      pair.full.setVisible(lit);
+      pair.empty.setVisible(!lit);
+      pair.full.setScale(1);
+      if (lit && !reducedWin) {
+        pair.full.setScale(0.1);
+        this.tweens.add({
+          targets: pair.full, scale: 1, duration: 300,
+          delay: 300 + i * 180, ease: 'Back.easeOut'
+        });
+      }
+    });
     this.winScore.setText(`Score: ${score}`);
     const nextBtn = this.winOverlay.list.find((t) => t.labelText && t.labelText.text === 'NEXT LEVEL ▶');
     if (nextBtn) nextBtn.setVisible(this.levelId < 15);
@@ -1039,6 +1067,7 @@ export class GameScene extends Phaser.Scene {
       this.stateMachine.set(STATES.GAME_COMPLETE);
       this.winTitle.setText('🏆 ALL 15 LEVELS COMPLETE!');
     }
+    this.fitWinTitle();
     this.winOverlay.setVisible(true);
     // Fix #22 — audio hook: stars drive the staggered chimes inside
     // AudioManager; the all-levels finish gets its victory sting.
@@ -1077,9 +1106,18 @@ export class GameScene extends Phaser.Scene {
     this.refreshHUD();
   }
 
+  /** Keep the victory title inside the parchment window (long variants). */
+  fitWinTitle() {
+    let size = 40;
+    this.winTitle.setFontSize(size);
+    while (this.winTitle.width > 436 && size > 22) {
+      size -= 2;
+      this.winTitle.setFontSize(size);
+    }
+  }
+
   /** Wood-style fail card content per failure kind (Fix #17). */
-  refreshFailOverlay(reason) {
-    if (reason === 'time-up') {
+  refreshFailOverlay(reason) {    if (reason === 'time-up') {
       this.failTitle.setText("TIME'S UP!");
       this.failBody.setText('The clock ran out on this level.\nBlast faster next time!');
       this.failRetryBtn.setVisible(false);

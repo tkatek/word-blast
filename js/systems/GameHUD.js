@@ -5,6 +5,12 @@
  *   CENTER  three-compartment panel: Q n/total | clock + MM:SS | stars
  *   RIGHT   hearts panel | shots panel (bird portrait + ×N) | score | sound
  *
+ * PAUSE (final polish): one minimal overlay — the gameplay camera gets a
+ * grayscale + soft-blur post-fx while everything is frozen, and the HUD's
+ * own camera (which never shakes and never filters) shows a single large
+ * circular wooden RESUME button plus one small confirmed EXIT control.
+ * No settings list: sound stays on the top bar's existing sound button.
+ *
  * Design contract with the scene (unchanged since Fix #17):
  *   - The HUD OWNS NO gameplay state. The scene pushes one snapshot object
  *     through sync() (from its single refreshHUD() funnel) plus per-frame
@@ -605,59 +611,79 @@ export class GameHUD {
   }
 
   /* ---------------------------------------------------------------- */
-  /* Pause menu                                                        */
+  /* Pause overlay (final polish: minimal, blurred grayscale freeze)   */
   /* ---------------------------------------------------------------- */
+  /**
+   * The old settings-list pause menu is gone. Pausing now FREEZES the
+   * gameplay (the scene already pauses physics, timers and input), applies
+   * a grayscale + soft blur to the gameplay presentation ONLY (post-fx on
+   * the gameplay camera — the HUD's own camera stays sharp and colored),
+   * and shows ONE beautiful centered circular wooden RESUME button plus a
+   * small, easy-to-miss EXIT control (still confirmed before any progress
+   * is lost). Sound / music / fx toggles live on through their existing
+   * authorized interface — the always-visible sound button on the top bar.
+   */
   buildPauseMenu() {
     const s = this.scene;
     this.menu = s.add.container(WORLD.WIDTH / 2, WORLD.HEIGHT / 2).setDepth(HUD_DEPTH.MENU).setVisible(false);
 
-    const scrim = s.add.rectangle(0, 0, WORLD.WIDTH, WORLD.HEIGHT, 0x08131f, 0.62)
+    // subtle dark transparent overlay over the frozen, desaturated scenery
+    const scrim = s.add.rectangle(0, 0, WORLD.WIDTH, WORLD.HEIGHT, 0x06120a, 0.45)
       .setInteractive({ useHandCursor: false }); // swallows gameplay taps
     scrim.on('pointerdown', () => this.markUi());
+    this.scrim = scrim;
 
-    const card = woodPanel(s, 0, 0, 470, 560);
-    const inner = woodPanel(s, 0, 0, 436, 526, 'parch');
-    const title = chunkyText(s, 0, -232, 'PAUSED', 42, PAL.textLight, 0x3a2410, 6).setOrigin(0.5);
+    // modest golden title
+    const title = chunkyText(s, 0, -184, 'PAUSED', 38, PAL.textLight, 0x3a2410, 6)
+      .setOrigin(0.5);
 
-    const mk = (color, label, y, onClick) => woodButton(s, {
-      x: 0, y, w: 330, h: 58, label, color, size: 21,
-      onClick: () => {
-        this.audio?.emit('ui-click'); // Fix #22 — click polish
-        onClick();
-      },
+    // THE control: one large circular wooden play/RESUME button, dead center
+    const R = 104; // wooden disk radius (Ø 208)
+    this.resumeBtn = s.add.container(0, -4);
+    this.resumeGlow = s.add.circle(0, 0, R * 1.34, 0xffd257, 0.15)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const shadow = s.add.circle(6, 14, R * 1.01, 0x000000, 0.32);
+    this.resumeDisk = s.add.image(0, 0, HUD_ART.pauseBtn.key)
+      .setDisplaySize(R * 2, R * 2);
+    const triangle = s.add.image(5, 0, TEX.playIcon).setDisplaySize(R * 0.94, R * 0.94);
+    this.resumeBtn.add([this.resumeGlow, shadow, this.resumeDisk, triangle]);
+    this.resumeBtn.setSize(R * 2, R * 2).setInteractive({ useHandCursor: true });
+    this.resumeBtn.on('pointerover', () => {
+      this.resumeDisk.setTint(0xfff1d6);
+      this._scaleResume(this.reducedMotion ? 1 : 1.05);
+      if (this.isDesktop) this.audio?.emit('ui-hover');
+    });
+    this.resumeBtn.on('pointerout', () => {
+      this.resumeDisk.clearTint();
+      this._scaleResume(1);
+    });
+    this.resumeBtn.on('pointerdown', () => {
+      this._scaleResume(0.93, 80);
+      this.markUi();
+    });
+    this.resumeBtn.on('pointerup', () => {
+      this._scaleResume(1, 90);
+      this.audio?.emit('ui-click'); // subtle click, then the state machine resumes
+      this.actions.onResume && this.actions.onResume();
+    });
+
+    // keyboard hint
+    const hint = s.add.text(0, 132, 'Press P to resume', {
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '15px', fontStyle: 'bold',
+      color: '#f4e6c8'
+    }).setOrigin(0.5).setShadow(0, 2, 'rgba(6,18,10,0.85)', 2, false, true);
+
+    // one small unobtrusive exit control near the bottom edge (confirmed
+    // before any in-level progress is lost)
+    this.exitBtn = woodButton(s, {
+      x: 0, y: 258, w: 196, h: 44, label: 'EXIT TO LEVELS', color: 'slate', size: 15,
+      onClick: () => this.confirm(
+        'EXIT LEVEL?', 'Your progress in this level will be lost.',
+        'YES, EXIT', 'red', () => this.actions.onExitToLevels && this.actions.onExitToLevels()
+      ),
       markUi: () => this.markUi()
     });
-
-    this.resumeBtn = mk('green', 'RESUME', -150, () => this.actions.onResume && this.actions.onResume());
-    this.restartQBtn = mk('blue', 'RESTART QUESTION', -82, () => this.actions.onRestartQuestion && this.actions.onRestartQuestion());
-    this.restartLBtn = mk('orange', 'RESTART LEVEL', -14, () => this.confirm(
-      'RESTART LEVEL?', 'All progress in this level will be lost.',
-      'YES, RESTART', 'red', () => this.actions.onRestartLevel && this.actions.onRestartLevel()
-    ));
-    // Fix #22 — audio settings row: three compact toggles (master gate,
-    // music channel, effects channel) replacing the single SOUND button.
-    const toggle = (x, label, action) => woodButton(s, {
-      x, y: 54, w: 132, h: 46, label, color: 'teal', size: 14,
-      // the GameScene toggle handlers emit their own ui-click — no double
-      onClick: action, markUi: () => this.markUi()
-    });
-    this.soundMenuBtn = toggle(-138, 'SOUND ON', () => this.actions.onToggleSound && this.actions.onToggleSound());
-    this.musicMenuBtn = toggle(0, 'MUSIC ON', () => this.actions.onToggleMusic && this.actions.onToggleMusic());
-    this.sfxMenuBtn = toggle(138, 'FX ON', () => this.actions.onToggleSfx && this.actions.onToggleSfx());
-    this.exitBtn = mk('slate', 'EXIT TO LEVELS', 122, () => this.confirm(
-      'EXIT LEVEL?', 'Your progress in this level will be lost.',
-      'YES, EXIT', 'red', () => this.actions.onExitToLevels && this.actions.onExitToLevels()
-    ));
-    this.motionBtn = woodButton(s, {
-      x: 0, y: 190, w: 330, h: 42, label: 'REDUCED MOTION: OFF', color: 'slate', size: 15,
-      onClick: () => this.actions.onToggleReducedMotion && this.actions.onToggleReducedMotion(),
-      markUi: () => this.markUi()
-    });
-
-    const hint = s.add.text(0, 236, 'Press P to pause / resume', {
-      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '14px',
-      color: '#7a5c33'
-    }).setOrigin(0.5);
+    this.exitBtn.setAlpha(0.92);
 
     /* confirmation card (hidden until asked for) */
     this.confirmCard = s.add.container(0, 0).setVisible(false);
@@ -678,17 +704,67 @@ export class GameHUD {
     });
     this.confirmCard.add([cCard, cInner, this.confirmTitle, this.confirmBody, this.confirmYes, this.confirmNo]);
 
-    this.menu.add([scrim, card, inner, title, this.resumeBtn, this.restartQBtn,
-      this.restartLBtn, this.soundMenuBtn, this.musicMenuBtn, this.sfxMenuBtn,
-      this.exitBtn, this.motionBtn, hint, this.confirmCard]);
-    this.menu.setScale(0.92).setAlpha(0);
+    this.menu.add([scrim, title, this.resumeBtn, hint, this.exitBtn, this.confirmCard]);
+    this.menu.setScale(0.94).setAlpha(0);
 
     // Fix #22 — subtle desktop-only hover ticks on the interactive targets
-    for (const b of [this.resumeBtn, this.restartQBtn, this.restartLBtn,
-      this.soundMenuBtn, this.musicMenuBtn, this.sfxMenuBtn, this.exitBtn,
-      this.motionBtn, this.confirmYes, this.confirmNo]) {
+    for (const b of [this.exitBtn, this.confirmYes, this.confirmNo]) {
       this.wireHover(b);
     }
+  }
+
+  _scaleResume(to, duration = 110) {
+    this.scene.tweens.add({
+      targets: this.resumeBtn, scale: to, duration, ease: 'Sine.easeOut', overwrite: true
+    });
+  }
+
+  /** True while the pause overlay's exit confirmation card is on screen. */
+  get confirmVisible() {
+    return !!(this.confirmCard && this.confirmCard.visible);
+  }
+
+  /**
+   * Grayscale + soft blur on the GAMEPLAY camera only (the HUD renders
+   * through its own camera and stays sharp and colored). Applied once per
+   * pause — the scene is frozen behind it, nothing re-renders per frame
+   * beyond the standard camera quad. Mobile uses the cheaper blur tier;
+   * Canvas-rendered sessions fall back to a deeper dim (graceful, still
+   * clearly paused).
+   */
+  applyPauseFx() {
+    const s = this.scene;
+    const webgl = s.game.renderer && s.game.renderer.type === Phaser.WEBGL;
+    const cam = s.cameras.main;
+    if (!webgl || !cam || !cam.postFX) {
+      this.scrim?.setFillStyle(0x06120a, 0.66);
+      return;
+    }
+    const mobile = (s.registry.get('device') || { type: 'desktop' }).type === 'mobile';
+    try {
+      this.pauseGray = cam.postFX.addColorMatrix();
+      this.pauseGray.grayscale(1);
+      this.pauseBlur = cam.postFX.addBlur(
+        mobile ? 0 : 1, 0, 0, mobile ? 0.7 : 1, 0xffffff, mobile ? 2 : 4
+      );
+    } catch (e) {
+      DebugLog.warn('pause post-fx unavailable: ' + (e.message || e));
+      this.removePauseFx();
+      this.scrim?.setFillStyle(0x06120a, 0.66);
+    }
+  }
+
+  /** Restore the normal colorful gameplay presentation. */
+  removePauseFx() {
+    const cam = this.scene.cameras && this.scene.cameras.main;
+    try {
+      if (cam && cam.postFX) {
+        if (this.pauseGray) cam.postFX.remove(this.pauseGray);
+        if (this.pauseBlur) cam.postFX.remove(this.pauseBlur);
+      }
+    } catch (e) { /* camera already gone (scene restarting) */ }
+    this.pauseGray = this.pauseBlur = null;
+    this.scrim?.setFillStyle(0x06120a, 0.45);
   }
 
   /** Very soft hover tick — desktop pointers only (Fix #22). */
@@ -768,16 +844,9 @@ export class GameHUD {
     ];
     this.setStars(lit, snap.questionsCompleted / snap.questionTotal);
 
-    // sound icon + Fix #22 audio toggles (music defaults ON for old saves)
+    // sound icon (the pause overlay no longer carries settings toggles —
+    // the top-bar sound button is the existing authorized interface)
     this.soundIco.setTexture(snap.soundOn ? TEX.soundOn : TEX.soundOff);
-    this.soundMenuBtn.labelText.setText(snap.soundOn ? 'SOUND ON' : 'SOUND OFF');
-    const musicOn = snap.musicOn !== false;
-    const sfxOn = snap.sfxOn !== false;
-    this.musicMenuBtn.labelText.setText(musicOn ? 'MUSIC ON' : 'MUSIC OFF');
-    this.sfxMenuBtn.labelText.setText(sfxOn ? 'FX ON' : 'FX OFF');
-    this.musicMenuBtn.setAlpha(musicOn && snap.soundOn ? 1 : 0.75);
-    this.sfxMenuBtn.setAlpha(sfxOn && snap.soundOn ? 1 : 0.75);
-    this.motionBtn.labelText.setText(this.reducedMotion ? 'REDUCED MOTION: ON' : 'REDUCED MOTION: OFF');
 
     this.stateChip.setText(`STATE ${snap.state}`).setVisible(DebugLog.enabled);
   }
@@ -921,15 +990,22 @@ export class GameHUD {
     if (this.pauseOpenState) return;
     this.pauseOpenState = true;
     this.hideConfirm();
+    this.applyPauseFx(); // grayscale + blur the frozen gameplay, once
     this.menu.setVisible(true);
     this.scene.tweens.killTweensOf(this.menu);
+    this.scene.tweens.killTweensOf(this.resumeBtn);
     if (this.reducedMotion) {
       this.menu.setAlpha(1).setScale(1);
       return;
     }
-    this.menu.setAlpha(0).setScale(0.92);
+    this.menu.setAlpha(0).setScale(0.96);
     this.scene.tweens.add({
-      targets: this.menu, alpha: 1, scale: 1, duration: 190, ease: 'Back.out'
+      targets: this.menu, alpha: 1, scale: 1, duration: 190, ease: 'Sine.easeOut'
+    });
+    // the resume button pops in with a gentle overshoot
+    this.resumeBtn.setScale(0.72);
+    this.scene.tweens.add({
+      targets: this.resumeBtn, scale: 1, duration: 300, delay: 40, ease: 'Back.easeOut'
     });
   }
 
@@ -937,19 +1013,22 @@ export class GameHUD {
     if (!this.pauseOpenState) return;
     this.pauseOpenState = false;
     this.hideConfirm();
+    this.removePauseFx(); // color returns with the overlay's fade-out
     this.scene.tweens.killTweensOf(this.menu);
+    this.scene.tweens.killTweensOf(this.resumeBtn);
     if (this.reducedMotion) {
       this.menu.setVisible(false).setAlpha(1).setScale(1);
       return;
     }
     this.scene.tweens.add({
-      targets: this.menu, alpha: 0, scale: 0.94, duration: 130,
+      targets: this.menu, alpha: 0, scale: 0.96, duration: 130,
       onComplete: () => this.menu.setVisible(false)
     });
   }
 
   destroy() {
     const s = this.scene;
+    this.removePauseFx(); // never leave grayscale/blur on a surviving camera
     s.tweens.killTweensOf([this.menu, this.timerText, this.shotsText, ...this.heartIcons,
       ...this.starIcons.map((x) => x.group)]);
     if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);
