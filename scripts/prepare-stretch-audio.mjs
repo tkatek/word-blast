@@ -1,6 +1,7 @@
 /**
  * AUDIO REPAIR — prepare slingshot leather-stretch segments from the
- * user-supplied Freesound recording (id 63057, "slow leather stretch").
+ * user-supplied Pixabay recording (id 63057, "Slow Leather Stretch" by
+ * OldCouches — attribution and license: assets-src/audio-stretch/ATTRIBUTION.md).
  *
  * The original MP3 stays untouched (a copy lives in assets-src/audio-stretch).
  * This script cuts the usable creak regions, cleans them conservatively and

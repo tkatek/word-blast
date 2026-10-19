@@ -18,7 +18,8 @@
  *     is sound-effects-only: after one-shots finish, a settled scene with
  *     no input is completely silent.
  *   - The slingshot stretch is MOTION-DRIVEN: short leather-creak segments
- *     (cut from the user-supplied Freesound recording #63057) play only
+ *     (cut from the user-supplied Pixabay recording "Slow Leather Stretch",
+ *     id 63057 — see assets-src/audio-stretch/ATTRIBUTION.md) play only
  *     while the pouch actually moves, and fade out ~120 ms after it stops —
  *     a held, fully-stretched pouch is silent.
  *

@@ -64,7 +64,11 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
   page.__errors = [];
   page.on('pageerror', (e) => page.__errors.push(e.message));
   page.on('console', (msg) => {
-    if (msg.type() === 'error') page.__errors.push(msg.text());
+    // network noise (favicon 404 etc.) is not a game error — real JS
+    // errors arrive as pageerror
+    if (msg.type() === 'error' && !/Failed to load resource/.test(msg.text())) {
+      page.__errors.push(msg.text());
+    }
   });
   return page;
 }
@@ -129,7 +133,7 @@ async function runDesktopPass() {
       return [1, 7, 15].map((id) => s.cards.get(id).name.text);
     });
     check('level names come from level data',
-      names[0] === 'First Shot' && names[1] === 'Word Order' && names[2] === 'Final Challenge',
+      names[0] === 'First Shot' && names[1] === 'Sentence Completion' && names[2] === 'Final Challenge',
       names.join(' | '));
 
     /* 2 — locked feedback: tap L2 → stays on level select, toast shows */
@@ -176,6 +180,13 @@ async function runDesktopPass() {
       s.recordLevelResult(6, 5000, 3);
     });
     await gotoLevelSelect(page);
+    // seeding 1–6 jumped unlockedLevel 1→7: the visit legitimately
+    // celebrates the newly unlocked L7 (reveal ≈2.4 s in) — wait it out
+    await page.waitForFunction(() => {
+      const i = window.__WB__.levelSelect();
+      const c7 = i.cards.find((c) => c.id === 7);
+      return c7 && c7.unlocked && c7.highlighted;
+    }, { timeout: 20000, polling: 150 });
     info = await lsInfo(page);
     const stars = await page.evaluate(() =>
       [1, 2, 3, 6, 7].map((id) => window.__WB__.levelSelect().cards.find((c) => c.id === id).stars));
@@ -196,7 +207,10 @@ async function runDesktopPass() {
     await page.waitForFunction(() => window.__WB__.levelSelect().active, { timeout: 20000, polling: 150 });
     info = await lsInfo(page);
     check('returning visit flags the newly unlocked level', info.celebrationId === 8, `celeb=${info.celebrationId}`);
-    await sleep(2100); // celebration scheduled ~1.4s in, plays ~0.6s
+    await page.waitForFunction(() => {
+      const c8 = window.__WB__.levelSelect().cards.find((c) => c.id === 8);
+      return c8 && c8.unlocked && c8.highlighted;
+    }, { timeout: 20000, polling: 150 });
     info = await lsInfo(page);
     const c8 = info.cards.find((c) => c.id === 8);
     check('celebration reveals card 8 unlocked + highlighted',
@@ -210,17 +224,21 @@ async function runDesktopPass() {
     info = await lsInfo(page);
     check('the same unlock is never re-animated', info.celebrationId === 0, `celeb=${info.celebrationId}`);
 
-    /* 8 — everything completed */
+    /* 8 — everything completed (seed the REMAINING levels 8–15; the save
+     *  sanitizer rejects completing a level while a previous one is not) */
     await page.evaluate(() => {
       const s = window.__WB__.save();
-      for (let id = 9; id <= 15; id++) s.recordLevelResult(id, 5000 + id, 3);
+      for (let id = 8; id <= 15; id++) s.recordLevelResult(id, 5000 + id, 3);
     });
     await page.reload({ waitUntil: 'domcontentloaded' });
     await gotoMenu(page);
     await gotoLevelSelect(page);
     info = await lsInfo(page);
-    check('all-complete: every card unlocked with 3 stars',
-      info.cards.every((c) => c.unlocked && c.stars === 3));
+    // best results are kept: L1–L7 keep their saved ratings, L8–15 are 3s
+    const expected = { 1: 3, 2: 2, 3: 1, 4: 3, 5: 2, 6: 3, 7: 2, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3, 13: 3, 14: 3, 15: 3 };
+    check('all-complete: every card unlocked, stars kept at their best',
+      info.cards.every((c) => c.unlocked && c.stars === expected[c.id]),
+      info.cards.filter((c) => c.stars !== expected[c.id]).map((c) => `L${c.id}:${c.stars}`).join(','));
     check('all-complete: highlight falls on level 15 (save untouched)',
       info.highlightId === 15 && info.cards.find((c) => c.id === 15).highlighted);
     await snap('desktop-all-complete.png');
