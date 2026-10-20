@@ -5,11 +5,19 @@
  *   CENTER  three-compartment panel: Q n/total | clock + MM:SS | stars
  *   RIGHT   hearts panel | shots panel (bird portrait + ×N) | score | sound
  *
- * PAUSE (final polish): one minimal overlay — the gameplay camera gets a
- * grayscale + soft-blur post-fx while everything is frozen, and the HUD's
- * own camera (which never shakes and never filters) shows a single large
- * circular wooden RESUME button plus one small confirmed EXIT control.
- * No settings list: sound stays on the top bar's existing sound button.
+ * PAUSE (final redesign, per the supplied reference): the gameplay FREEZES
+ * behind a dark scrim + a SUBTLE BLUR on the gameplay camera only — colors
+ * are kept (no grayscale) so the scenery stays recognizable, while the
+ * HUD's own camera never filters, so the controls render sharp and
+ * colorful. Dead-center sits ONE large round wooden PLAY button (the same
+ * carved-plank artwork family as the top bar's pause button, with its
+ * metal rim, rivets and leaves) carrying a golden triangle inside a soft
+ * golden glow; three clean controls stack beneath it — RESUME (warm wood,
+ * largest), RESTART LEVEL (restart icon) and EXIT TO LEVELS (home icon,
+ * darker wood, still confirmed before in-level progress is lost). No
+ * PAUSED heading and no settings of any kind: sound stays on the top
+ * bar's existing sound button. The only extra is a small corner EXIT
+ * FULLSCREEN control that exists solely while the document is fullscreen.
  *
  * Design contract with the scene (unchanged since Fix #17):
  *   - The HUD OWNS NO gameplay state. The scene pushes one snapshot object
@@ -79,6 +87,25 @@ const BTN_COLORS = {
   red: [0x96303f, 0xd9536a, 0xff9aa4]
 };
 
+/**
+ * Pause overlay geometry + tuning (world px inside the fixed 1280×720
+ * world; the stack is grouped in `pauseCol`, centered on the world center
+ * and nudged/scaled up on phones for comfortable landscape taps).
+ */
+const PAUSE_UI = {
+  SCRIM: 0x050d08,          // near-black green-tinted dark overlay
+  SCRIM_ALPHA: 0.52,        // darkening over the blurred scenery
+  SCRIM_ALPHA_FLAT: 0.66,   // Canvas fallback (no post-fx blur available)
+  PLAY_R: 108,              // wooden play disk radius (Ø 216 ≈ 30% of height)
+  PLAY_Y: -122,             // play button center (pauseCol-local)
+  RESUME: { y: 36, w: 320, h: 62, size: 24 },
+  RESTART: { y: 106, w: 252, h: 52, size: 19 },
+  EXIT: { y: 172, w: 252, h: 52, size: 19 },
+  STAGGER_MS: 80,           // per-button entrance offset beneath the play button
+  PHONE_SCALE: 1.12,        // phones: larger stack for ~44 CSS px touch targets
+  PHONE_DY: -16
+};
+
 /* ------------------------------------------------------------------ */
 /* Procedural textures (generated once; survive scene restarts)        */
 /* Icons and menu chrome only — panel frames come from the artwork.    */
@@ -96,7 +123,12 @@ const TEX = {
   soundOn: 'wbhud-sound-on',
   soundOff: 'wbhud-sound-off',
   coin: 'wbhud-coin',
-  round: 'wbhud-round-btn'
+  round: 'wbhud-round-btn',
+  pauseWoodLight: 'wbhud-pwood-light',
+  pauseWoodMed: 'wbhud-pwood-med',
+  pauseWoodDark: 'wbhud-pwood-dark',
+  restartIcon: 'wbhud-restart-ico',
+  homeIcon: 'wbhud-home-ico'
 };
 const btnTex = (c) => `wbhud-btn-${c}`;
 
@@ -284,6 +316,66 @@ export function ensureHudTextures(scene) {
     g.beginPath(); g.arc(48, 48, 33, 0, Math.PI * 2); g.strokePath();
   });
 
+  /* --- pause-menu wooden tiles (nine-sliced, slice = 18) --------------
+   * Three warm-wood tones for the pause stack — light oak (RESUME),
+   * classic oak (RESTART LEVEL) and dark walnut (EXIT TO LEVELS) — in the
+   * same cartoon-wood language as the supplied HUD artwork. */
+  const pauseTile = (key, edge, body, light, shade, grain) => {
+    tex(key, 64, 64, () => {
+      g.fillStyle(edge, 1); g.fillRoundedRect(0, 0, 64, 64, 14);
+      g.fillStyle(body, 1); g.fillRoundedRect(3, 3, 58, 58, 11);
+      g.fillStyle(light, 0.5); g.fillRoundedRect(7, 6, 50, 13, 7);
+      g.fillStyle(shade, 0.5); g.fillRoundedRect(7, 45, 50, 12, 7);
+      g.lineStyle(1.6, grain, 0.6);
+      for (const y of [27, 35, 43]) {
+        g.beginPath(); g.moveTo(9, y); g.lineTo(55, y - 1.5); g.strokePath();
+      }
+    });
+  };
+  pauseTile(TEX.pauseWoodLight, 0x6b4416, 0xc08a4e, 0xe8ba7d, 0x8a5a28, 0x9a6a34);
+  pauseTile(TEX.pauseWoodMed, 0x593a12, 0xa8763e, 0xd2a260, 0x7a5226, 0x86582a);
+  pauseTile(TEX.pauseWoodDark, 0x3c280e, 0x7a5426, 0xa87f48, 0x5a3c1a, 0x5f3f1c);
+
+  /* --- restart icon (circular arrow with tangential head) ------------- */
+  tex(TEX.restartIcon, 48, 48, () => {
+    const cx = 24, cy = 26, r = 12;
+    const a0 = Phaser.Math.DegToRad(-62), a1 = Phaser.Math.DegToRad(205);
+    g.lineStyle(8.5, 0x3a2410, 1);
+    g.beginPath(); g.arc(cx, cy, r, a0, a1); g.strokePath();
+    g.lineStyle(5, 0xfff3d6, 1);
+    g.beginPath(); g.arc(cx, cy, r, a0, a1); g.strokePath();
+    const tx = cx + Math.cos(a0) * r, ty = cy + Math.sin(a0) * r;
+    const ux = -Math.sin(a0), uy = Math.cos(a0);     // travel direction at a0
+    const nx = Math.cos(a0), ny = Math.sin(a0);      // head width direction
+    const head = (len, w, color) => {
+      g.fillStyle(color, 1);
+      g.fillPoints([
+        new Phaser.Geom.Point(tx + ux * len, ty + uy * len),
+        new Phaser.Geom.Point(tx + nx * w, ty + ny * w),
+        new Phaser.Geom.Point(tx - nx * w, ty - ny * w)
+      ], true);
+    };
+    head(11, 7.5, 0x3a2410);
+    head(8, 4.5, 0xfff3d6);
+  });
+
+  /* --- home icon (pause menu EXIT TO LEVELS) -------------------------- */
+  tex(TEX.homeIcon, 48, 48, () => {
+    g.fillStyle(0x3a2410, 1); g.fillRoundedRect(9, 24, 30, 19, 3);   // body edge
+    g.fillStyle(0xfff3d6, 1); g.fillRoundedRect(12, 26.5, 24, 14.5, 2);
+    g.fillStyle(0x3a2410, 1);                                        // roof edge
+    g.fillPoints([
+      new Phaser.Geom.Point(24, 4), new Phaser.Geom.Point(44, 26),
+      new Phaser.Geom.Point(4, 26)
+    ], true);
+    g.fillStyle(0xffe6b0, 1);
+    g.fillPoints([
+      new Phaser.Geom.Point(24, 8.5), new Phaser.Geom.Point(39.5, 25),
+      new Phaser.Geom.Point(8.5, 25)
+    ], true);
+    g.fillStyle(0x6b4416, 1); g.fillRoundedRect(20, 31, 8, 12, 2);   // door
+  });
+
   g.destroy();
 }
 
@@ -354,6 +446,53 @@ export function woodButton(scene, {
 /** "12,450" — thousands separators without locale surprises. */
 export function formatScore(n) {
   return String(Math.max(0, Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Pause-menu wooden button: a nine-sliced warm-wood tile (PAUSE_UI tones)
+ * with a chunky label and an optional leading icon, both centered as one
+ * group. Hover/press are tweened (smooth ~110ms, not instant snaps) and
+ * every press emits the click tick before the action runs. `hitPad`
+ * enlarges the tap target beyond the visible wood (comfort on phones).
+ */
+function pauseMenuButton(scene, {
+  x, y, w, h, label, tile, icon, size = 19, hitPad = 10,
+  onClick, markUi, audio, hoverAudio
+}) {
+  ensureHudTextures(scene);
+  const c = scene.add.container(x, y);
+  const bg = scene.add.nineslice(0, 0, tile, undefined, w, h, 18, 18, 18, 18);
+  const txt = chunkyText(scene, 0, 0, label, size, PAL.textLight, 0x3a2410, Math.max(3, size * 0.16))
+    .setOrigin(0.5);
+  c.add([bg, txt]);
+  if (icon) {
+    const ico = scene.add.image(0, 0, icon).setDisplaySize(size * 1.3, size * 1.3);
+    c.add(ico);
+    const gap = 9;
+    const total = ico.displayWidth + gap + txt.width;
+    ico.x = -total / 2 + ico.displayWidth / 2;
+    txt.x = -total / 2 + ico.displayWidth + gap + txt.width / 2;
+  }
+  c.setSize(w + hitPad * 2, h + hitPad * 2).setInteractive({ useHandCursor: true });
+  // hover/press scale only — never overwrite:true, which would also kill
+  // the entrance tweens (alpha/y) if the pointer arrives mid-animation
+  const settle = (to, ms = 110) => {
+    if (c.scaleTween) c.scaleTween.stop();
+    c.scaleTween = scene.tweens.add({
+      targets: c, scale: to, duration: ms, ease: 'Sine.easeOut'
+    });
+  };
+  c.on('pointerover', () => { bg.setTint(0xfff1d6); settle(1.045); hoverAudio?.emit('ui-hover'); });
+  c.on('pointerout', () => { bg.clearTint(); settle(1); });
+  c.on('pointerdown', () => { settle(0.95, 70); markUi && markUi(); });
+  c.on('pointerup', () => {
+    settle(1.02, 90);
+    audio?.emit('ui-click');
+    onClick && onClick();
+  });
+  c.labelText = txt;
+  c.bg = bg;
+  return c;
 }
 
 /* ------------------------------------------------------------------ */
@@ -611,42 +750,57 @@ export class GameHUD {
   }
 
   /* ---------------------------------------------------------------- */
-  /* Pause overlay (final polish: minimal, blurred grayscale freeze)   */
+  /* Pause overlay (final redesign: reference look — dark + blurred    */
+  /* frozen gameplay, central wooden PLAY, three clean controls)       */
   /* ---------------------------------------------------------------- */
   /**
    * The old settings-list pause menu is gone. Pausing now FREEZES the
-   * gameplay (the scene already pauses physics, timers and input), applies
-   * a grayscale + soft blur to the gameplay presentation ONLY (post-fx on
-   * the gameplay camera — the HUD's own camera stays sharp and colored),
-   * and shows ONE beautiful centered circular wooden RESUME button plus a
-   * small, easy-to-miss EXIT control (still confirmed before any progress
-   * is lost). Sound / music / fx toggles live on through their existing
-   * authorized interface — the always-visible sound button on the top bar.
+   * gameplay (the scene already pauses physics, timers and input), keeps
+   * the scenery's COLORS under a dark scrim + subtle blur (gameplay camera
+   * only — this HUD camera stays sharp), and shows:
+   *
+   *   1. ONE large round wooden PLAY button dead-center — supplied
+   *      carved-plank artwork (metal rim, rivets, leaves) with a golden
+   *      triangle, soft golden glow and gentle hover/tap scaling. Both it
+   *      and RESUME resume the game.
+   *   2. Three controls stacked beneath: RESUME (warm light wood, the
+   *      largest), RESTART LEVEL (restart icon) and EXIT TO LEVELS (home
+   *      icon, darker wood — confirmed before in-level progress is lost).
+   *
+   * No PAUSED heading, no sound/music/fx settings, no reduced-motion
+   * toggle, no instructions. The only additional control is a small
+   * corner EXIT FULLSCREEN button that exists solely while the document
+   * is fullscreen (never part of the reference stack).
    */
   buildPauseMenu() {
     const s = this.scene;
     this.menu = s.add.container(WORLD.WIDTH / 2, WORLD.HEIGHT / 2).setDepth(HUD_DEPTH.MENU).setVisible(false);
 
-    // subtle dark transparent overlay over the frozen, desaturated scenery
-    const scrim = s.add.rectangle(0, 0, WORLD.WIDTH, WORLD.HEIGHT, 0x06120a, 0.45)
+    // dark transparent overlay over the frozen, softly blurred scenery.
+    // Object alpha animates 0→1 on open; the FILL alpha is the darkness
+    // level (deepened when Canvas rendering cannot blur at all).
+    this.scrim = s.add.rectangle(0, 0, WORLD.WIDTH, WORLD.HEIGHT, PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA)
+      .setAlpha(0)
       .setInteractive({ useHandCursor: false }); // swallows gameplay taps
-    scrim.on('pointerdown', () => this.markUi());
-    this.scrim = scrim;
+    this.scrim.on('pointerdown', () => this.markUi());
 
-    // modest golden title
-    const title = chunkyText(s, 0, -184, 'PAUSED', 38, PAL.textLight, 0x3a2410, 6)
-      .setOrigin(0.5);
+    /* the centered stack: play button above the three controls --------- */
+    const compact = (s.registry.get('device') || { type: 'desktop' }).type === 'mobile';
+    this.pauseCol = s.add.container(0, compact ? PAUSE_UI.PHONE_DY : 0);
+    if (compact) this.pauseCol.setScale(PAUSE_UI.PHONE_SCALE);
 
-    // THE control: one large circular wooden play/RESUME button, dead center
-    const R = 104; // wooden disk radius (Ø 208)
-    this.resumeBtn = s.add.container(0, -4);
-    this.resumeGlow = s.add.circle(0, 0, R * 1.34, 0xffd257, 0.15)
+    // THE control: one large circular wooden play button, dead center
+    const R = PAUSE_UI.PLAY_R;
+    this.resumeBtn = s.add.container(0, PAUSE_UI.PLAY_Y);
+    this.resumeGlow = s.add.circle(0, 0, R * 1.34, 0xffd257, 0.13)
       .setBlendMode(Phaser.BlendModes.ADD);
-    const shadow = s.add.circle(6, 14, R * 1.01, 0x000000, 0.32);
+    const glowCore = s.add.circle(0, 0, R * 1.1, 0xffe9a8, 0.10)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const shadow = s.add.circle(7, 15, R * 1.02, 0x000000, 0.34);
     this.resumeDisk = s.add.image(0, 0, HUD_ART.pauseBtn.key)
       .setDisplaySize(R * 2, R * 2);
-    const triangle = s.add.image(5, 0, TEX.playIcon).setDisplaySize(R * 0.94, R * 0.94);
-    this.resumeBtn.add([this.resumeGlow, shadow, this.resumeDisk, triangle]);
+    const triangle = s.add.image(6, 0, TEX.playIcon).setDisplaySize(R * 0.95, R * 0.95);
+    this.resumeBtn.add([this.resumeGlow, glowCore, shadow, this.resumeDisk, triangle]);
     this.resumeBtn.setSize(R * 2, R * 2).setInteractive({ useHandCursor: true });
     this.resumeBtn.on('pointerover', () => {
       this.resumeDisk.setTint(0xfff1d6);
@@ -667,37 +821,64 @@ export class GameHUD {
       this.actions.onResume && this.actions.onResume();
     });
 
-    // keyboard hint
-    const hint = s.add.text(0, 132, 'Press P to resume', {
-      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '15px', fontStyle: 'bold',
-      color: '#f4e6c8'
-    }).setOrigin(0.5).setShadow(0, 2, 'rgba(6,18,10,0.85)', 2, false, true);
-
-    // one small unobtrusive exit control near the bottom edge (confirmed
-    // before any in-level progress is lost)
-    this.exitBtn = woodButton(s, {
-      x: 0, y: 258, w: 196, h: 44, label: 'EXIT TO LEVELS', color: 'slate', size: 15,
+    // the three clean controls beneath (same wood family, descending size)
+    const mk = (opts) => pauseMenuButton(s, {
+      markUi: () => this.markUi(),
+      audio: this.audio,
+      hoverAudio: this.isDesktop ? this.audio : null,
+      hitPad: compact ? 16 : 10,
+      ...opts
+    });
+    this.resumeMenuBtn = mk({
+      x: 0, y: PAUSE_UI.RESUME.y, w: PAUSE_UI.RESUME.w, h: PAUSE_UI.RESUME.h,
+      label: 'RESUME', tile: TEX.pauseWoodLight, size: PAUSE_UI.RESUME.size,
+      onClick: () => this.actions.onResume && this.actions.onResume()
+    });
+    this.restartBtn = mk({
+      x: 0, y: PAUSE_UI.RESTART.y, w: PAUSE_UI.RESTART.w, h: PAUSE_UI.RESTART.h,
+      label: 'RESTART LEVEL', tile: TEX.pauseWoodMed, icon: TEX.restartIcon,
+      size: PAUSE_UI.RESTART.size,
+      onClick: () => this.actions.onRestartLevel && this.actions.onRestartLevel()
+    });
+    this.exitBtn = mk({
+      x: 0, y: PAUSE_UI.EXIT.y, w: PAUSE_UI.EXIT.w, h: PAUSE_UI.EXIT.h,
+      label: 'EXIT TO LEVELS', tile: TEX.pauseWoodDark, icon: TEX.homeIcon,
+      size: PAUSE_UI.EXIT.size,
       onClick: () => this.confirm(
         'EXIT LEVEL?', 'Your progress in this level will be lost.',
         'YES, EXIT', 'red', () => this.actions.onExitToLevels && this.actions.onExitToLevels()
-      ),
-      markUi: () => this.markUi()
+      )
     });
-    this.exitBtn.setAlpha(0.92);
+
+    this.pauseCol.add([this.resumeBtn, this.resumeMenuBtn, this.restartBtn, this.exitBtn]);
+    // entrance-stagger anchors (buttons rise up into their spot on open)
+    this.pauseStack = [this.resumeBtn, this.resumeMenuBtn, this.restartBtn, this.exitBtn];
+    for (const b of this.pauseStack) b.baseY = b.y;
 
     // Exit-fullscreen control — ONLY while the document is actually
     // fullscreen (the FullscreenController in the game registry owns the
-    // state; syncFullscreen flips visibility). Exiting must never touch the
-    // pause itself: the game stays frozen until RESUME.
+    // state; syncFullscreen flips visibility). Kept out of the reference
+    // stack as a small corner control; exiting must never touch the pause
+    // itself: the game stays frozen until PLAY/RESUME.
     this.fsBtn = woodButton(s, {
-      x: 0, y: 204, w: 196, h: 44, label: 'EXIT FULLSCREEN', color: 'blue', size: 15,
-      onClick: () => this.actions.onExitFullscreen && this.actions.onExitFullscreen(),
+      x: -WORLD.WIDTH / 2 + 104, y: WORLD.HEIGHT / 2 - 54, w: 168, h: 40,
+      label: 'EXIT FULLSCREEN', color: 'slate', size: 13,
+      onClick: () => {
+        this.audio?.emit('ui-click');
+        this.actions.onExitFullscreen && this.actions.onExitFullscreen();
+      },
       markUi: () => this.markUi()
     });
-    this.fsBtn.setAlpha(0.92).setVisible(false);
+    this.fsBtn.setAlpha(0.88).setVisible(false);
 
-    /* confirmation card (hidden until asked for) */
+    /* confirmation card (hidden until EXIT TO LEVELS asks for it) */
     this.confirmCard = s.add.container(0, 0).setVisible(false);
+    // interactive blocker slightly larger than the card: a tap on the
+    // card's parchment (not on YES/CANCEL) must never fall through to the
+    // PLAY button underneath.
+    const cBlocker = s.add.rectangle(0, 0, 424, 274, 0x000000, 0.001)
+      .setInteractive({ useHandCursor: false });
+    cBlocker.on('pointerdown', () => this.markUi());
     const cCard = woodPanel(s, 0, 0, 400, 250);
     const cInner = woodPanel(s, 0, 0, 368, 216, 'parch');
     this.confirmTitle = chunkyText(s, 0, -74, '', 26, '#a4323f', 0xffffff, 0).setOrigin(0.5);
@@ -713,17 +894,17 @@ export class GameHUD {
       x: 92, y: 72, w: 168, h: 54, label: 'CANCEL', color: 'green', size: 19,
       onClick: () => this.hideConfirm(), markUi: () => this.markUi()
     });
-    this.confirmCard.add([cCard, cInner, this.confirmTitle, this.confirmBody, this.confirmYes, this.confirmNo]);
+    this.confirmCard.add([cBlocker, cCard, cInner, this.confirmTitle, this.confirmBody,
+      this.confirmYes, this.confirmNo]);
 
-    this.menu.add([scrim, title, this.resumeBtn, hint, this.fsBtn, this.exitBtn, this.confirmCard]);
-    this.menu.setScale(0.94).setAlpha(0);
+    this.menu.add([this.scrim, this.pauseCol, this.fsBtn, this.confirmCard]);
 
     // Fix #22 — subtle desktop-only hover ticks on the interactive targets
-    for (const b of [this.exitBtn, this.fsBtn, this.confirmYes, this.confirmNo]) {
+    for (const b of [this.fsBtn, this.confirmYes, this.confirmNo]) {
       this.wireHover(b);
     }
 
-    // Fullscreen state wiring: the exit button mirrors the real document
+    // Fullscreen state wiring: the corner control mirrors the real document
     // state (never a stale guess). Headless/test envs without the registry
     // controller simply keep it hidden.
     this.fsController = this.scene.registry.get('fullscreen') || null;
@@ -755,46 +936,98 @@ export class GameHUD {
   }
 
   /**
-   * Grayscale + soft blur on the GAMEPLAY camera only (the HUD renders
-   * through its own camera and stays sharp and colored). Applied once per
-   * pause — the scene is frozen behind it, nothing re-renders per frame
-   * beyond the standard camera quad. Mobile uses the cheaper blur tier;
+   * SUBTLE BLUR on the GAMEPLAY camera only — the scenery KEEPS ITS COLORS
+   * (no grayscale: the frozen world stays recognizable behind the dark
+   * scrim, matching the reference). The HUD renders through its own camera
+   * and stays sharp and colored. Mobile uses the cheaper blur tier;
    * Canvas-rendered sessions fall back to a deeper dim (graceful, still
-   * clearly paused).
+   * clearly paused, still colorful). Applied once per pause — the scene is
+   * frozen behind it, nothing re-renders beyond the camera quad.
    */
   applyPauseFx() {
     const s = this.scene;
     const webgl = s.game.renderer && s.game.renderer.type === Phaser.WEBGL;
     const cam = s.cameras.main;
     if (!webgl || !cam || !cam.postFX) {
-      this.scrim?.setFillStyle(0x06120a, 0.66);
+      this.scrim?.setFillStyle(PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA_FLAT);
       return;
     }
     const mobile = (s.registry.get('device') || { type: 'desktop' }).type === 'mobile';
     try {
-      this.pauseGray = cam.postFX.addColorMatrix();
-      this.pauseGray.grayscale(1);
       this.pauseBlur = cam.postFX.addBlur(
-        mobile ? 0 : 1, 0, 0, mobile ? 0.7 : 1, 0xffffff, mobile ? 2 : 4
+        1, 0, 0, mobile ? 0.6 : 0.85, 0xffffff, mobile ? 2 : 3
       );
     } catch (e) {
       DebugLog.warn('pause post-fx unavailable: ' + (e.message || e));
-      this.removePauseFx();
-      this.scrim?.setFillStyle(0x06120a, 0.66);
+      this.pauseBlur = null;
+      this.scrim?.setFillStyle(PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA_FLAT);
     }
   }
 
-  /** Restore the normal colorful gameplay presentation. */
+  /** Ease the blur out alongside the menu fade (then detach the fx). */
+  fadePauseFx() {
+    const cam = this.scene.cameras && this.scene.cameras.main;
+    if (!this.pauseBlur || !cam || !cam.postFX) return;
+    const blur = this.pauseBlur;
+    if (this.reducedMotion) {
+      cam.postFX.remove(blur);
+      this.pauseBlur = null;
+      return;
+    }
+    this.scene.tweens.add({
+      targets: blur, strength: 0, duration: 260, ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.pauseBlur = null;
+        try { cam.postFX && cam.postFX.remove(blur); } catch (e) { /* camera gone */ }
+      }
+    });
+  }
+
+  /** Restore the normal colorful gameplay presentation immediately. */
   removePauseFx() {
     const cam = this.scene.cameras && this.scene.cameras.main;
     try {
       if (cam && cam.postFX) {
-        if (this.pauseGray) cam.postFX.remove(this.pauseGray);
-        if (this.pauseBlur) cam.postFX.remove(this.pauseBlur);
+        if (this.pauseBlur) {
+          this.scene.tweens.killTweensOf(this.pauseBlur);
+          cam.postFX.remove(this.pauseBlur);
+        }
       }
     } catch (e) { /* camera already gone (scene restarting) */ }
-    this.pauseGray = this.pauseBlur = null;
-    this.scrim?.setFillStyle(0x06120a, 0.45);
+    this.pauseBlur = null;
+    this.scrim?.setFillStyle(PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA);
+  }
+
+  /** Very soft breathing glow around the play button (open → close). */
+  startGlowPulse() {
+    if (this.reducedMotion || !this.resumeGlow) return;
+    this.scene.tweens.add({
+      targets: this.resumeGlow,
+      alpha: { from: 0.09, to: 0.17 },
+      duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+    });
+  }
+
+  stopGlowPulse() {
+    if (!this.resumeGlow) return;
+    this.scene.tweens.killTweensOf(this.resumeGlow);
+    this.resumeGlow.setAlpha(0.13);
+  }
+
+  /**
+   * Gate every pause control's input. Disabled the moment closing starts,
+   * so the exit animation can never be tapped into a second resume/pause
+   * flip; re-armed on the next open.
+   */
+  setPauseInputEnabled(on) {
+    for (const b of this.pauseStack || []) {
+      if (!b) continue;
+      if (on) {
+        if (!b.input) b.setInteractive({ useHandCursor: true });
+      } else if (b.input) {
+        b.disableInteractive();
+      }
+    }
   }
 
   /** Very soft hover tick — desktop pointers only (Fix #22). */
@@ -1016,52 +1249,95 @@ export class GameHUD {
     return this.pauseOpenState;
   }
 
+  /**
+   * Open choreography (≈340ms total, no bounce-fests):
+   *   1. the frozen scenery darkens under the scrim (240ms fade-in)
+   *   2. the wooden PLAY button fades in with a gentle dimensional pop
+   *   3. the three controls rise in beneath it, staggered 80ms apart
+   */
   openPause() {
     if (this.pauseOpenState) return;
     this.pauseOpenState = true;
     this.hideConfirm();
-    this.applyPauseFx(); // grayscale + blur the frozen gameplay, once
+    this.applyPauseFx(); // subtle color-keeping blur, once per pause
+    const s = this.scene;
+    const items = [this.scrim, ...this.pauseStack];
+    s.tweens.killTweensOf(items);
     this.menu.setVisible(true);
-    this.scene.tweens.killTweensOf(this.menu);
-    this.scene.tweens.killTweensOf(this.resumeBtn);
-    if (this.reducedMotion) {
-      this.menu.setAlpha(1).setScale(1);
-      return;
+    this.setPauseInputEnabled(true);
+    // resting transforms (also the reduced-motion end state)
+    this.scrim.setAlpha(1);
+    for (const b of this.pauseStack) {
+      b.setAlpha(1);
+      b.setScale(1);
+      b.y = b.baseY;
     }
-    this.menu.setAlpha(0).setScale(0.96);
-    this.scene.tweens.add({
-      targets: this.menu, alpha: 1, scale: 1, duration: 190, ease: 'Sine.easeOut'
+    if (this.reducedMotion) return;
+
+    // 1) darken the frozen scenery
+    this.scrim.setAlpha(0);
+    s.tweens.add({
+      targets: this.scrim, alpha: 1, duration: 240, ease: 'Sine.easeOut'
     });
-    // the resume button pops in with a gentle overshoot
-    this.resumeBtn.setScale(0.72);
-    this.scene.tweens.add({
-      targets: this.resumeBtn, scale: 1, duration: 300, delay: 40, ease: 'Back.easeOut'
+    // 2) the play button appears — fade + soft overshoot to full size
+    this.resumeBtn.setAlpha(0).setScale(0.7);
+    s.tweens.add({
+      targets: this.resumeBtn, alpha: 1, duration: 200, ease: 'Sine.easeOut'
     });
+    s.tweens.add({
+      targets: this.resumeBtn, scale: 1, duration: 340, delay: 30, ease: 'Back.easeOut'
+    });
+    // 3) the three controls appear smoothly beneath it
+    for (let i = 0; i < 3; i++) {
+      const btn = this.pauseStack[i + 1];
+      btn.setAlpha(0);
+      btn.y = btn.baseY - 16;
+      const delay = 150 + i * PAUSE_UI.STAGGER_MS;
+      s.tweens.add({
+        targets: btn, alpha: 1, duration: 250, delay, ease: 'Sine.easeOut'
+      });
+      s.tweens.add({
+        targets: btn, y: btn.baseY, duration: 320, delay, ease: 'Cubic.easeOut'
+      });
+    }
+    this.startGlowPulse();
   }
 
+  /**
+   * Close choreography: input dies FIRST (a mid-animation tap can never
+   * re-pause the just-resumed game), then the controls and scrim fade out
+   * (~200ms) while the blur eases back to zero — the colorful gameplay
+   * returns exactly where it was frozen.
+   */
   closePause() {
     if (!this.pauseOpenState) return;
     this.pauseOpenState = false;
     this.hideConfirm();
-    this.removePauseFx(); // color returns with the overlay's fade-out
-    this.scene.tweens.killTweensOf(this.menu);
-    this.scene.tweens.killTweensOf(this.resumeBtn);
+    this.setPauseInputEnabled(false);
+    this.stopGlowPulse();
+    this.fadePauseFx();
+    const s = this.scene;
+    const items = [this.scrim, ...this.pauseStack];
+    s.tweens.killTweensOf(items);
     if (this.reducedMotion) {
-      this.menu.setVisible(false).setAlpha(1).setScale(1);
+      this.menu.setVisible(false);
+      this.scrim.setAlpha(0);
       return;
     }
-    this.scene.tweens.add({
-      targets: this.menu, alpha: 0, scale: 0.96, duration: 130,
+    s.tweens.add({
+      targets: items, alpha: 0, duration: 200, ease: 'Sine.easeIn',
       onComplete: () => this.menu.setVisible(false)
     });
   }
 
   destroy() {
     const s = this.scene;
-    this.removePauseFx(); // never leave grayscale/blur on a surviving camera
+    this.stopGlowPulse();
+    this.removePauseFx(); // never leave blur on a surviving camera
     if (this.offFsState) this.offFsState(); // drop the fullscreen subscription
-    s.tweens.killTweensOf([this.menu, this.timerText, this.shotsText, ...this.heartIcons,
-      ...this.starIcons.map((x) => x.group)]);
+    s.tweens.killTweensOf([this.menu, this.scrim,
+      ...(this.pauseStack || []), this.timerText, this.shotsText,
+      ...this.heartIcons, ...this.starIcons.map((x) => x.group)]);
     if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);
     if (this.onUiScaleResize) s.scale.off('resize', this.onUiScaleResize);
     if (this.uiCam) s.cameras.remove(this.uiCam);
