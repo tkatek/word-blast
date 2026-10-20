@@ -263,6 +263,12 @@ export class ObjectFactory {
       anchorX: def.x,
       anchorY: centerY,
       respawned: 0,
+      // SIZE INVARIANT: the configured display scale (XL parchment = 0.5,
+      // S/M/L = 1). Nothing may ever change a plaque's scale — syncTarget
+      // heals any drift back to these values so sprite and collider stay
+      // glued to the format's dimensions for the plaque's whole life.
+      baseScaleX: go.scaleX,
+      baseScaleY: go.scaleY,
       labelHolder: null,
       labels: []
     };
@@ -283,6 +289,15 @@ export class ObjectFactory {
   syncTargetLabels() {
     for (let i = 0; i < this.targets.length; i++) {
       const t = this.targets[i];
+      // SIZE INVARIANT (runs every frame): a plaque must keep exactly the
+      // display scale it was configured with (format size), from build
+      // through impact, tumble, respawn and the next question. setScale on
+      // a Matter image rescales the BODY too, so restoring here keeps the
+      // collider and the painted panel identical again. This is a hard
+      // guard: no effect, tween or future code may resize answer cards.
+      if (t.scaleX !== t.wb.baseScaleX || t.scaleY !== t.wb.baseScaleY) {
+        t.setScale(t.wb.baseScaleX, t.wb.baseScaleY);
+      }
       const holder = t.wb.labelHolder;
       if (!holder) continue;
       holder.setPosition(t.x, t.y);

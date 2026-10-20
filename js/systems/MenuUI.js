@@ -76,12 +76,13 @@ export function ensureMenuArtFallback(scene, key) {
     g.fillCircle(W * 0.78, H * 0.16, 46);
     g.generateTexture(key, W, H);
   } else if (key === MENU_ART.playButton.key) {
-    // wooden plate face, same 1254×1254 canvas as the supplied square art
-    // (content ≈ 1194×1048 centred with padding like the real trim)
-    const W = 1254, H = 1254;
+    // wooden sign face, same 1386×598 canvas as the supplied wide art
+    // (visible content ≈ 1352×563 centred, padding like the real trim)
+    const W = 1386, H = 598;
     g.save();
     g.translateCanvas(W / 2, H / 2); // drawWoodSlab is centred on origin
-    drawWoodSlab(g, 1170, 1030, 120, 'primary');
+    drawWoodSlab(g, 1340, 548, 64, 'primary');
+    drawPlayIcon(g, -W * 0.27, 0, 150, PLAY_ICON_GOLD.fill, PLAY_ICON_GOLD.edge);
     g.restore();
     g.generateTexture(key, W, H);
   } else {

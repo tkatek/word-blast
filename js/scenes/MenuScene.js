@@ -13,7 +13,7 @@
  *      read from the SaveManager (never hardcoded), with a short count
  *      animation only when the values genuinely changed since the last
  *      visit;
- *   5. the supplied square wooden PLAY plate (hover glow +5%, press −5%,
+ *   5. the supplied wide wooden PLAY sign (hover glow +5%, press −5%,
  *      fade transition into LevelSelectScene, rapid-click guarded) and a
  *      smaller RESET SAVE button behind a confirmation popup (Cancel
  *      preserves progress; only the confirmed action calls the existing
@@ -47,12 +47,12 @@ const LAYOUT = {
   logo: { y: 146, width: 530 },
   subtitle: { y: 308, height: 46 },
   panel: { y: 378, height: 66, font: '22px' },
-  // PLAY is the hero action — the supplied square wooden plate (the art
+  // PLAY is the hero action — the supplied wide wooden sign (the art
   // carries its own PLAY lettering + golden triangle + leaves). Its
-  // visible content is sized by HEIGHT (≈208 → width ≈237 from the art's
-  // 1194×1048 trim) so the hero sits clear of the progress panel above
+  // visible content is sized by HEIGHT (≈212 → width ≈509 from the art's
+  // 1352×563 trim) so the hero sits clear of the progress panel above
   // and the quiet reset below on the 720-tall world.
-  play: { y: 534, height: 208 },  // width follows the button art's aspect
+  play: { y: 534, height: 212 },  // width follows the button art's aspect
   reset: { y: 680, width: 190, height: 38 }
 };
 
@@ -78,8 +78,9 @@ export class MenuScene extends Phaser.Scene {
     this.dialog = null;
     this.reducedMotion = !!(save.data && save.data.settings && save.data.settings.reducedMotion);
 
-    // Audio-repair — silence-first configuration: no menu music. The menu
-    // is silent apart from button clicks; nothing starts automatically.
+    // Audio: no music starts on menu entry — the background music begins
+    // only from the PLAY press (a real user gesture). Button clicks are
+    // the only sounds before that.
     this.buildBackground();
     this.buildLogo();
     this.buildSubtitle();
@@ -287,7 +288,7 @@ export class MenuScene extends Phaser.Scene {
   /* ---------------------------------------------------------------- */
 
   buildButtons() {
-    // PLAY wears the supplied square wooden plate AS-IS (user follow-up):
+    // PLAY wears the supplied wide wooden sign AS-IS (user follow-up):
     // the art carries its own PLAY lettering, golden triangle and corner
     // leaves — no overlayed label or icon, no procedural face on top.
     // ArtButton sizes and hits from the art's VISIBLE (alpha-trimmed)
@@ -322,13 +323,18 @@ export class MenuScene extends Phaser.Scene {
   }
 
   /** PLAY → existing level-select flow. Rapid clicks can never double-fire:
-   *  the first click raises the transitioning guard and disables input. */
+   *  the first click raises the transitioning guard and disables input.
+   *  The click is also the gesture that starts the background music (it
+   *  never begins on its own) — a real user interaction, so mobile audio
+   *  unlock is satisfied too. */
   startPlay() {
     if (this.transitioning) return;
     this.transitioning = true;
     this.playButton.setEnabled(false);
     this.resetButton.setEnabled(false);
-    this.registry.get('audio').emit('ui-click');
+    const audio = this.registry.get('audio');
+    audio.emit('ui-click');
+    if (typeof audio.startMusic === 'function') audio.startMusic();
     const go = () => this.scene.start('LevelSelectScene');
     if (this.reducedMotion) {
       go();

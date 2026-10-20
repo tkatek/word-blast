@@ -186,10 +186,11 @@ export class GameScene extends Phaser.Scene {
     this.setupOrientation();
     this.input.once('pointerdown', () => this.tryEnterLandscapeFullscreen());
 
-    // Audio-repair — silence-first configuration: no gameplay music, no
-    // ambience loops. The scene is sound-effects-only; the single movement
-    // voice (leather stretch) is stopped on shutdown so nothing survives a
-    // level change or restart.
+    // Audio: no ambience loops, no per-scene music startup. The background
+    // track is manager-owned (started by the PLAY press) and simply keeps
+    // playing across questions, levels and scene restarts — it is never
+    // restarted here. The single movement voice (leather stretch) is
+    // stopped on shutdown so nothing survives a level change or restart.
     this.events.once('shutdown', () => {
       this.audio?.stopSlingMotion(0);
     });
@@ -757,19 +758,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   flashTarget(targetGo, color) {
+    // Hit feedback is TINT-ONLY: answer plaques must never change scale.
+    // The XL parchment renders at HALF its texture size (setDisplaySize
+    // 300×97 on a 600×194 canvas → native scale 0.5, while S/M/L sit at 1),
+    // so any absolute setScale() — even tweening "back" to 1 — permanently
+    // doubles the card AND its Matter body. A scale pop is therefore
+    // structurally off-limits here; the tint flash carries the feedback.
     targetGo.setTintFill(color);
-    // Tween a proxy and apply with a guard: if the question changes inside
-    // the 130 ms flash window the plaque (a Matter image) is destroyed, and
-    // tweening scaleX directly on a body-less Matter image crashes inside
-    // Matter Body.scale. Same visual behaviour, race-proof (Fix #21 found).
-    const t = { k: 1 };
-    this.tweens.add({
-      targets: t, k: 1.18, duration: 130, yoyo: true,
-      onUpdate: () => {
-        if (!targetGo.active || !targetGo.body) return;
-        targetGo.setScale(t.k);
-      }
-    });
     const qToken = this.questionIndex;
     this.time.delayedCall(420, () => {
       // the target is destroyed when the question changes — never touch it then

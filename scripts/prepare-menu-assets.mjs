@@ -40,13 +40,13 @@ const jobs = [
     desc: 'WORD BLAST logo (transparent, aspect preserved)'
   },
   {
-    // Supplied square wooden plate (1254×1254, "PLAY" + golden triangle
-    // painted in, corner leaves) — the PLAY button face. Kept at FULL
+    // Supplied wide wooden sign (1386×598, "PLAY" lettering + golden
+    // triangle + leaves painted in) — the PLAY button face. Kept at FULL
     // source resolution (≥ the button's device-pixel size across the
     // support matrix); the game scales it uniformly, aspect preserved,
     // and centre-crops nothing. Transparent padding is measured at
     // runtime (MenuUI.measureTextureTrim) so the hit area matches the
-    // visible plate.
+    // visible sign.
     src: join(SRC_DIR, 'play-button.png'),
     out: join(OUT_DIR, 'play-button.webp'),
     transform: (img) => img.webp({ quality: 95, effort: 5 }),

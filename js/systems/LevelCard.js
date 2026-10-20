@@ -34,19 +34,18 @@ export const CARD_ART = {
 };
 
 /**
- * Optional supplied card artwork (alpha-trimmed) under the SAME key as the
- * procedural painter — when the PNG is absent the painter simply runs
- * instead (the supplied square plate turned out to be the PLAY button art
- * and moved to the main menu, so the procedural frame is the live design).
+ * Supplied card artwork (alpha-trimmed, lossless webp) under the SAME key
+ * as the procedural painter — the live card design. When the file is
+ * unreachable (headless test envs) the painter simply runs instead.
  */
-export const CARD_ART_FILE = 'assets/images/ui/level-card.png';
+export const CARD_ART_FILE = 'assets/images/ui/level-card.webp';
 
 /** texture px per world px */
 const S = 3;
 
 /**
  * World-space design size of the card art (grid cards scale to fit).
- * Aspect matches the supplied artwork (1192×1047 after trimming); the
+ * Aspect matches the supplied artwork (1192×1048 after trimming); the
  * procedural fallback painter draws to the same proportions.
  */
 export const CARD_DESIGN = { w: 195, h: 171, shadowPad: 0 };

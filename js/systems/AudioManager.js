@@ -13,10 +13,22 @@
  *      per-key cooldowns, voice caps with severity priority for collisions,
  *      and mobile unlock handling.
  *
- * SILENCE-FIRST CONFIGURATION (audio repair):
- *   - No background music, no ambience loops, no flight whistle. The game
- *     is sound-effects-only: after one-shots finish, a settled scene with
- *     no input is completely silent.
+ * MUSIC (background-music pass):
+ *   - One looping background track (user-supplied "background-music.mp3")
+ *     plays as a SINGLE game-owned voice: started by explicit player
+ *     intent only (the PLAY press or the music toggle) — never
+ *     automatically on boot.
+ *   - It is manager-owned, so it survives every scene change without ever
+ *     restarting between questions or levels; pause/resume rides the
+ *     existing pauseAll/resumeAll path (same offset, no restart).
+ *   - The question pronunciation ducks it (live multiplier, smooth ramps)
+ *     alongside the sfx bus, and it mixes well under impacts/voices via
+ *     the dedicated music bus (default 0.55).
+ *
+ * SILENCE-FIRST CONFIGURATION (audio repair, still true for effects):
+ *   - No ambience loops, no flight whistle. Effects are one-shots only:
+ *     after they finish, a settled scene with no input carries only the
+ *     (optional) music bed.
  *   - The slingshot stretch is MOTION-DRIVEN: short leather-creak segments
  *     (cut from the user-supplied Pixabay recording "Slow Leather Stretch",
  *     id 63057 — see assets-src/audio-stretch/ATTRIBUTION.md) play only
@@ -84,7 +96,11 @@ export const AUDIO_MANIFEST = {
   'ui-complete': { file: 'ui/level-complete.wav', cat: 'ui', vol: 1.0 },
   'ui-failed': { file: 'ui/level-failed.wav', cat: 'ui', vol: 1.0 },
   'ui-missed': { file: 'ui/missed.wav', cat: 'ui', vol: 0.8 },
-  'ui-question': { file: 'ui/question-ready.wav', cat: 'ui', vol: 0.8 }
+  'ui-question': { file: 'ui/question-ready.wav', cat: 'ui', vol: 0.8 },
+  // music — the background track (user-supplied MP3, not generator-made:
+  // scripts/generate-audio.mjs no longer writes anything under music/).
+  // Played as a SINGLE game-owned voice (see _music) — never through play().
+  'music-theme': { file: 'music/background-music.mp3', cat: 'music', vol: 0.9, loop: true }
 };
 
 /** Flat key list for tests: manifest keys + every variation key. */
@@ -139,6 +155,9 @@ const SLING = {
 /** How much competing sfx are reduced while the question voice speaks. */
 const SPEECH_DUCK = 0.35;
 
+/** Music level while the question voice speaks (live multiplier). */
+const SPEECH_MUSIC_DUCK = 0.45;
+
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
 export class AudioManager {
@@ -165,6 +184,11 @@ export class AudioManager {
     this._paused = false;
     this._unlockBound = false;
     this._speechDuck = false;   // true while the question voice speaks
+    // music — ONE game-owned looping voice (never two; never scene-owned).
+    // `want` records player intent (PLAY press / toggle on) so a later
+    // enable/attach can still honor it; the sound itself only exists
+    // while it is genuinely audible-capable.
+    this._music = { sound: null, key: 'music-theme', duck: 1, want: false };
     // slingshot movement audio (one controlled voice per drag session)
     this._sling = {
       voice: null,       // the active Phaser Sound (at most one)
@@ -266,13 +290,11 @@ export class AudioManager {
     if (this._ramps.length) {
       const done = [];
       for (const r of this._ramps) {
-        let v;
-        if (now >= r.t0 + r.ms) {
-          v = r.to;
-          done.push(r);
-        } else {
-          v = r.from + (r.to - r.from) * ((now - r.t0) / Math.max(1, r.ms));
-        }
+        // progress clamped 0..1 — a regressing clock can never push a ramp
+        // past its target (out-of-range gains)
+        const p = Math.max(0, Math.min(1, (now - r.t0) / Math.max(1, r.ms)));
+        const v = p >= 1 ? r.to : r.from + (r.to - r.from) * p;
+        if (p >= 1) done.push(r);
         try { r.s.setVolume(v); } catch { done.push(r); continue; }
       }
       if (done.length) {
@@ -292,6 +314,7 @@ export class AudioManager {
   /** Detach everything (game destroy only — scenes never call this). */
   destroy() {
     this._attached = false;
+    try { this.stopMusic(0); } catch { /* none yet */ }
     try { this.stopSlingMotion(0); } catch { /* none yet */ }
     if (this._game && this._game.events && this._tickHandler) {
       try { this._game.events.off('poststep', this._tickHandler); } catch { /* gone */ }
@@ -317,10 +340,10 @@ export class AudioManager {
         if (typeof s.volumes[k] === 'number') this.bus[k] = clamp01(s.volumes[k]);
       }
     }
-    // NOTE (silence-first migration): older saves may say music/ambience ON.
-    // There is nothing to restart — this build ships no music or ambience
-    // tracks at all — and no save field is modified here. Progress, scores
-    // and inventory are untouched.
+    // NOTE (music intent): reading a saved `music:true` NEVER auto-starts
+    // anything — music begins only from an explicit player gesture (PLAY
+    // press or the toggle). No save field is modified here, and progress,
+    // scores and inventory are untouched.
     this._applyMute();
   }
 
@@ -453,7 +476,8 @@ export class AudioManager {
     if (!this.sound) return null;
     const base = AUDIO_MANIFEST[key];
     if (!base) return null;
-    if (base.cat !== 'music' && this.mutes[base.cat]) {
+    if (base.cat === 'music') return null; // dedicated single-voice engine only
+    if (this.mutes[base.cat]) {
       this.stats.dropped[key] = (this.stats.dropped[key] || 0) + 1;
       return null;
     }
@@ -673,13 +697,75 @@ export class AudioManager {
   }
 
   /* ------------------------------------------------------------------ */
+  /* Music — the single cartoon-theme voice                               */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * The music voice's correct level: manifest vol × music bus × master,
+   * times the live speech-duck multiplier. This is the ONE gain owner of
+   * the music sound — nothing else writes its volume directly.
+   */
+  _musicVolume() {
+    const def = AUDIO_MANIFEST[this._music.key];
+    return clamp01((def ? def.vol : 0.8) * this._catVolume('music') * this._music.duck);
+  }
+
+  /**
+   * Start (or record the intent to start) the theme. Called from player
+   * gestures only — the PLAY press and the music toggle — never
+   * automatically on boot. Idempotent: an existing voice is left exactly
+   * as it is (no second layer, no restart), and a missing asset or a
+   * muted category only records intent (`want`) so a later enable or
+   * attach can still honor it. Fades in gently so the entry is inaudible.
+   */
+  startMusic() {
+    this._music.want = true;
+    if (!this.sound || this._music.sound) return;
+    if (!this.enabled || this.mutes.music) return;
+    if (!this._loaded(this._music.key)) {
+      this.stats.dropped['music-theme'] = (this.stats.dropped['music-theme'] || 0) + 1;
+      return;
+    }
+    try {
+      const s = this.sound.add(this._music.key, { volume: 0, loop: true });
+      if (!s) return;
+      this._music.sound = s;
+      s.play();
+      this._ramp(s, this._musicVolume(), 700);
+      this.stats.plays['music-theme'] = (this.stats.plays['music-theme'] || 0) + 1;
+    } catch {
+      this.stats.dropped['music-theme'] = (this.stats.dropped['music-theme'] || 0) + 1;
+    }
+  }
+
+  /**
+   * Stop the theme with a short fade. Clears intent, so nothing revives
+   * it except a new explicit gesture (toggle on / PLAY).
+   */
+  stopMusic(fadeMs = 450) {
+    this._music.want = false;
+    const s = this._music.sound;
+    this._music.sound = null;
+    if (!s) return;
+    const release = () => { try { this.sound.remove(s); } catch { /* already gone */ } };
+    if (fadeMs <= 0) release();
+    else this._ramp(s, 0, fadeMs, release);
+  }
+
+  /** Ramp the music voice to its correct level (bus/duck changes). */
+  _refreshMusicVolume(rampMs = 160) {
+    if (!this._music.sound) return;
+    this._ramp(this._music.sound, this._musicVolume(), rampMs);
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Speech ducking (question pronunciation)                             */
   /* ------------------------------------------------------------------ */
 
   /**
-   * Temporarily reduce competing effects while the question voice speaks,
-   * then restore their intended levels smoothly. Never touches saved
-   * volume settings (it is a live multiplier, not a settings change).
+   * Temporarily reduce competing effects AND the music bed while the
+   * question voice speaks, then restore their intended levels smoothly.
+   * Never touches saved volume settings (live multipliers, not settings).
    */
   duckForSpeech(on) {
     if (this._speechDuck === !!on) return;
@@ -690,6 +776,9 @@ export class AudioManager {
       const base = v.baseVol !== undefined ? v.baseVol : 1;
       this._ramp(v.s, clamp01(base * factor), 120);
     }
+    // the music bed ducks too (requirement: pronunciation stays clear)
+    this._music.duck = this._speechDuck ? SPEECH_MUSIC_DUCK : 1;
+    this._refreshMusicVolume(280);
     if (!this._speechDuck) this._prune();
   }
 
@@ -786,18 +875,24 @@ export class AudioManager {
     this.enabled = !!v;
     if (this.save) this.save.setSetting('sound', this.enabled);
     this._applyMute();
-    // No music exists to revive: unmuting only allows FUTURE effects.
+    // Master re-enable can honor a recorded music intent that was blocked
+    // while the master gate was off. Disabling silences everything via the
+    // master gain node — the (single) music instance keeps its loop
+    // position, so re-enabling continues seamlessly instead of restarting.
+    if (this.enabled && this._music.want && !this._music.sound) this.startMusic();
   }
 
   /**
-   * Persists the music preference. This build ships no music tracks, so
-   * the toggle changes nothing audible — it only keeps the user's saved
-   * choice intact for a future soundtrack (old saves can never resurrect
-   * music that is not loaded).
+   * Persists the music preference AND starts/stops the live theme voice:
+   * ON starts it (idempotent — an already-playing voice is untouched),
+   * OFF fades it out. Nothing restarts between questions or levels; the
+   * voice is manager-owned and scene-independent.
    */
   setMusicEnabled(v) {
     this.mutes.music = !v;
     if (this.save) this.save.setSetting('music', !!v);
+    if (v) this.startMusic();
+    else this.stopMusic();
   }
 
   setSfxEnabled(v) {
@@ -816,6 +911,7 @@ export class AudioManager {
   setBusVolume(bus, v) {
     if (!(bus in this.bus)) return;
     this.bus[bus] = clamp01(v);
+    if (bus === 'music' || bus === 'master') this._refreshMusicVolume();
     if (this.save && this.save.data) {
       const s = this.save.data.settings || (this.save.data.settings = {});
       const vol = { ...(s.volumes || {}), [bus]: this.bus[bus] };
@@ -930,6 +1026,14 @@ export class AudioManager {
       bus: { ...this.bus },
       paused: this._paused,
       speechDuck: this._speechDuck,
+      music: {
+        playing: !!this._music.sound,
+        key: this._music.sound ? this._music.key : null,
+        want: this._music.want,
+        duck: this._music.duck,
+        volume: this._music.sound ? this._music.sound.volume : 0,
+        loop: this._music.sound ? !!this._music.sound.loop : false
+      },
       sling: {
         active: this._sling.active,
         key: this._sling.key,

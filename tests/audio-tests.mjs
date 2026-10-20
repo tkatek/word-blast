@@ -1,10 +1,11 @@
 /**
- * Audio system tests (audio-repair — silence-first configuration).
+ * Audio system tests (silence-first effects + cartoon-theme music engine).
  *
  * Part A: deterministic unit tests of the AudioManager playback engine
  *         against a fake Phaser sound manager + fake scene clock (no real
  *         audio device needed — routing, mixing, cooldowns, caps, motion
- *         gating, ducking and settings are all verifiable synchronously).
+ *         gating, ducking, the single-voice music engine and settings are
+ *         all verifiable synchronously).
  * Part B: headless integration — the REAL game boots, a real shot is fired
  *         and the semantic audio events must flow through the bus in the
  *         right order, surviving scene restarts without duplication.
@@ -190,13 +191,13 @@ test('preload keys are unique and cover every playable sound', () => {
   }
 });
 
-test('every wav under public/assets/audio is referenced by the manifest', () => {
+test('every audio file under public/assets/audio is referenced by the manifest', () => {
   const wanted = new Set(audioPreloadList().map((e) => e.file));
   const walk = (dir, prefix = '') => {
     for (const name of readdirSync(dir)) {
       const full = join(dir, name);
       if (statSync(full).isDirectory()) walk(full, `${prefix}${name}/`);
-      else if (name.endsWith('.wav')) {
+      else if (name.endsWith('.wav') || name.endsWith('.mp3')) {
         const rel = `${prefix}${name}`;
         assert(wanted.has(rel), `orphan audio file not in manifest: ${rel}`);
       }
@@ -205,21 +206,37 @@ test('every wav under public/assets/audio is referenced by the manifest', () => 
   walk(join(ROOT, 'public', 'assets', 'audio'));
 });
 
-test('no music or ambience files ship (silence-first configuration)', () => {
-  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'music')), 'music/ directory must not exist');
-  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'ambience')), 'ambience/ directory must not exist');
+test('only the background track ships under music/ — no ambience, no dead loops', () => {
+  const musicDir = join(ROOT, 'public', 'assets', 'audio', 'music');
+  assert(existsSync(musicDir), 'music/ directory must exist (background track)');
+  assert(existsSync(join(musicDir, 'background-music.mp3')), 'background track present');
+  eq(readdirSync(musicDir).length, 1, 'exactly one music track (the background loop)');
+  assert(!existsSync(join(musicDir, 'word-blast-theme.wav')), 'old generated theme must not exist');
+  assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'ambience')), 'ambience/ must not exist');
   assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'birds', 'flight-loop.wav')), 'flight loop must not exist');
   assert(!existsSync(join(ROOT, 'public', 'assets', 'audio', 'slingshot', 'stretch-loop.wav')), 'old stretch loop must not exist');
 });
 
-test('no manifest entry loops — every sound is a self-terminating one-shot', () => {
+test('only the music theme loops — every effect is a self-terminating one-shot', () => {
   for (const [key, def] of Object.entries(AUDIO_MANIFEST)) {
-    eq(def.loop || false, false, `${key} must not be a loop`);
+    eq(def.loop || false, key === 'music-theme', `${key} loop policy wrong`);
   }
+});
+
+test('background track is a valid, non-trivial MP3', () => {
+  const buf = readFileSync(join(ROOT, 'public', 'assets', 'audio', 'music', 'background-music.mp3'));
+  // sane size: a real minutes-long music track, not a stub or a re-encoded accident
+  assert(buf.length > 200 * 1024, `track too small: ${(buf.length / 1024).toFixed(0)}KB`);
+  assert(buf.length < 25 * 1024 * 1024, `track too large: ${(buf.length / 1024 / 1024).toFixed(1)}MB`);
+  // MP3 framing: ID3v2 tag ("ID3") or a raw MPEG audio frame sync (0xFFEx)
+  const hasId3 = buf.length > 3 && buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33;
+  const hasSync = buf.length > 2 && buf[0] === 0xFF && (buf[1] & 0xE0) === 0xE0;
+  assert(hasId3 || hasSync, 'file is neither ID3-tagged nor MPEG frame-synced (not an MP3)');
 });
 
 test('all wavs are well-formed RIFF/PCM (44-byte header, mono, 22050 Hz)', () => {
   for (const { file } of audioPreloadList()) {
+    if (file.endsWith('.mp3')) continue; // MP3 background track checked above
     const buf = readFileSync(join(ROOT, 'public', 'assets', 'audio', file));
     eq(buf.toString('ascii', 0, 4), 'RIFF', `${file}: not RIFF`);
     eq(buf.toString('ascii', 8, 12), 'WAVE', `${file}: not WAVE`);
@@ -543,21 +560,97 @@ test('sfx mute silences impacts/abilities/movement but not UI clicks', () => {
   eq(sound.plays.length, 1, 'ui channel unaffected');
 });
 
-test('music toggle only persists the preference — nothing can play', () => {
-  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
-  audio.setMusicEnabled(false);
+test('music toggle starts/stops the live theme voice (persisted)', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
   audio.setMusicEnabled(true);
-  eq(audio.mutes.music, false, 'preference stored');
-  eq(sound.sounds.length, 0, 'no music exists to start in this build');
+  pump(scene, 3000); // past the fade-in
+  const music = liveSounds(sound).filter((s) => s.key === 'music-theme');
+  eq(music.length, 1, 'exactly one theme voice');
+  assert(music[0].loop, 'theme voice loops');
+  assert(audio.mutes.music === false, 'preference stored');
+  const inst = music[0];
+  audio.setMusicEnabled(false);
+  pump(scene, 5000); // past the fade-out
+  eq(sound.sounds.indexOf(inst), -1, 'voice released after fade-out');
+  eq(liveSounds(sound).filter((s) => s.key === 'music-theme').length, 0, 'no theme left');
+  audio.setMusicEnabled(true);
+  pump(scene, 3000);
+  eq(liveSounds(sound).filter((s) => s.key === 'music-theme').length, 1, 'toggle on restarts exactly one voice');
 });
 
-test('an OLD save with music ON cannot resurrect background audio', () => {
+test('startMusic is idempotent — repeated PLAY presses never stack tracks', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  for (let i = 0; i < 5; i++) audio.startMusic();
+  pump(scene, 3000);
+  const music = liveSounds(sound).filter((s) => s.key === 'music-theme');
+  eq(music.length, 1, 'exactly one voice after five calls');
+  const inst = music[0];
+  audio.startMusic();
+  audio.startMusic();
+  pump(scene, 4000);
+  assert(liveSounds(sound).includes(inst), 'same instance kept (never restarted)');
+  eq(liveSounds(sound).filter((s) => s.key === 'music-theme').length, 1, 'still exactly one');
+});
+
+test('music level rides the music bus — clearly under the sfx bus', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  audio.startMusic();
+  pump(scene, 5000); // past the 700ms fade-in
+  const m = liveSounds(sound).find((s) => s.key === 'music-theme');
+  assert(m, 'theme playing');
+  // manifest 0.9 × master 0.9 × music bus 0.55 ≈ 0.445
+  assert(m.volume > 0.3 && m.volume < 0.55, `music level ${m.volume.toFixed(3)} not in the intended window`);
+});
+
+test('play() refuses the music key — dedicated single-voice engine only', () => {
+  const { audio, sound } = freshManager(new SaveManager(new MemAdapt()));
+  eq(audio.play('music-theme'), null, 'play() returns null');
+  eq(sound.sounds.length, 0, 'nothing added');
+});
+
+test('speech ducking lowers and restores the music bed', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  audio.startMusic();
+  pump(scene, 5000);
+  const m = liveSounds(sound).find((s) => s.key === 'music-theme');
+  const before = m.volume;
+  audio.duckForSpeech(true);
+  pump(scene, 6000);
+  assert(m.volume < before * 0.6, `music ducked (v ${m.volume.toFixed(3)} < ${(before * 0.6).toFixed(3)})`);
+  audio.duckForSpeech(false);
+  pump(scene, 7000);
+  assert(Math.abs(m.volume - before) < 0.02, `music restored (v ${m.volume.toFixed(3)})`);
+});
+
+test('music never restarts across gameplay events — same instance throughout', () => {
+  const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt()));
+  audio.startMusic();
+  pump(scene, 3000);
+  const inst = liveSounds(sound).find((s) => s.key === 'music-theme');
+  assert(inst, 'theme playing');
+  // a barrage of everything that happens between/around questions
+  for (const ev of ['question-ready', 'card-open', 'card-close', 'answer-correct',
+    'answer-wrong', 'shot-missed', 'heart-lost', 'level-complete', 'level-failed']) {
+    audio.emit(ev, ev === 'level-complete' ? { stars: 3 } : undefined);
+    pump(scene, 4000);
+  }
+  audio.emit('game-pause');
+  audio.emit('game-resume');
+  pump(scene, 4000);
+  assert(liveSounds(sound).includes(inst), 'the SAME music instance survived every event');
+  eq(sound.sounds.filter((s) => s.key === 'music-theme').length, 1, 'no second track was ever added');
+});
+
+test('an OLD save with music ON never auto-starts music — PLAY/toggle only', () => {
   const legacy = { version: 1, settings: { sound: true, music: true, ambience: true } };
   const { audio, sound, scene } = freshManager(new SaveManager(new MemAdapt(legacy)));
-  audio.unlock(); // the classic resurrection path: gesture → unlock → retry music
+  audio.unlock(); // the classic resurrection path: gesture → unlock → retry
   pump(scene, 3000);
-  eq(sound.sounds.length, 0, 'silence preserved (no tracks shipped, none restarted)');
-  assert(!('music' in audio) || typeof audio.playMusic !== 'function', 'no music API to misuse');
+  eq(sound.sounds.filter((s) => s.key === 'music-theme').length, 0,
+    'no music auto-started from a saved preference');
+  audio.startMusic(); // explicit intent (PLAY press)
+  pump(scene, 3000);
+  eq(sound.sounds.filter((s) => s.key === 'music-theme').length, 1, 'explicit intent starts it');
 });
 
 test('master mute silences everything; unmute replays NOTHING old', () => {
@@ -725,8 +818,29 @@ async function headless() {
     audio.clearLog();
     h.fire(16, -11);
     await h.waitFor(() => audio.eventLog.some((e) => e.event === 'launch'), 2000, 'launch after restart');
-    eq(audio.eventLog.filter((e) => e.event === 'launch').length, 1,
+    // eventLog holds {event, payload, t} objects — compare the event NAME
+    // (same pattern as the pre-restart assertion above)
+    eq(audio.eventLog.filter((e2) => e2.event === 'launch').length, 1,
       'still exactly one launch per shot after restart');
+  });
+
+  await testAsync('music intent survives scene restarts without stacking or crashing', async () => {
+    const audio = h.game.registry.get('audio');
+    audio.startMusic();  // explicit intent (the PLAY path)
+    audio.startMusic();  // rapid double-tap guard
+    const info1 = audio.audioDebugInfo();
+    assert(info1.music.want, 'intent recorded');
+    // headless ships no decoded audio: the voice is absent but counted,
+    // and crucially NO second voice can ever be created by the repeat call
+    const drops = audio.stats.dropped['music-theme'] || 0;
+    assert(drops >= (info1.music.playing ? 0 : 1), 'missing asset drop counted (headless)');
+    h.api.gotoLevel(1);
+    await h.waitForState('AIMING', 15000);
+    const info2 = audio.audioDebugInfo();
+    eq(info2.music.want, true, 'intent unchanged across the scene restart');
+    // whether or not the voice exists, it is at most ONE
+    const themeVoices = audio.sound ? audio.sound.sounds.filter((s) => s.key === 'music-theme').length : 0;
+    assert(themeVoices <= 1, `at most one theme voice (found ${themeVoices})`);
   });
 
   test('audio stats stay sane after real gameplay (no runaway voices)', () => {

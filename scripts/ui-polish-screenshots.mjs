@@ -62,7 +62,9 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
   const page = await browser.newPage();
   await page.setViewport({ width: w, height: h, deviceScaleFactor: 1, isMobile: mobile, hasTouch: touch });
   page.__errors = [];
+  page.__logs = [];
   page.on('pageerror', (e) => page.__errors.push(e.message));
+  page.on('console', (m) => page.__logs.push(m.text()));
   return page;
 }
 
@@ -119,6 +121,7 @@ async function prepGameplay(page) {
   await page.evaluate(() => {
     window.__WB__.setAutoPause(false);
     window.__WB__.setCardTimings({ enterMs: 150, readingMs: 900, moveMs: 250, exitMs: 120, peekMs: 150 });
+    window.__WB__.setDebug(true);
   });
 }
 
@@ -149,6 +152,36 @@ async function autoAimRetry(page, choiceId = null, tries = 4) {
   return false;
 }
 
+/**
+ * Land the wanted feedback KIND ('correct' | 'wrong'): aims at the right
+ * plaque, and if the shot clips a different plaque on the way (real
+ * physics), plays the resulting card's action and retries.
+ */
+async function answerQuestion(page, kind, tries = 4) {
+  for (let i = 0; i < tries; i++) {
+    const target = await page.evaluate((k) => {
+      const s = window.__WB__.scene();
+      if (!s || !s.prepared) return null;
+      const wanted = k === 'correct'
+        ? s.prepared.question.correctAnswerId
+        : s.factory.targets.find((t) => t.wb.choiceId !== s.prepared.question.correctAnswerId
+          && !t.wb.hit)?.wb.choiceId;
+      return wanted || null;
+    }, kind);
+    if (!target) return false;
+    const landed = await autoAimRetry(page, target, 2);
+    if (!landed) continue;
+    const got = await page.evaluate(() => window.__WB__.feedbackInfo().kind);
+    if (got === kind) return true;
+    // clipped the other plaque — play the card out and try again
+    await clickFeedbackAction(page).catch(() => {});
+    await waitForFn(page, () => ['AIMING', 'LEVEL_COMPLETE'].includes(window.__WB__.state()), 45000)
+      .catch(() => {});
+    if (await page.evaluate(() => window.__WB__.state() === 'LEVEL_COMPLETE')) return false;
+  }
+  return false;
+}
+
 /** Enter gameplay on a level through the REAL UI (PLAY → card click). */
 async function enterLevelViaUI(page, levelId) {
   await clickWorld(page, 640, 478); // PLAY
@@ -162,12 +195,14 @@ async function enterLevelViaUI(page, levelId) {
   await sleep(400); // card settles onto its dock right as aiming arms
 }
 
-/** Wait until the feedback card's action button is armed, then click it. */
+/** Wait until the feedback card's action button is armed, then click it.
+ *  Generous budget: arming is game-time based (min-visible + settle) and
+ *  software-GL sessions run the clock well below wall-clock speed. */
 async function clickFeedbackAction(page) {
   await waitForFn(page, () => {
     const f = window.__WB__.feedbackInfo();
     return f && f.visible && f.actionEnabled;
-  }, 12000);
+  }, 45000);
   const pos = await page.evaluate(() => {
     const s = window.__WB__.scene();
     const r = s.feedbackCard.root, b = s.feedbackCard.button;
@@ -262,8 +297,8 @@ async function runDesktopPass() {
       `timer=${hudInfo.timerFont} progressH=${hudInfo.progressH}`);
 
     /* 6 — correct answer card on the fresh arena */
-    const correctHit = await autoAimRetry(page);
-    if (!correctHit) throw new Error('correct answer never landed');
+    const correctOk = await answerQuestion(page, 'correct');
+    if (!correctOk) throw new Error('correct answer never landed');
     await sleep(450);
     const correctFit = await page.evaluate(() => window.__WB__.feedbackInfo());
     check('correct card: green theme, compact size', correctFit.kind === 'correct',
@@ -273,13 +308,8 @@ async function runDesktopPass() {
     /* 7 — CONTINUE → question 2 (fresh arena) → wrong answer card */
     await clickFeedbackAction(page);
     await waitForFn(page, () => window.__WB__.state() === 'AIMING', 45000);
-    const wrongChoice = await page.evaluate(() => {
-      const s = window.__WB__.scene();
-      const wrong = s.factory.targets.find((t) => t.wb.choiceId !== s.prepared.question.correctAnswerId);
-      return wrong ? wrong.wb.choiceId : null;
-    });
-    const wrongHit = await autoAimRetry(page, wrongChoice);
-    if (!wrongHit) throw new Error('wrong answer never landed');
+    const wrongOk = await answerQuestion(page, 'wrong');
+    if (!wrongOk) throw new Error('wrong answer never landed');
     await sleep(450);
     const wrongFit = await page.evaluate(() => {
       const f = window.__WB__.feedbackInfo();
@@ -349,7 +379,7 @@ async function runDesktopPass() {
     await snap(page, '10-resumed-color-restored.png');
 
     /* 11 — victory panel (wood + drawn stars) */
-    for (let guard = 0; guard < 6; guard++) {
+    for (let guard = 0; guard < 8; guard++) {
       const st = await page.evaluate(() => window.__WB__.state());
       if (st === 'LEVEL_COMPLETE') break;
       // fresh arena per question (same reload the RETRY path performs) so
@@ -359,8 +389,8 @@ async function runDesktopPass() {
         s.loadQuestion(s.questionIndex);
       });
       await waitForFn(page, () => window.__WB__.state() === 'AIMING', 45000);
-      const hit = await autoAimRetry(page);
-      if (!hit) throw new Error('autoAim failed on question ' + (guard + 1));
+      const hit = await answerQuestion(page, 'correct', 3);
+      if (!hit) throw new Error('correct answer failed on question ' + (guard + 1));
       await clickFeedbackAction(page);
       await waitForFn(page, () => ['AIMING', 'LEVEL_COMPLETE', 'NEXT_QUESTION', 'QUESTION_READY']
         .includes(window.__WB__.state()), 45000);
@@ -375,6 +405,9 @@ async function runDesktopPass() {
     check('desktop pass: no page errors', page.__errors.length === 0, page.__errors.join(' | '));
   } catch (e) {
     check('desktop campaign', false, e.message);
+    // game-transition trace for diagnosis (DebugLog output)
+    const tail = (page.__logs || []).filter((l) => l.includes('WORD BLAST') || l.includes('Card —')).slice(-30);
+    for (const l of tail) console.log('  [log]', l.replace('[WORD BLAST] ', ''));
   } finally {
     await page.close();
     await browser.close();

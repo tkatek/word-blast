@@ -147,7 +147,7 @@ async function runDesktopPass() {
     await snap('desktop-with-progress.png');
 
     /* 3 — reset confirmation popup */
-    await clickWorld(page, 640, 566);            // RESET SAVE
+    await clickWorld(page, 640, 680);            // RESET SAVE (LAYOUT.reset.y — hero-PLAY moved it off 566)
     await sleep(500);
     let open = (await menuInfo(page)).dialogOpen;
     check('reset requires confirmation (popup opens, no erase)', open);
@@ -163,7 +163,7 @@ async function runDesktopPass() {
       `${afterCancel.levels} | unlocked=${savedAfterCancel.unlockedLevel}`);
 
     /* 5 — confirmed reset */
-    await clickWorld(page, 640, 566);            // RESET SAVE again
+    await clickWorld(page, 640, 680);            // RESET SAVE (LAYOUT.reset.y — hero-PLAY moved it off 566) again
     await sleep(600);
     await clickWorld(page, 800, 458);            // RESET PROGRESS
     const afterReset = await waitForProgressText(page, { levels: '0/15', stars: '0/45' });

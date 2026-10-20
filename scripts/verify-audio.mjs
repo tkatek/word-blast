@@ -20,7 +20,15 @@
  *   9.  pause/mute during stretch — voice dropped, nothing resurrects
  *  10. question card — one whoosh per open/close, quiet reading period
  *  11. lifecycle — 20 drag/cancel cycles + restarts: no voice growth
- *  12. evidence — direct-output WAV captures saved for the report
+ *  12. master mute covers the custom output path; unmute revives nothing
+ *  13. CARTOON THEME MUSIC — the full gameplay-music spec: no auto-start,
+ *      PLAY intent → exactly one looping voice, low bed level, shots
+ *      dominate it, scene restarts never restart it, pronunciation
+ *      duck/restore, pause/resume continues the same voice, seamless
+ *      loop wrap (seeked across the seam), ON/OFF control, master mute
+ *      covers music too
+ *  14. evidence — direct-output WAV captures saved for the report
+ *  15. landscape-mobile emulation pass
  *
  * Run: npm run build && npm run verify:audio
  */
@@ -603,7 +611,183 @@ try {
     `pre=${JSON.stringify(preMute)} post=${JSON.stringify(muted)} clickMax=${mutedOutput.max.toExponential(2)}`);
   check('unmute replays nothing old', unmutedPlaying === 0, `${unmutedPlaying} playing`);
 
-  // 13. landscape-mobile emulation pass (device emulation, still desktop
+  // 14. CARTOON THEME MUSIC — the full gameplay-music behaviour spec.
+  //     (Everything above ran with NO music started: entering a level via
+  //     the debug API is not the PLAY press, so the silence checks above
+  //     also prove music never auto-starts on boot.)
+  const preMusic = await page.evaluate(() => window.__WB__.audio().music);
+  check('music: nothing auto-started before the PLAY intent', preMusic.playing === false,
+    JSON.stringify(preMusic));
+
+  // PLAY press → startMusic (exactly what the MenuScene handler calls)
+  const started = await page.evaluate(() => {
+    const g = window.__WB__.game;
+    g.registry.get('audio').startMusic();
+    g.registry.get('audio').startMusic(); // rapid double-tap must not stack
+    return window.__WB__.audio().music;
+  });
+  await sleep(1200); // past the 700 ms fade-in
+  const musicState = await page.evaluate(() => {
+    const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+    return {
+      count: v.length,
+      playing: v.filter((s) => s.isPlaying).length,
+      loop: v.every((s) => s.loop),
+      info: window.__WB__.audio().music
+    };
+  });
+  check('music: PLAY intent starts exactly ONE looping theme voice',
+    musicState.count === 1 && musicState.playing === 1 && musicState.loop && started.want,
+    JSON.stringify(musicState));
+
+  // bed level: audible but LOW (never louder than the effects around it)
+  const bed = await outputLevel(page, 2000);
+  check('music: bed audible at a low level (under the effects bus)',
+    bed.avg > SILENT && bed.avg < 0.06 && bed.max < 0.25,
+    `avg=${bed.avg.toExponential(2)} max=${bed.max.toExponential(2)}`);
+
+  // a real shot must dominate the bed while the music keeps playing
+  const shotReady = await awaitInteractive(page);
+  if (shotReady.ok) {
+    await dragPouch(page, -90, 60, 600);
+    await page.evaluate(() => window.__wbTap.recStart());
+    await page.mouse.up();
+    const shotWindow = await outputLevel(page, 1500);
+    const musicAfter = await page.evaluate(() => {
+      const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+      return { count: v.length, playing: v.filter((s) => s.isPlaying).length };
+    });
+    check('music: launch/impact transient clearly dominates the bed',
+      shotWindow.max > bed.avg * 4 && musicAfter.count === 1 && musicAfter.playing === 1,
+      `shotMax=${shotWindow.max.toExponential(2)} bedAvg=${bed.avg.toExponential(2)}`);
+    check('music: still exactly one voice after a shot', musicAfter.count === 1);
+    await saveRecording(page, 'music-bed-and-shot.wav');
+  } else {
+    check('music: launch/impact transient clearly dominates the bed', false, 'not interactive');
+    check('music: still exactly one voice after a shot', false, 'not interactive');
+  }
+
+  // music NEVER restarts: advancing position across a full scene restart
+  // (this is the "between questions/levels" guarantee). Phaser 3.90 has no
+  // `.currentTime` — position is getCurrentTime() while playing and the
+  // `.seek` getter while paused. The ONLY legitimate position decrease is
+  // the 61.9 s loop wrap, so near the end a small value still passes.
+  const MUSIC_POS = `(() => {
+    const s = window.__WB__.game.sound.sounds.find((v) => v.key === 'music-theme');
+    if (!s) return { t: -1, dur: 0 };
+    return {
+      t: s.isPaused ? s.seek : (typeof s.getCurrentTime === 'function' ? s.getCurrentTime() : s.seek),
+      dur: s.totalDuration || 0
+    };
+  })()`;
+  const posContinues = (before, after) =>
+    after.t >= before.t - 0.25 || (before.dur && before.t > before.dur * 0.85 && after.t < 6);
+  const beforeRestart = await page.evaluate(MUSIC_POS);
+  await page.evaluate(() => { window.__WB__.setAutoPause(false); window.__WB__.gotoLevel(1); });
+  await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 20000 });
+  await sleep(1500);
+  const afterRestart = await page.evaluate(() => {
+    const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+    const s = v[0];
+    return { count: v.length, playing: s ? s.isPlaying : false };
+  });
+  const afterRestartPos = await page.evaluate(MUSIC_POS);
+  check('music: scene restart never restarts the track (same voice, position kept)',
+    afterRestart.count === 1 && afterRestart.playing && posContinues(beforeRestart, afterRestartPos),
+    `before t=${beforeRestart.t.toFixed(2)}s after t=${afterRestartPos.t.toFixed(2)}s count=${afterRestart.count}`);
+
+  // pronunciation ducking lowers the live music level, then restores it
+  const ducked = await page.evaluate(() => {
+    const g = window.__WB__.game;
+    const a = g.registry.get('audio');
+    const s = g.sound.sounds.find((v) => v.key === 'music-theme');
+    const before = s.volume;
+    a.duckForSpeech(true);
+    return before;
+  });
+  await sleep(700); // 280 ms ramp
+  const duckVol = await page.evaluate(() =>
+    window.__WB__.game.sound.sounds.find((s) => s.key === 'music-theme').volume);
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').duckForSpeech(false));
+  await sleep(700);
+  const restoredVol = await page.evaluate(() =>
+    window.__WB__.game.sound.sounds.find((s) => s.key === 'music-theme').volume);
+  check('music: pronunciation ducks the bed and restores it',
+    duckVol < ducked * 0.6 && Math.abs(restoredVol - ducked) < 0.02,
+    `before=${ducked.toFixed(3)} ducked=${duckVol.toFixed(3)} restored=${restoredVol.toFixed(3)}`);
+
+  // pause suspends music (output goes quiet); resume continues the SAME
+  // voice from where it stopped — no restart, no second layer
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').emit('game-pause'));
+  await sleep(400);
+  const pausedOut = await outputLevel(page, 900);
+  const whilePaused = await page.evaluate(() => {
+    const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+    const s = v[0];
+    return { count: v.length, isPaused: s ? s.isPaused : null, t: s ? s.seek : -1 };
+  });
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').emit('game-resume'));
+  await sleep(600);
+  const resumedOut = await outputLevel(page, 900);
+  const afterResume = await page.evaluate(() => {
+    const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+    const s = v[0];
+    return { count: v.length, playing: s ? s.isPlaying : false, t: s ? s.getCurrentTime() : -1 };
+  });
+  check('music: pause silences the bed (same voice, suspended)',
+    whilePaused.count === 1 && whilePaused.isPaused === true && pausedOut.max < 0.02,
+    `paused max=${pausedOut.max.toExponential(2)} state=${JSON.stringify(whilePaused)}`);
+  check('music: resume continues seamlessly (no restart, no stacking)',
+    afterResume.count === 1 && afterResume.playing && afterResume.t >= whilePaused.t - 0.25 &&
+    resumedOut.avg > SILENT,
+    `t=${afterResume.t.toFixed(2)}s avg=${resumedOut.avg.toExponential(2)} count=${afterResume.count}`);
+
+  // seamless loop wrap: seek near the end and measure across the seam —
+  // a loop artifact would spike the max or hole the level
+  const seeked = await page.evaluate(() => {
+    const s = window.__WB__.game.sound.sounds.find((v) => v.key === 'music-theme');
+    s.seek = Math.max(0, s.totalDuration - 1.2); // seek is a property setter
+    return { t: s.seek, dur: s.totalDuration };
+  });
+  const wrapA = await outputLevel(page, 900);   // before + across the wrap
+  const wrapB = await outputLevel(page, 900);   // after the wrap
+  check('music: loop wrap is seamless (no click, no level hole)',
+    wrapA.avg > SILENT && wrapB.avg > SILENT && wrapA.max < 0.5 && wrapB.max < 0.5 &&
+    Math.abs(20 * Math.log10(wrapA.avg / wrapB.avg)) < 10,
+    `seekedTo=${seeked.t.toFixed(2)}/${seeked.dur.toFixed(2)}s A=${wrapA.avg.toExponential(2)}/${wrapA.max.toExponential(2)} B=${wrapB.avg.toExponential(2)}/${wrapB.max.toExponential(2)}`);
+
+  // the OFF control stops the voice; ON returns exactly one
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').setMusicEnabled(false));
+  await sleep(800); // 450 ms fade-out
+  const offState = await page.evaluate(() => {
+    const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+    return { count: v.length, info: window.__WB__.audio().music };
+  });
+  const offOut = await outputLevel(page, 800);
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').setMusicEnabled(true));
+  await sleep(900);
+  const onState = await page.evaluate(() => {
+    const v = window.__WB__.game.sound.sounds.filter((s) => s.key === 'music-theme');
+    return v.length === 1 && v[0].isPlaying;
+  });
+  check('music: OFF stops the voice (quiet output); ON returns exactly one',
+    offState.count === 0 && offState.info.want === false && offOut.max < 0.05 && onState,
+    `offCount=${offState.count} offMax=${offOut.max.toExponential(2)} backOn=${onState}`);
+
+  // master mute must cover the music path too (functional silence).
+  // The bed is PLAYING when the gate flips, so give the in-flight output
+  // quantum (~85 ms) time to drain before measuring.
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').setMasterEnabled(false));
+  await sleep(300);
+  const musicMutedOut = await outputLevel(page, 800);
+  await page.evaluate(() => window.__WB__.game.registry.get('audio').setMasterEnabled(true));
+  await sleep(900);
+  const musicUnmutedOut = await outputLevel(page, 800);
+  check('music: master mute covers the music path; unmute restores it',
+    musicMutedOut.max < SILENT && musicUnmutedOut.avg > SILENT,
+    `mutedMax=${musicMutedOut.max.toExponential(2)} unmutedAvg=${musicUnmutedOut.avg.toExponential(2)}`);
+
+  // 15. landscape-mobile emulation pass (device emulation, still desktop
   // Chrome — physical-device behaviour remains separately unverified)
   const page2 = await browser.newPage();
   await page2.emulate({
