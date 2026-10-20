@@ -1,11 +1,16 @@
 /**
- * FIX #22 — original audio asset generator.
+ * Original audio asset generator (Fix #22 + cartoon-soundtrack pass).
  *
- * Synthesizes every game sound + music track procedurally (pure Node, no
- * dependencies, no external samples) into 16-bit mono 22050 Hz WAV files
+ * Synthesizes every game sound + the music track procedurally (pure Node,
+ * no dependencies, no external samples) into 16-bit mono 22050 Hz WAV files
  * under public/assets/audio/. All content is ORIGINAL: oscillators, noise,
  * filters, Karplus-Strong plucks and envelopes defined in this file —
  * nothing is copied from any commercial game.
+ *
+ * The file set mirrors the AudioManager manifest EXACTLY: the slingshot
+ * leather set (grab/return/stretch-1..5) is NOT generated here (see
+ * scripts/prepare-stretch-audio.mjs) and nothing that was removed in the
+ * audio repair (ambience, flight loop, stretch loop) is resurrected.
  *
  * Usage:  node scripts/generate-audio.mjs [--quiet]
  *
@@ -14,8 +19,8 @@
  *
  * QC: after writing, the script measures duration / peak / RMS per file,
  * refuses peaks above -1 dBFS or NaN buffers, and verifies loop files have
- * seamless boundaries (crossfaded ends). Perceptual listening quality still
- * requires human verification (see FIX22-NOTES.md).
+ * seamless boundaries (crossfaded ends, seam-level continuity check).
+ * Perceptual listening quality still requires human verification.
  */
 import { mkdirSync, writeFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -311,24 +316,10 @@ const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
 /* ================================================================== */
 
 function buildSlingshot() {
-  // Stretch loop — leather/rubber creak, quiet, crossfaded for looping.
-  // Layers: slowly swelling filtered noise + a low squeak whose pitch
-  // wobbles (the runtime maps tension → playback rate + volume).
-  const dur = 1.8;
-  let body = noiseBuf(dur, 'brown');
-  body = bp(body, 420, 1.1);
-  const creak = tone({ dur, freq: [95, 135], wave: 'saw', gain: 0.35, vibratoHz: 4.5, vibratoDepth: 14, attack: 0.15, release: 0.25, glideShape: 1.4 });
-  creak.forEach((_, i, a) => { a[i] *= 0.5 + 0.5 * Math.sin(2 * Math.PI * 1.7 * (i / SR) + 0.7); });
-  let sq = bp(creak, 300, 2.2);
-  const buf = zeros(dur);
-  mix(buf, 0, body, 0.8);
-  mix(buf, 0.05, sq, 0.9);
-  loopify(buf, 260);
-  peakTo(buf, -14);
-  fadeEdges(buf, 2, 2);
-  const files = [['slingshot/stretch-loop.wav', buf, true]];
-
   // Release — punchy rubber-band snap + elastic "thwang" + launch whoosh.
+  // (The leather grab/return/stretch set is cut from the supplied recording
+  // by scripts/prepare-stretch-audio.mjs — not synthesized here.)
+  const files = [];
   {
     const dur2 = 0.5;
     const out = zeros(dur2);
@@ -344,18 +335,6 @@ function buildSlingshot() {
     fadeEdges(out, 1, 30);
     peakTo(out, -3);
     files.push(['slingshot/release.wav', out, false]);
-  }
-
-  // Cancel — soft short elastic return (no launch energy).
-  {
-    const dur2 = 0.26;
-    const out = zeros(dur2);
-    mix(out, 0, damped({ dur: 0.16, freq: 150, decay: 20, gain: 0.8 }), 1.0);
-    mix(out, 0.01, tone({ dur: 0.2, freq: [130, 95], wave: 'sine', gain: 0.4, glideShape: 0.7 }), 0.7);
-    mix(out, 0, hp(noiseBuf(0.03), 900, 0.8), 0.25);
-    fadeEdges(out, 1, 25);
-    peakTo(out, -12);
-    files.push(['slingshot/cancel.wav', out, false]);
   }
   return files;
 }
@@ -639,20 +618,6 @@ function buildBirds() {
     fadeEdges(out, 4, 40);
     peakTo(out, -13);
     files.push(['birds/launch.wav', out, false]);
-  }
-  // flight loop — soft airy bed (quiet; stopped at first impact)
-  {
-    const dur = 1.4;
-    let buf = noiseBuf(dur, 'pink');
-    buf = bp(buf, 800, 0.55);
-    for (let i = 0; i < buf.length; i++) {
-      const t = i / SR;
-      buf[i] *= 0.6 + 0.4 * Math.sin(2 * Math.PI * 2.3 * t + 0.4);
-    }
-    loopify(buf, 240);
-    peakTo(buf, -20);
-    fadeEdges(buf, 2, 2);
-    files.push(['birds/flight-loop.wav', buf, true]);
   }
   // bird hit — soft feathery "oof" + tiny squawk
   {
