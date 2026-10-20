@@ -251,6 +251,8 @@
 
       window.__wbBoot = {
         get booted() { return booted; },
+        /** Recorded resource/boot problems for the ?diag=1 diagnostics. */
+        problems: function () { return problems.slice(); },
         ok: function () {
           booted = true;
           if (timer) { clearTimeout(timer); timer = null; }

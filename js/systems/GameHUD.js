@@ -771,15 +771,20 @@ export class GameHUD {
       );
     });
 
-    // entrance-stagger anchors (both controls glide in from slightly off)
     this.pauseStack = [this.resumeBtn, this.homeBtn];
     for (const b of this.pauseStack) {
       b.baseY = b.y;
       b.baseX = b.x;
     }
+    // Input priority: Phaser's topOnly hit-sort compares each interactive
+    // object's OWN depth — containers inherit nothing. Without this the
+    // docked question card (also depth 0, tested first on the gameplay
+    // camera) wins ties and eats taps aimed at the HOME control.
+    this.resumeBtn.setDepth(1000);
+    this.homeBtn.setDepth(1000);
 
     /* confirmation card (hidden until HOME asks for it) */
-    this.confirmCard = s.add.container(0, 0).setVisible(false);
+    this.confirmCard = s.add.container(0, 0).setVisible(false).setDepth(1001);
     // interactive blocker slightly larger than the card: a tap on the
     // card's parchment (not on YES/CANCEL) must never fall through to the
     // PLAY button underneath.
@@ -905,13 +910,16 @@ export class GameHUD {
   /**
    * Gate every pause control's input. Disabled the moment closing starts,
    * so the exit animation can never be tapped into a second resume/pause
-   * flip; re-armed on the next open.
+   * flip; re-armed on the next open. NOTE: disableInteractive() keeps the
+   * input record (only its .enabled flips), so re-enabling must restore
+   * the flag, not just re-create the hit area.
    */
   setPauseInputEnabled(on) {
     for (const b of this.pauseStack || []) {
       if (!b) continue;
       if (on) {
         if (!b.input) b.setInteractive({ useHandCursor: true });
+        else if (!b.input.enabled) b.input.enabled = true;
       } else if (b.input) {
         b.disableInteractive();
       }
@@ -930,12 +938,17 @@ export class GameHUD {
     this.confirmYes.labelText.setText(yesLabel);
     this.confirmYes.bg.setTexture(btnTex(yesColor));
     this.pendingConfirm = action;
+    // topOnly is off while paused, so the card's blocker delivers events to
+    // everything under it — mute PLAY/HOME until the dialog is answered.
+    this.setPauseInputEnabled(false);
     this.confirmCard.setVisible(true);
   }
 
   hideConfirm() {
     this.pendingConfirm = null;
     this.confirmCard.setVisible(false);
+    // re-armed only while the pause screen itself is open
+    if (this.pauseOpenState) this.setPauseInputEnabled(true);
   }
 
   runConfirm() {
@@ -1148,6 +1161,7 @@ export class GameHUD {
     this.pauseOpenState = true;
     this.hideConfirm();
     this.applyPauseFx(); // subtle color-keeping blur, once per pause
+    this.setPauseTopOnly(true);
     const s = this.scene;
     const items = [this.scrim, ...this.pauseStack];
     s.tweens.killTweensOf(items);
@@ -1199,6 +1213,7 @@ export class GameHUD {
     this.pauseOpenState = false;
     this.hideConfirm();
     this.setPauseInputEnabled(false);
+    this.setPauseTopOnly(true);
     this.stopGlowPulse();
     this.fadePauseFx();
     const s = this.scene;
@@ -1215,8 +1230,29 @@ export class GameHUD {
     });
   }
 
+  /**
+   * Phaser's topOnly hit-sort ranks by the POINTER'S camera render list,
+   * not by object depth — so a gameplay-camera interactive object (the
+   * docked question card) under a UI-camera button steals its tap, always.
+   * While the pause menu is open we deliver events to EVERY overlapping
+   * object instead: every gameplay handler is already pause-guarded, so
+   * the overlay's controls finally receive their taps. Restored on close.
+   */
+  setPauseTopOnly(paused) {
+    const s = this.scene;
+    if (!s.input) return;
+    if (paused) {
+      this._topOnlyWas = s.input.topOnly;
+      s.input.topOnly = false;
+    } else if (this._topOnlyWas !== undefined) {
+      s.input.topOnly = this._topOnlyWas;
+      this._topOnlyWas = undefined;
+    }
+  }
+
   destroy() {
     const s = this.scene;
+    this.setPauseTopOnly(false); // never leave global input modes changed
     this.stopGlowPulse();
     this.removePauseFx(); // never leave blur on a surviving camera
     s.tweens.killTweensOf([this.menu, this.scrim,

@@ -8,11 +8,14 @@ import { deviceInfo, setOrientationOverride, setTypeOverride } from '../systems/
 import { currentView } from '../systems/Viewport.js';
 import { refreshOrientationGate } from '../systems/OrientationGate.js';
 import { fullscreenEntryMode } from '../systems/FullscreenEntry.js';
+import { collectDiagnostics, diagnosticsToText } from '../systems/Diagnostics.js';
 import { DebugLog } from '../systems/DebugLog.js';
+import { BUILD_ID } from '../build-info.js';
 
 export function installDebugAPI(game) {
   const api = {
     version: '0.1.0',
+    build: BUILD_ID,
 
     /** Current GameScene, if one is active. */
     scene() {
@@ -178,11 +181,31 @@ export function installDebugAPI(game) {
       const fs = game.registry.get('fullscreen');
       return {
         state: fs ? fs.state : 'missing',
+        displayMode: fs ? fs.displayMode : 'missing',
         isFullscreen: fs ? fs.isFullscreen : false,
         supported: fs ? fs.support.supported : false,
         standalone: fs ? fs.standalone : false,
+        lastError: fs ? fs.lastError : null,
         prompt: fullscreenEntryMode()
       };
+    },
+
+    /**
+     * Full display-pipeline diagnostics (the ?diag=1 panel's data source):
+     * build, launch mode, fullscreen capability + last error, dimensions,
+     * orientation gate + pause reasons, boot problems. Read-only — no
+     * storage contents, no personal data.
+     */
+    diag() {
+      return collectDiagnostics({
+        game,
+        fullscreen: game.registry.get('fullscreen')
+      });
+    },
+
+    /** Same snapshot as copy-ready plain text (bug-report paste). */
+    diagText() {
+      return diagnosticsToText(api.diag());
     },
 
     /** Test-only orientation override: 'portrait' | 'landscape' | null. */

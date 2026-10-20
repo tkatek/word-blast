@@ -206,7 +206,7 @@ export function installFullscreenEntry(game, controller) {
       const busy = controller.state === FULLSCREEN_STATES.REQUESTING;
       chip.disabled = busy;
       const label = chip.querySelector('.fs-chip-label');
-      if (label) label.textContent = busy ? '\u2699\uFE0F' : (install ? '\u2313 INSTALL' : '\u26F6');
+      if (label) label.textContent = busy ? '\u2699\uFE0F' : (install ? '\u2302 INSTALL' : '\u26F6');
       chip.setAttribute('aria-label', busy ? 'Entering fullscreen'
         : (install ? 'How to install Word Blast' : 'Play fullscreen'));
     }

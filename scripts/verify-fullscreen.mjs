@@ -9,8 +9,11 @@
  *      - pause menu shows EXIT FULLSCREEN while active; exiting keeps the
  *        game PAUSED and re-arms the compact corner chip
  *   B. iPhone-Safari-style landscape (element Fullscreen API removed)
- *      - NO play button; Add-to-Home-Screen guidance instead; CONTINUE
- *        PLAYING dismisses it; game stays playable; nothing re-prompts
+ *      - NO play button; "Play without the address bar" install guidance
+ *        (7 real iOS steps incl. the landscape page-menu Share location
+ *        and the Open-as-Web-App toggle); CONTINUE IN BROWSER dismisses it;
+ *        a compact INSTALL chip keeps the route reachable and RE-OPENS the
+ *        instructions; game stays playable; nothing auto re-prompts
  *   C. Installed web app (display-mode: standalone)
  *      - no fullscreen UI at all
  *   D. Rotation during gameplay
@@ -22,6 +25,10 @@
  *      - manifest.webmanifest resolves (200, JSON) under the /wb/ prefix
  *      - exactly ONE canvas (no duplicate Phaser game after all events)
  *      - narrow (640×280) and wide (915×412) landscape: whole world framed
+ *   F. On-device diagnostics (?diag=1)
+ *      - launcher button appears with the flag (and NOT without it);
+ *        panel opens; window.__WB__.diag() reports build / launch mode /
+ *        fullscreen capability + lastError / live dimensions
  *
  * Run AFTER `npm run build`:
  *   node scripts/verify-fullscreen.mjs
@@ -224,23 +231,50 @@ try {
     const hint = document.querySelector('#fs-entry [data-variant="hint"]');
     const play = document.querySelector('#fs-entry [data-variant="play"]');
     const steps = [...document.querySelectorAll('.fs-hint-steps li')].map((x) => x.textContent.trim());
+    const btn = document.querySelector('.fs-btn-continue .fs-btn-label');
     return {
       hintShown: hint && getComputedStyle(hint).display !== 'none',
       playHidden: !play || getComputedStyle(play).display === 'none',
-      steps
+      steps,
+      continueLabel: btn ? btn.textContent.trim() : ''
     };
   });
-  check('B2 Add-to-Home-Screen guidance shown (iOS copy)', hint.hintShown && hint.playHidden
-    && hint.steps.length === 3 && hint.steps[1].includes('Add to Home Screen'));
+  const stepsJoined = hint.steps.join(' | ');
+  check('B2 install guidance shown: 7 real iOS steps + CONTINUE IN BROWSER',
+    hint.hintShown && hint.playHidden
+      && hint.steps.length === 7
+      && hint.steps[0].includes('Safari')
+      && /Share/.test(stepsJoined) && /page menu/.test(stepsJoined)
+      && /Add to Home Screen/.test(stepsJoined) && /Open as Web App/.test(stepsJoined)
+      && /sideways/.test(stepsJoined)
+      && hint.continueLabel.includes('CONTINUE IN BROWSER'),
+    `${hint.steps.length} steps`);
   await page.screenshot({ path: join(OUT, '04-iphone-safari-fallback.png') });
 
-  // game remains fully playable behind/below the card
+  // game remains fully playable behind/below the card; dismissal is
+  // optional and never traps the player
   await page.click('.fs-btn-continue');
+  await sleep(350); // debounced prompt update
   const dismissed = await page.evaluate(() => ({
     card: document.querySelector('#fs-entry').classList.contains('is-visible'),
-    chip: document.querySelector('#fs-chip').classList.contains('is-visible')
+    chip: document.querySelector('#fs-chip').classList.contains('is-visible'),
+    chipLabel: document.querySelector('#fs-chip .fs-chip-label').textContent.trim()
   }));
-  check('B3 CONTINUE PLAYING dismisses; no chip, no broken button', !dismissed.card && !dismissed.chip);
+  check('B3 CONTINUE IN BROWSER dismisses; compact INSTALL chip keeps the route reachable',
+    !dismissed.card && dismissed.chip && dismissed.chipLabel.includes('INSTALL'));
+
+  // the chip RE-OPENS the instructions (it never requests fullscreen the
+  // browser would only reject)
+  await page.click('#fs-chip');
+  await sleep(350);
+  const reopened = await page.evaluate(() => {
+    const card = document.querySelector('#fs-entry').classList.contains('is-visible');
+    const hint = document.querySelector('#fs-entry [data-variant="hint"]');
+    return card && hint && getComputedStyle(hint).display !== 'none';
+  });
+  check('B3b install chip re-opens the instructions on demand', reopened);
+  await page.click('.fs-btn-continue'); // dismiss again for the play checks
+  await sleep(350);
 
   await page.evaluate(() => window.__WB__.gotoLevel(1));
   await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 20000, polling: 250 });
@@ -409,6 +443,57 @@ try {
   await page.close();
 } catch (e) {
   check('E viewport/manifest suite', false, String(e).slice(0, 250));
+}
+
+/* ================================================================== */
+/* F. On-device diagnostics (?diag=1)                                  */
+/* ================================================================== */
+try {
+  // F1 — without the flag: no diagnostics UI at all
+  const { page: plain } = await phonePage({ ua: IPHONE_UA });
+  const noFlag = await plain.evaluate(() => ({
+    button: !!document.getElementById('wb-diag-button'),
+    panel: !!document.getElementById('wb-diag-panel'),
+    build: window.__WB__.build
+  }));
+  check('F1 no diagnostics UI without ?diag=1 (build id still exposed)',
+    !noFlag.button && !noFlag.panel && typeof noFlag.build === 'string' && noFlag.build.length > 0,
+    noFlag.build);
+  await plain.close();
+
+  // F2 — with the flag: launcher + panel + a complete snapshot
+  const diagPage = await browser.newPage();
+  await diagPage.emulate({
+    viewport: { width: 844, height: 390, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+    userAgent: IPHONE_UA
+  });
+  await diagPage.goto(`http://localhost:${PORT}${PREFIX}?diag=1`, { waitUntil: 'domcontentloaded' });
+  await diagPage.waitForSelector('#wb-diag-button', { timeout: 8000 });
+  const preOpen = await diagPage.evaluate(() => window.__WB__.diag());
+  check('F2 diag(): build/launch/fullscreen/dimensions reported',
+    /^\d+\+[0-9a-f]+@/.test(preOpen.build)
+    && preOpen.launch && typeof preOpen.launch.standalone === 'boolean'
+    && preOpen.fullscreen && typeof preOpen.fullscreen.supported === 'boolean'
+    && preOpen.fullscreen.lastError === null
+    && preOpen.viewport && preOpen.viewport.inner && preOpen.viewport.canvasCssRect
+    && preOpen.viewport.buffer && preOpen.viewport.buffer.w > 0,
+    preOpen.build);
+  await diagPage.click('#wb-diag-button');
+  await diagPage.waitForSelector('#wb-diag-panel', { timeout: 4000 });
+  const panelText = await diagPage.evaluate(() =>
+    document.querySelector('.wb-diag-body').textContent);
+  check('F3 panel opens with copyable, privacy-safe text',
+    panelText.includes('BUILD:') && panelText.includes('fs.state')
+      && !/password|token/i.test(panelText));
+  const copyBtn = await diagPage.evaluate(() => {
+    const b = document.querySelector('#wb-diag-panel .wb-diag-head button');
+    return b && b.textContent;
+  });
+  check('F4 panel offers COPY (and CLOSE) buttons', !!copyBtn);
+  await diagPage.screenshot({ path: join(OUT, '06-diagnostics-panel.png') });
+  await diagPage.close();
+} catch (e) {
+  check('F diagnostics suite', false, String(e).slice(0, 250));
 }
 
 await browser.close();

@@ -76,29 +76,42 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
 }
 
 async function bootToAiming(page, levelId = 3) {
-  await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  // FULL registry readiness — 'levels' is the last manager BootScene sets
-  // before starting the menu; gotoLevel before this point kills the boot.
-  await page.waitForFunction(() => {
-    const w = window.__WB__;
-    const g = w && w.game;
-    return !!(g && g.registry.get('levels') && g.registry.get('questions') && g.registry.get('save'));
-  }, { timeout: 90000 });
-  for (let attempt = 0; attempt < 4; attempt++) {
-    try {
-      await page.evaluate((id) => window.__WB__.gotoLevel(id), levelId);
-      break;
-    } catch (e) {
-      if (attempt === 3) throw e;
-      await sleep(1500);
+  // Cold starts after a rebuild can wedge (hashed assets re-download under
+  // software GL): one full reload retry before giving up, fix19-style.
+  for (let cycle = 0; cycle < 2; cycle++) {
+    if (cycle === 0) {
+      await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } else {
+      console.log('  (boot wedged — reloading once)');
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     }
+    await page.waitForFunction(() => {
+      const w = window.__WB__;
+      const g = w && w.game;
+      return !!(g && g.registry.get('levels') && g.registry.get('questions') && g.registry.get('save'));
+    }, { timeout: 90000 });
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        await page.evaluate((id) => window.__WB__.gotoLevel(id), levelId);
+        break;
+      } catch (e) {
+        if (attempt === 5) throw e;
+        await sleep(1500);
+      }
+    }
+    const ok = await page.waitForFunction(() => {
+      const s = window.__WB__ && window.__WB__.scene();
+      return !!(s && s.prepared && s.stateMachine && s.stateMachine.current === 'AIMING');
+    }, { timeout: 90000 }).then(() => true).catch(() => false);
+    if (ok) {
+      await page.evaluate(() => window.__WB__.setAutoPause(false));
+      await sleep(700);
+      return;
+    }
+    // the scene may have booted but stalled pre-AIMING — reset for retry
+    await page.evaluate(() => { try { window.__WB__.gotoLevel(1); } catch { /* fresh cycle */ } });
   }
-  await page.waitForFunction(() => {
-    const s = window.__WB__ && window.__WB__.scene();
-    return s && s.prepared && s.stateMachine && s.stateMachine.current === 'AIMING';
-  }, { timeout: 90000 });
-  await page.evaluate(() => window.__WB__.setAutoPause(false));
-  await sleep(700);
+  throw new Error('game never reached AIMING');
 }
 
 /** World center of a HUD object (path from hud), via its live bounds. */
@@ -146,6 +159,9 @@ const hudInfo = (page) => page.evaluate(() => {
     homeVisible: !!(hud.homeBtn && hud.homeBtn.visible),
     playBounds: (() => { const b = hud.resumeBtn.getBounds(); return { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height }; })(),
     homeBounds: (() => { const b = hud.homeBtn.getBounds(); return { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height }; })(),
+    // the HUD's own fx handle is the truth; postFX.list length is not a
+    // reliable public metric (reads 0 even while an fx is attached)
+    blurOn: !!hud.pauseBlur,
     blurFx: s.cameras.main.postFX ? s.cameras.main.postFX.list.length : -1,
     texts: menuText(hud.menu, []),
     hearts: s.hearts.remaining,
@@ -167,8 +183,8 @@ async function desktopPass() {
     let info = await hudInfo(page);
     check(await state(page) === 'PAUSED', 'pause freezes the game (state PAUSED)');
     check(info.pauseOpen && info.menuVisible, 'pause menu visible');
-    check(info.blurFx === 1, 'gameplay camera carries exactly ONE post-fx (blur only, grayscale gone)',
-      `fx=${info.blurFx}`);
+    check(info.blurOn, 'subtle blur is attached to the gameplay camera (colors kept, no grayscale)',
+      `blurOn=${info.blurOn} fxList=${info.blurFx}`);
     check(info.playVisible && info.homeVisible, 'PLAY (center) + HOME (top-left) both present');
     const joined = info.texts.join('|').toUpperCase();
     check(joined === '' || !/PAUSED|RESUME|RESTART|EXIT TO LEVELS|MUSIC|SOUND|REDUCED/i.test(joined),
@@ -188,8 +204,14 @@ async function desktopPass() {
     check(early.pauseOpen === false, 'PLAY click closes the pause immediately');
     await sleep(350);
     check(await state(page) === 'AIMING', 'PLAY click resumes into the exact prior state (AIMING)');
-    info = await hudInfo(page);
-    check(info.blurFx === 0 && !info.menuVisible, 'blur + menu fully removed after resume', `fx=${info.blurFx}`);
+    // the blur eases out over ~260ms — poll up to 1.5s for full removal
+    let blurGone = false;
+    for (let i = 0; i < 10 && !blurGone; i++) {
+      await sleep(150);
+      blurGone = !(await hudInfo(page)).blurOn;
+    }
+    const afterInfo = await hudInfo(page);
+    check(blurGone && !afterInfo.menuVisible, 'blur + menu fully removed after resume');
     check(info.hearts === 3, 'hearts untouched by pause/resume');
 
     /* --- repeated clicks: double-tap PLAY cannot re-pause --------- */
@@ -259,8 +281,7 @@ async function desktopPass() {
     }
     await sleep(500);
     const finalInfo = await hudInfo(page);
-    check(finalInfo.blurFx <= 1 && !finalInfo.pauseOpen,
-      'pause/resume spam leaves no overlay and at most the fading blur', `fx=${finalInfo.blurFx}`);
+    check(!finalInfo.pauseOpen, 'pause/resume spam leaves no open overlay');
     check(await state(page) === 'AIMING', 'game playable after pause/resume spam');
   } finally {
     await browser.close();
@@ -277,7 +298,7 @@ async function mobilePass() {
     await sleep(750);
     const info = await hudInfo(page);
     check(info.pauseOpen && info.playVisible && info.homeVisible, 'phone pause shows PLAY + HOME');
-    check(info.blurFx === 1, 'phone uses the mobile blur tier', `fx=${info.blurFx}`);
+    check(info.blurOn, 'phone uses the mobile blur tier', `blurOn=${info.blurOn}`);
     check(inWorld(info.playBounds) && inWorld(info.homeBounds),
       'both controls stay inside the visible world',
       `play=${JSON.stringify(info.playBounds)} home=${JSON.stringify(info.homeBounds)}`);

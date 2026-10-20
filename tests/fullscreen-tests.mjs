@@ -24,12 +24,16 @@ import { dirname, join } from 'node:path';
 
 import {
   FULLSCREEN_STATES,
+  DISPLAY_MODES,
   FullscreenController,
   detectFullscreenSupport,
   detectStandalone,
   probeFullscreenApi
 } from '../js/systems/FullscreenController.js';
 import { computeEntryMode, a2hsSteps } from '../js/systems/FullscreenEntry.js';
+import { usableCssSize, MIN_USABLE_PX } from '../js/systems/Viewport.js';
+import { collectDiagnostics, diagnosticsToText } from '../js/systems/Diagnostics.js';
+import { BUILD_ID } from '../js/build-info.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 let passed = 0;
@@ -237,12 +241,62 @@ await test('controller: DOM fullscreenchange drives state without enter()', () =
   eq(c.state, FULLSCREEN_STATES.AVAILABLE);
 });
 
-await test('controller: fullscreenerror during REQUESTING → DENIED', () => {
+await test('controller: fullscreenerror during REQUESTING → DENIED (+ error recorded)', () => {
   const { doc } = makeDoc();
   const c = new FullscreenController({ win: makeWin(), doc });
   c._set(FULLSCREEN_STATES.REQUESTING);
   doc.dispatch('fullscreenerror');
   eq(c.state, FULLSCREEN_STATES.DENIED);
+  assert(c.lastError && c.lastError.name === 'FullscreenError', 'error must be recorded for diagnostics');
+});
+
+await test('controller: rejected enter() records the error name + message', async () => {
+  const { doc } = makeDoc();
+  doc.documentElement.requestFullscreen = () => Promise.reject(
+    Object.assign(new Error('The user denied fullscreen'), { name: 'NotAllowedError' }));
+  const c = new FullscreenController({ win: makeWin(), doc });
+  await c.enter();
+  eq(c.state, FULLSCREEN_STATES.DENIED);
+  eq(c.lastError.name, 'NotAllowedError');
+  assert(c.lastError.message.includes('denied fullscreen'));
+  assert(typeof c.lastError.ts === 'number');
+});
+
+await test('controller: resolving-but-unverified request records a distinct timeout error', async () => {
+  const { doc } = makeDoc();
+  doc.documentElement.requestFullscreen = () => Promise.resolve();
+  const c = new FullscreenController({ win: makeWin(), doc });
+  await c.enter();
+  eq(c.lastError.name, 'TimeoutError');
+});
+
+await test('controller: a successful enter() clears the last error', async () => {
+  const { doc, fire } = makeDoc();
+  const c = new FullscreenController({ win: makeWin(), doc });
+  c._recordError({ name: 'OldError', message: 'previous failure' });
+  fire(true);
+  await c.enter();
+  eq(c.state, FULLSCREEN_STATES.ACTIVE);
+  eq(c.lastError, null);
+});
+
+await test('controller: displayMode distinguishes the three display modes', async () => {
+  const { doc, fire } = makeDoc();
+  const c = new FullscreenController({ win: makeWin(), doc });
+  // Browser tab: never reported as fullscreen, whatever CSS does
+  eq(c.displayMode, DISPLAY_MODES.BROWSER);
+  fire(true);
+  await c.enter();
+  eq(c.displayMode, DISPLAY_MODES.NATIVE_FULLSCREEN);
+  fire(false);
+  c._syncFromDocument();
+  eq(c.displayMode, DISPLAY_MODES.BROWSER);
+
+  const { doc: doc2 } = makeDoc();
+  const standalone = new FullscreenController({ win: makeWin({ standalone: true }), doc: doc2 });
+  // Standalone needs NO document.fullscreenElement
+  eq(standalone.displayMode, DISPLAY_MODES.STANDALONE);
+  eq(standalone.fullscreenElement(), null);
 });
 
 await test('controller: standalone starts STANDALONE and enter() never requests', async () => {
@@ -312,7 +366,7 @@ await test('controller: onChange fires on transitions and unsubscribes cleanly',
 /* ------------------------------------------------------------------ */
 
 const base = {
-  booted: true, mobile: true, landscape: true, standalone: false,
+  booted: true, mobile: true, tablet: false, landscape: true, standalone: false,
   state: FULLSCREEN_STATES.AVAILABLE, cardDismissed: false, hintDismissed: false
 };
 
@@ -325,8 +379,13 @@ await test('entry: nothing before boot (failed start never shows fullscreen UI)'
 });
 
 await test('entry: nothing on desktop or portrait (rotate gate owns portrait)', () => {
-  eq(computeEntryMode({ ...base, mobile: false }), null);
+  eq(computeEntryMode({ ...base, mobile: false, tablet: false }), null);
   eq(computeEntryMode({ ...base, landscape: false }), null);
+});
+
+await test('entry: coarse-pointer tablets are eligible (iPad Safari supports fullscreen)', () => {
+  eq(computeEntryMode({ ...base, mobile: false, tablet: true }), 'card');
+  eq(computeEntryMode({ ...base, mobile: false, tablet: true, cardDismissed: true }), 'chip');
 });
 
 await test('entry: nothing in standalone or while fullscreen active', () => {
@@ -339,9 +398,17 @@ await test('entry: dismissed card downgrades to the non-blocking chip', () => {
   eq(computeEntryMode({ ...base, cardDismissed: true }), 'chip');
 });
 
-await test('entry: UNSUPPORTED (iPhone Safari) → hint once, then nothing', () => {
+await test('entry: UNSUPPORTED (iPhone Safari) → hint once, then the re-openable install chip', () => {
   eq(computeEntryMode({ ...base, state: FULLSCREEN_STATES.UNSUPPORTED }), 'hint');
-  eq(computeEntryMode({ ...base, state: FULLSCREEN_STATES.UNSUPPORTED, hintDismissed: true }), null);
+  // Never auto-prompts again, but the install route stays reachable.
+  eq(computeEntryMode({ ...base, state: FULLSCREEN_STATES.UNSUPPORTED, hintDismissed: true }), 'hintchip');
+  // The chip NEVER appears in standalone (already installed) or portrait.
+  eq(computeEntryMode({
+    ...base, state: FULLSCREEN_STATES.UNSUPPORTED, hintDismissed: true, standalone: true
+  }), null);
+  eq(computeEntryMode({
+    ...base, state: FULLSCREEN_STATES.UNSUPPORTED, hintDismissed: true, landscape: false
+  }), null);
 });
 
 await test('entry: DENIED keeps the card (retry only by explicit tap)', () => {
@@ -353,9 +420,81 @@ await test('entry: REQUESTING keeps visible but the button disables (no double r
   eq(computeEntryMode({ ...base, state: FULLSCREEN_STATES.REQUESTING, cardDismissed: true }), 'chip');
 });
 
-await test('entry: A2HS steps name the right platform flow', () => {
-  assert(a2hsSteps(true)[1].includes('Add to Home Screen'));
-  assert(a2hsSteps(false)[1].includes('Install app'));
+await test('entry: A2HS steps describe the real on-device iOS flow', () => {
+  const ios = a2hsSteps(true);
+  eq(ios.length, 7, 'seven concise iOS steps');
+  assert(ios[0].includes('Safari'), 'start by opening Safari');
+  assert(ios.some((s) => s.includes('Share')), 'Share step present');
+  assert(ios.some((s) => s.includes('page menu')), 'landscape Safari hides Share in the page menu');
+  assert(ios.some((s) => s.includes('Add to Home Screen')), 'Add to Home Screen step present');
+  assert(ios.some((s) => s.includes('Open as Web App')), 'Open as Web App toggle mentioned');
+  assert(ios.some((s) => s.includes('sideways')), 'rotate-to-play step present');
+  const android = a2hsSteps(false);
+  assert(android.some((s) => s.includes('Install app')), 'Android install step present');
+});
+
+/* ------------------------------------------------------------------ */
+/* Viewport sizing guard (transient measurements)                      */
+/* ------------------------------------------------------------------ */
+
+await test('viewport: usableCssSize accepts real dimensions', () => {
+  const r = usableCssSize(844, 390, 800, 400);
+  eq(r.w, 844); eq(r.h, 390); eq(r.ok, true);
+});
+
+await test('viewport: degenerate rect falls back to a usable viewport measurement', () => {
+  const r = usableCssSize(0, 0, 844, 390);
+  eq(r.w, 844); eq(r.h, 390); eq(r.ok, true);
+});
+
+await test('viewport: all-transient measurements report NOT usable (never resize to a sliver)', () => {
+  const r = usableCssSize(30, 12, 40, 0);
+  eq(r.ok, false);
+  assert(r.w >= 2 && r.h >= 2, 'still returns safe clamped values');
+  assert(MIN_USABLE_PX >= 40, 'minimum must be a genuinely usable size');
+});
+
+/* ------------------------------------------------------------------ */
+/* Diagnostics snapshot (pure collector with injected fakes)           */
+/* ------------------------------------------------------------------ */
+
+await test('diag: build identity is present and structured', () => {
+  assert(typeof BUILD_ID === 'string' && BUILD_ID.length > 0);
+});
+
+await test('diag: headless snapshot carries build + time only (no crash)', () => {
+  const d = collectDiagnostics({});
+  eq(d.build, BUILD_ID);
+  assert(typeof d.time === 'string');
+});
+
+await test('diag: browser-tab vs standalone launch classification', () => {
+  const fakeWin = (standalone) => ({
+    navigator: { userAgent: 'UnitTest' },
+    matchMedia: (q) => ({ matches: standalone && q.includes('standalone') }),
+    innerWidth: 844, innerHeight: 390, devicePixelRatio: 2,
+    visualViewport: { width: 844, height: 390, scale: 1 },
+    screen: { width: 844, height: 390 },
+    getComputedStyle: () => ({ paddingTop: '0px', paddingRight: '0px', paddingBottom: '0px', paddingLeft: '0px' })
+  });
+  const fakeDoc = () => ({
+    hidden: false,
+    querySelector: () => ({ tagName: 'META' }),
+    getElementById: (id) => (id === 'game' ? {} : { classList: { contains: () => false } }),
+    querySelectorAll: () => [{}]
+  });
+  const tab = collectDiagnostics({ win: fakeWin(false), doc: fakeDoc() });
+  eq(tab.launch.standalone, false);
+  eq(tab.launch.displayMode, '(no controller)');
+  const app = collectDiagnostics({ win: fakeWin(true), doc: fakeDoc() });
+  eq(app.launch.standalone, true);
+  assert(app.launch.signals.navigatorStandalone === false); // fake has no legacy signal
+});
+
+await test('diag: text form is stable, copyable lines (no personal data keys)', () => {
+  const text = diagnosticsToText(collectDiagnostics({}));
+  assert(text.includes('BUILD:'));
+  assert(!/localStorage|credential|token|password/i.test(text), 'no storage contents or secrets');
 });
 
 /* ------------------------------------------------------------------ */

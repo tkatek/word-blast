@@ -14,7 +14,16 @@ import { ViewportController } from './systems/Viewport.js';
 import { installOrientationGate, refreshOrientationGate } from './systems/OrientationGate.js';
 import { FullscreenController } from './systems/FullscreenController.js';
 import { installFullscreenEntry } from './systems/FullscreenEntry.js';
+import { installDiagnostics } from './systems/Diagnostics.js';
 import { installDebugAPI } from './dev/DebugAPI.js';
+import { BUILD_ID } from './build-info.js';
+
+// Build identity on the root element + console: a stale deployment (phone
+// still serving an old build) is recognizable without any tools.
+if (typeof document !== 'undefined' && document.documentElement) {
+  document.documentElement.dataset.wbBuild = BUILD_ID;
+}
+console.info(`[WORD BLAST] build ${BUILD_ID} — add ?diag=1 to the URL for on-device diagnostics.`);
 
 // Boot watchdog handshake (Fix: Live Server blank screen): if Phaser cannot
 // initialize, surface the failure via the index.html error overlay instead of
@@ -76,5 +85,10 @@ installOrientationGate();
 export const fullscreen = new FullscreenController();
 game.registry.set('fullscreen', fullscreen);
 installFullscreenEntry(game, fullscreen);
+
+// On-device diagnostics (?diag=1): build identity, launch mode, fullscreen
+// capability + last error, live dimensions, gate/pause state — copyable,
+// nothing persisted. No-op without the URL flag.
+export const diagnostics = installDiagnostics({ game, fullscreen });
 
 installDebugAPI(game);
