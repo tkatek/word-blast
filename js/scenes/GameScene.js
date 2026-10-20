@@ -16,7 +16,7 @@ import { ScoringSystem } from '../systems/ScoringSystem.js';
 import { solveLaunch, predictPath } from '../systems/Trajectory.js';
 import { BackgroundManager } from '../systems/BackgroundManager.js';
 import { EffectsSystem } from '../systems/EffectsSystem.js';
-import { deviceInfo, requiresLandscape, DEVICE_TYPES } from '../systems/Device.js';
+import { deviceInfo, requiresLandscape } from '../systems/Device.js';
 import { attachViewport } from '../systems/Viewport.js';
 import { DebugLog } from '../systems/DebugLog.js';
 import { GameHUD, woodPanel, woodButton, chunkyText } from '../systems/GameHUD.js';
@@ -184,7 +184,6 @@ export class GameScene extends Phaser.Scene {
 
     this.setupLifecycle();
     this.setupOrientation();
-    this.input.once('pointerdown', () => this.tryEnterLandscapeFullscreen());
 
     // Audio: no ambience loops, no per-scene music startup. The background
     // track is manager-owned (started by the PLAY press) and simply keeps
@@ -229,6 +228,10 @@ export class GameScene extends Phaser.Scene {
       onRestartQuestion: () => this.restartQuestionFromMenu(),
       onRestartLevel: () => this.restartLevel(),
       onExitToLevels: () => this.exitToLevelSelect(),
+      // Leave fullscreen from the pause menu: only the document state
+      // changes — the game stays paused exactly as the player left it, and
+      // the fullscreenchange → ViewportController path resizes the canvas.
+      onExitFullscreen: () => this.registry.get('fullscreen')?.exit(),
       onToggleSound: () => this.toggleSound(),
       onToggleMusic: () => this.toggleMusic(),
       onToggleSfx: () => this.toggleSfx(),
@@ -1285,24 +1288,6 @@ export class GameScene extends Phaser.Scene {
         if (this.stateMachine.is(STATES.AIMING)) this.slingshot.setEnabled(true);
       }
     }
-  }
-
-  /** One-time, mobile-only: try fullscreen + landscape lock on first tap. */
-  tryEnterLandscapeFullscreen() {
-    if (this.orientationLockTried) return;
-    this.orientationLockTried = true;
-    if (this.device.type !== DEVICE_TYPES.MOBILE) return;
-    const el = document.documentElement;
-    const request = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (typeof request !== 'function') return; // rotate overlay is the fallback
-    Promise.resolve(request.call(el))
-      .then(() => {
-        const orientation = screen.orientation;
-        if (orientation && typeof orientation.lock === 'function') {
-          return orientation.lock('landscape').catch(() => {});
-        }
-      })
-      .catch(() => { /* refused — overlay fallback handles guidance */ });
   }
 
   /* ------------------------------------------------------------------ */

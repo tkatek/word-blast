@@ -160,7 +160,11 @@ export class ViewportController {
 
     win.addEventListener('resize', this.schedule);
     win.addEventListener('orientationchange', this.schedule);
-    doc.addEventListener('fullscreenchange', this.schedule);
+    // All vendor spellings: the canvas must re-measure on every fullscreen
+    // transition (enter AND exit), whatever the engine calls the event.
+    for (const evt of ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange']) {
+      doc.addEventListener(evt, this.schedule);
+    }
     if (win.visualViewport) win.visualViewport.addEventListener('resize', this.schedule);
 
     // The canvas does not exist until the game boots — apply on READY and
@@ -227,7 +231,11 @@ export class ViewportController {
       win.removeEventListener('orientationchange', this.schedule);
       if (win.visualViewport) win.visualViewport.removeEventListener('resize', this.schedule);
     }
-    if (doc) doc.removeEventListener('fullscreenchange', this.schedule);
+    if (doc) {
+      for (const evt of ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange']) {
+        doc.removeEventListener(evt, this.schedule);
+      }
+    }
     this.pending = false;
   }
 }

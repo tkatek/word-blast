@@ -17,7 +17,8 @@ const PORT = 8090;
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json',
-  '.ico': 'image/x-icon', '.map': 'application/json'
+  '.ico': 'image/x-icon', '.map': 'application/json',
+  '.webmanifest': 'application/manifest+json'
 };
 
 const server = createServer((req, res) => {

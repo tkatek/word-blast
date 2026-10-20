@@ -2,3 +2,12 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# Local-only evidence/output — historical copies live in ../wb-archive/
+# and in git history; screenshot scripts recreate these folders on demand.
+screenshots/
+fix*-screens/
+dist-fix*/
+wb-audio-evidence/
+scripts/tmp/
+.tmp-*

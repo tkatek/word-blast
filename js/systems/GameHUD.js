@@ -685,6 +685,17 @@ export class GameHUD {
     });
     this.exitBtn.setAlpha(0.92);
 
+    // Exit-fullscreen control — ONLY while the document is actually
+    // fullscreen (the FullscreenController in the game registry owns the
+    // state; syncFullscreen flips visibility). Exiting must never touch the
+    // pause itself: the game stays frozen until RESUME.
+    this.fsBtn = woodButton(s, {
+      x: 0, y: 204, w: 196, h: 44, label: 'EXIT FULLSCREEN', color: 'blue', size: 15,
+      onClick: () => this.actions.onExitFullscreen && this.actions.onExitFullscreen(),
+      markUi: () => this.markUi()
+    });
+    this.fsBtn.setAlpha(0.92).setVisible(false);
+
     /* confirmation card (hidden until asked for) */
     this.confirmCard = s.add.container(0, 0).setVisible(false);
     const cCard = woodPanel(s, 0, 0, 400, 250);
@@ -704,13 +715,32 @@ export class GameHUD {
     });
     this.confirmCard.add([cCard, cInner, this.confirmTitle, this.confirmBody, this.confirmYes, this.confirmNo]);
 
-    this.menu.add([scrim, title, this.resumeBtn, hint, this.exitBtn, this.confirmCard]);
+    this.menu.add([scrim, title, this.resumeBtn, hint, this.fsBtn, this.exitBtn, this.confirmCard]);
     this.menu.setScale(0.94).setAlpha(0);
 
     // Fix #22 — subtle desktop-only hover ticks on the interactive targets
-    for (const b of [this.exitBtn, this.confirmYes, this.confirmNo]) {
+    for (const b of [this.exitBtn, this.fsBtn, this.confirmYes, this.confirmNo]) {
       this.wireHover(b);
     }
+
+    // Fullscreen state wiring: the exit button mirrors the real document
+    // state (never a stale guess). Headless/test envs without the registry
+    // controller simply keep it hidden.
+    this.fsController = this.scene.registry.get('fullscreen') || null;
+    if (this.fsController) {
+      this.onFsState = (next) => this.syncFullscreen(next === 'active');
+      this.offFsState = this.fsController.onChange(this.onFsState);
+      this.syncFullscreen(this.fsController.isFullscreen);
+    }
+  }
+
+  /**
+   * Show/hide the pause-menu EXIT FULLSCREEN control. Pure presentation —
+   * the state comes from the FullscreenController; exiting resizes the
+   * canvas via the existing fullscreenchange → ViewportController path.
+   */
+  syncFullscreen(active) {
+    this.fsBtn?.setVisible(!!active);
   }
 
   _scaleResume(to, duration = 110) {
@@ -1029,6 +1059,7 @@ export class GameHUD {
   destroy() {
     const s = this.scene;
     this.removePauseFx(); // never leave grayscale/blur on a surviving camera
+    if (this.offFsState) this.offFsState(); // drop the fullscreen subscription
     s.tweens.killTweensOf([this.menu, this.timerText, this.shotsText, ...this.heartIcons,
       ...this.starIcons.map((x) => x.group)]);
     if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);

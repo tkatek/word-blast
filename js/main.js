@@ -12,6 +12,8 @@ import { LevelSelectScene } from './scenes/LevelSelectScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { ViewportController } from './systems/Viewport.js';
 import { installOrientationGate, refreshOrientationGate } from './systems/OrientationGate.js';
+import { FullscreenController } from './systems/FullscreenController.js';
+import { installFullscreenEntry } from './systems/FullscreenEntry.js';
 import { installDebugAPI } from './dev/DebugAPI.js';
 
 // Boot watchdog handshake (Fix: Live Server blank screen): if Phaser cannot
@@ -66,5 +68,13 @@ game.events.once('ready', () => window.__wbBoot?.ok());
 export const viewport = new ViewportController(game, { onChange: refreshOrientationGate });
 game.registry.set('viewport', viewport); // debug/test access
 installOrientationGate();
+
+// Mobile landscape fullscreen: one controller owns the Fullscreen API for
+// the whole app (menu, gameplay, pause menu exit control). The entry UI
+// (PLAY FULLSCREEN card / Add-to-Home-Screen hint) waits for game 'ready'
+// before anything can appear — no fullscreen controls over a failed boot.
+export const fullscreen = new FullscreenController();
+game.registry.set('fullscreen', fullscreen);
+installFullscreenEntry(game, fullscreen);
 
 installDebugAPI(game);

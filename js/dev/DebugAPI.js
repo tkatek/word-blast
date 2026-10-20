@@ -7,6 +7,7 @@ import { clientToWorld, worldToClient } from '../systems/InputMapper.js';
 import { deviceInfo, setOrientationOverride, setTypeOverride } from '../systems/Device.js';
 import { currentView } from '../systems/Viewport.js';
 import { refreshOrientationGate } from '../systems/OrientationGate.js';
+import { fullscreenEntryMode } from '../systems/FullscreenEntry.js';
 import { DebugLog } from '../systems/DebugLog.js';
 
 export function installDebugAPI(game) {
@@ -170,6 +171,18 @@ export function installDebugAPI(game) {
       const vp = game.registry.get('viewport');
       if (vp) vp.refresh();
       return true;
+    },
+
+    /** Fullscreen controller (mobile landscape tests): state + prompts. */
+    fullscreen() {
+      const fs = game.registry.get('fullscreen');
+      return {
+        state: fs ? fs.state : 'missing',
+        isFullscreen: fs ? fs.isFullscreen : false,
+        supported: fs ? fs.support.supported : false,
+        standalone: fs ? fs.standalone : false,
+        prompt: fullscreenEntryMode()
+      };
     },
 
     /** Test-only orientation override: 'portrait' | 'landscape' | null. */
