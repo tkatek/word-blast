@@ -19,6 +19,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    // Sourcemaps stay OFF for production: they added ~11 MB to every deploy
+    // and are never needed to play the game. Debug against `npm run dev`.
+    sourcemap: false
   }
 });

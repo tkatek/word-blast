@@ -791,7 +791,18 @@ export class GameScene extends Phaser.Scene {
     if (s === STATES.PROJECTILE_FLYING || s === STATES.PHYSICS_RESOLVING) {
       this.updateShotResolution();
     }
-    if (s === STATES.ANSWER_FEEDBACK) {
+    // A visible feedback card that has not armed yet must keep arming
+    // regardless of the machine's current state: a resolved-miss projectile
+    // can still creep into the correct target after the slingshot re-armed
+    // (documented late-contact path), and the pending intro card callback or
+    // a deferred arm can then move the machine out of ANSWER_FEEDBACK before
+    // the settle watcher ran. State-gating the watcher alone would leave the
+    // CONTINUE button permanently disabled with the card stuck on screen.
+    if (this.feedbackCard?.visible && !this.feedbackArmed) {
+      this.updateAnswerSettle();
+      // never allow firing while an unanswered feedback card is showing
+      this.slingshot?.setEnabled(false);
+    } else if (s === STATES.ANSWER_FEEDBACK) {
       this.updateAnswerSettle();
     }
   }
