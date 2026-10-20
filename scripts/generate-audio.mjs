@@ -937,10 +937,12 @@ function buildCartoonTheme() {
     [74, 48, 1], [76, 49, 1], [77, 50, 1], [79, 51, 1], [81, 52, 2], [79, 54, 2],
     [76, 56, 2], [74, 58, 2], [72, 60, 4]
   ];
-  // Final-bar variant (used in A''): same cadence start, then the G5-A5-B5
-  // rising pickup that pulls the seam back to the opening E5.
+  // Final-bar variant (used in A''): cadence start, then the G5-A5 rise and
+  // the leading tone B5 struck on the LAST eighth — it is still ringing
+  // when the loop wraps onto the opening E5, so the seam is a musical
+  // continuation, not an energy hole.
   const THEME_PICKUP_END = [
-    [76, 56, 2], [74, 58, 2], [79, 60, 1], [81, 61, 1], [83, 62, 2]
+    [76, 56, 2], [74, 58, 2], [79, 60, 1], [81, 61, 1], [83, 63, 1]
   ];
 
   // Bridge — glockenspiel calls (odd bars) answered by xylophone (even).
@@ -1032,6 +1034,9 @@ function buildCartoonTheme() {
     (m, d) => xylophone(m, d, 0.19));
   renderNotes(out, FILL_A_DOUBLE.map(([m, e, l]) => [m, secT(3, e), l * e8, 1]),
     (m, d) => glock(m, d, 0.12));
+  // glockenspiel B5 on the final eighth: its long ring crosses the seam
+  // and the loopify fold carries it into the loop head (seam glue)
+  mix(out, secT(3, 63), glock(83, 2 * e8, 0.16), 1);
   for (let b = 0; b < 8; b++) {
     const ch = CH[chart[24 + b]];
     mix(out, secT(3, b * 8), bassPizz(ch.bass, 0.46));
