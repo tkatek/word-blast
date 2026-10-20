@@ -1,0 +1,81 @@
+# WORD BLAST — GitHub Pages deployment.
+#
+# Builds the compiled production game (Vite, base /word-blast/) and publishes
+# dist/ via the official Pages artifact flow. The raw source in this repo is
+# NOT deployable (unresolved npm imports) — only this build output is.
+#
+# ONE-TIME MANUAL STEP (repo admin, cannot be done from a workflow):
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions"
+# Until that is selected, the deploy job fails with a clear message and the
+# site keeps serving whatever branch source was configured before.
+#
+# Deployment targets are kept configurable for the future Boston English
+# Center integration: the base path comes from the build script
+# (npm run build:pages → --base=/word-blast/); a different route only needs
+# its own build script, e.g. "vite build --base=/games/word-blast/".
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a new push supersedes the run in flight.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (reproducible)
+        run: npm ci
+
+      - name: Run test suites
+        run: npm test
+
+      - name: Build production game for /word-blast/
+        run: npm run build:pages
+
+      - name: Verify build output
+        run: |
+          test -f dist/index.html || { echo "::error::dist/index.html missing — build failed"; exit 1; }
+          grep -q 'assets/index-' dist/index.html \
+            || { echo "::error::dist/index.html does not reference compiled bundles"; exit 1; }
+          grep -q '/word-blast/assets/' dist/index.html \
+            || { echo "::error::build was not produced with the /word-blast/ base path"; exit 1; }
+          test -d dist/assets/images && test -d dist/assets/audio \
+            || { echo "::error::public assets were not copied into dist/"; exit 1; }
+          echo "dist contents:" && ls -la dist dist/assets
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
