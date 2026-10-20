@@ -3,18 +3,20 @@
  *
  * Presentation contract (see FullscreenController for the state machine):
  *
- *   phone + landscape + boot finished + API available
+ *   phone/tablet + landscape + boot finished + API available
  *       → centered wooden card:  ⛶ PLAY FULLSCREEN  (+ "Play with more
  *         screen space.") and a "Not now" link that keeps the game running.
  *       After dismissal (or after the player exits fullscreen) the card
- *       never blocks again — a small corner chip keeps the control
+ *         never blocks again — a small corner chip keeps the control
  *         AVAILABLE without covering gameplay.
  *
  *   phone + landscape + UNSUPPORTED (iPhone Safari & un-permitted iframes)
- *       → once per session: "Add to Home Screen" guidance card + CONTINUE
- *         PLAYING. No fullscreen button is ever shown (a broken-looking
- *         button is worse than none); the game stays fully playable in
- *         normal landscape. Never re-prompts after dismissal.
+ *       → once per session: "Play without the address bar" card with the
+ *         FULL Add-to-Home-Screen instructions + CONTINUE IN BROWSER. The
+ *         game stays fully playable in normal landscape. After dismissal a
+ *         compact corner chip can RE-OPEN the instructions (it never
+ *         auto-prompts and never blocks) — the install route must stay
+ *         findable, just not nagging.
  *
  *   standalone (installed web app) / desktop / portrait
  *       → nothing. Portrait is the rotate-gate's job (z-index above this).
@@ -33,20 +35,29 @@ import { FULLSCREEN_STATES } from './FullscreenController.js';
 /**
  * Pure: what should be on screen right now?
  * @param {object} c {
- *   booted:boolean, mobile:boolean, landscape:boolean, standalone:boolean,
- *   state:string, cardDismissed:boolean, hintDismissed:boolean
+ *   booted:boolean, mobile:boolean, tablet:boolean, landscape:boolean,
+ *   standalone:boolean, state:string, cardDismissed:boolean,
+ *   hintDismissed:boolean
  * }
- * @returns {'card'|'hint'|'chip'|null}
+ * @returns {'card'|'hint'|'chip'|'hintchip'|null}
+ *   'card'     blocking PLAY FULLSCREEN card (API available)
+ *   'hint'     blocking install-instructions card (API unavailable)
+ *   'chip'     compact ⛶ corner chip re-offering native fullscreen
+ *   'hintchip' compact corner chip re-opening the install instructions
  */
 export function computeEntryMode(c) {
-  if (!c.booted || !c.mobile || !c.landscape || c.standalone) return null;
+  if (!c.booted || !c.landscape || c.standalone) return null;
+  // Phones always; coarse-pointer tablets (real iPads) too — they have the
+  // same browser-chrome problem and DO support element fullscreen. Fine-
+  // pointer "tablets" (touch-screen laptops) are desktops: no prompt.
+  if (!(c.mobile || c.tablet)) return null;
   switch (c.state) {
     case FULLSCREEN_STATES.STANDALONE:
       return null;
     case FULLSCREEN_STATES.ACTIVE:
       return null;
     case FULLSCREEN_STATES.UNSUPPORTED:
-      return c.hintDismissed ? null : 'hint';
+      return c.hintDismissed ? 'hintchip' : 'hint';
     case FULLSCREEN_STATES.REQUESTING:
       return c.cardDismissed ? 'chip' : 'card';
     case FULLSCREEN_STATES.DENIED:
@@ -56,18 +67,29 @@ export function computeEntryMode(c) {
   }
 }
 
-/** iOS vs Android copy for the Add-to-Home-Screen steps (cosmetic only). */
+/**
+ * Install-instructions copy (cosmetic, platform-specific). The iOS steps
+ * match what a real iPhone shows: in landscape Safari the Share button
+ * lives inside the page menu, and recent iOS offers an "Open as Web App"
+ * toggle in the Add dialog. JavaScript cannot install the app or hide the
+ * address bar — these steps honestly describe the manual route.
+ */
 export function a2hsSteps(isApple) {
   return isApple
     ? [
-      'Tap the <b>Share</b> button <svg viewBox="0 0 24 24" width="15" height="15" style="vertical-align:-2px"><path d="M12 3v11M8l4-4 4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> in Safari',
+      'Open WORD BLAST in <b>Safari</b>',
+      'Tap <b>Share</b> \u2014 in landscape it\u2019s inside the page menu (the <b>aA</b> / sidebar button)',
       'Choose <b>Add to Home Screen</b>',
-      'Open WORD BLAST from your Home Screen — no address bar'
+      'Keep <b>Open as Web App</b> on, if that option is shown',
+      'Tap <b>Add</b>',
+      'Launch WORD BLAST from the Home Screen \u2014 no address bar',
+      'Turn the phone <b>sideways</b> to play'
     ]
     : [
-      'Open the browser <b>⋮ menu</b>',
+      'Open the browser <b>\u22EE menu</b>',
       'Choose <b>Install app</b> / <b>Add to Home screen</b>',
-      'Open WORD BLAST from your Home Screen — full screen'
+      'Confirm \u2014 the game installs like a native app',
+      'Open WORD BLAST from your Home Screen \u2014 full screen'
     ];
 }
 
@@ -131,9 +153,15 @@ export function installFullscreenEntry(game, controller) {
   const apply = () => {
     raf = 0; // re-arm the debouncer — without this every later update is dropped
     const info = deviceInfo();
+    // Coarse-pointer tablets (real iPads) get the same entry UI as phones;
+    // fine-pointer touch devices (touch laptops) are desktops.
+    const coarseTablet = info.type === DEVICE_TYPES.TABLET && !!info.hasTouch
+      && typeof win.matchMedia === 'function'
+      && win.matchMedia('(pointer: coarse)').matches;
     const mode = computeEntryMode({
       booted: state.booted,
       mobile: info.type === DEVICE_TYPES.MOBILE,
+      tablet: coarseTablet,
       landscape: !info.portrait,
       standalone: controller.standalone || controller.state === FULLSCREEN_STATES.STANDALONE,
       state: controller.state,
@@ -168,13 +196,19 @@ export function installFullscreenEntry(game, controller) {
       card.setAttribute('aria-hidden', 'true');
     }
 
-    // compact corner chip — available (never blocking) after dismissal
-    const chipVisible = mode === 'chip';
+    // compact corner chip — available (never blocking) after dismissal.
+    // 'chip' re-offers native fullscreen; 'hintchip' re-opens the install
+    // instructions (iPhone: the install route must stay reachable without
+    // ever auto-prompting again).
+    const chipVisible = mode === 'chip' || mode === 'hintchip';
     if (chipVisible) {
+      const install = mode === 'hintchip';
       const busy = controller.state === FULLSCREEN_STATES.REQUESTING;
       chip.disabled = busy;
-      chip.querySelector('.fs-chip-label').textContent = busy ? '\u2699\uFE0F' : '\u26F6';
-      chip.setAttribute('aria-label', busy ? 'Entering fullscreen' : 'Play fullscreen');
+      const label = chip.querySelector('.fs-chip-label');
+      if (label) label.textContent = busy ? '\u2699\uFE0F' : (install ? '\u2313 INSTALL' : '\u26F6');
+      chip.setAttribute('aria-label', busy ? 'Entering fullscreen'
+        : (install ? 'How to install Word Blast' : 'Play fullscreen'));
     }
     chip.classList.toggle('is-visible', chipVisible);
   };
@@ -183,6 +217,7 @@ export function installFullscreenEntry(game, controller) {
 
   els.playBtn?.addEventListener('click', async () => {
     // The controller guards double requests (REQUESTING state) itself.
+    // Direct call inside the genuine gesture — no awaits before the request.
     await controller.enter(doc.documentElement);
     apply();
   });
@@ -198,9 +233,15 @@ export function installFullscreenEntry(game, controller) {
     apply();
   });
 
-  chip.addEventListener('click', async () => {
-    await controller.enter(doc.documentElement);
-    apply();
+  chip.addEventListener('click', () => {
+    if (controller.state === FULLSCREEN_STATES.UNSUPPORTED) {
+      // Install-route chip: RE-OPEN the instructions (never a request the
+      // browser would only reject).
+      state.hintDismissed = false;
+      apply();
+      return;
+    }
+    controller.enter(doc.documentElement).then(apply);
   });
 
   // Tapping the scrim = keep playing (same as "Not now"), NOT a fullscreen

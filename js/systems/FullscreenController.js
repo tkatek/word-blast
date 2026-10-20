@@ -12,19 +12,31 @@
  *   ACTIVE       document.fullscreenElement is truthy (verified, never
  *                assumed from a resolved promise alone).
  *   UNSUPPORTED  the API is missing or disallowed (iPhone Safari for HTML
- *                elements, or an iframe without allowfullscreen) — NEVER
- *                show a fullscreen button; the Add-to-Home-Screen hint and
- *                normal landscape play are the fallback.
+ *                elements — verified: no element fullscreen through iOS 26,
+ *                <video> only — or an iframe without allowfullscreen).
+ *                NEVER show a fullscreen button; the Add-to-Home-Screen
+ *                hint and normal landscape play are the fallback.
  *   DENIED       the browser rejected the last user-initiated request.
  *                Only a fresh user gesture may try again — nothing retries
  *                on its own.
  *   STANDALONE   launched from the home screen (installed web app) — the
  *                browser chrome is already gone; no fullscreen UI at all.
  *
+ * The three DISPLAY MODES the app distinguishes (never conflated — a
+ * full-viewport CSS layout is NOT native fullscreen, and a standalone app
+ * does NOT need document.fullscreenElement):
+ *   'native-fullscreen'  ACTIVE — a real Fullscreen API request succeeded
+ *   'standalone'         launched as an installed web app
+ *   'browser'            normal tab (with or without collapsed bars)
+ *
  * Fullscreen state changes emit 'change' (newState, previousState) so the
  * entry overlay, the HUD exit control and the ViewportController can react.
  * The ViewportController listens to the DOM fullscreenchange events itself
  * and resizes the canvas — this controller never touches the canvas.
+ *
+ * The LAST fullscreen error (name + message, from fullscreenerror events
+ * and request rejections) is kept in `lastError` for the on-device
+ * diagnostics panel — a rejection is never conflated with "no API".
  *
  * Node-safe: constructed without a DOM it reports UNSUPPORTED and every
  * method is a safe no-op (headless tests import it freely).
@@ -114,6 +126,12 @@ export function detectFullscreenSupport(win, doc) {
   return { supported: true, reason: 'ok', api };
 }
 
+export const DISPLAY_MODES = {
+  NATIVE_FULLSCREEN: 'native-fullscreen',
+  STANDALONE: 'standalone',
+  BROWSER: 'browser'
+};
+
 /** How long to wait for fullscreenchange after request() resolves (ms). */
 const CHANGE_TIMEOUT_MS = 1600;
 
@@ -128,6 +146,8 @@ export class FullscreenController {
     this.support = detectFullscreenSupport(this.win, this.doc);
     this.standalone = detectStandalone(this.win);
     this._listeners = [];
+    /** Last fullscreen failure: {name, message, ts} | null (diagnostics). */
+    this.lastError = null;
     this._state = this.standalone
       ? FULLSCREEN_STATES.STANDALONE
       : (this.support.supported ? FULLSCREEN_STATES.AVAILABLE : FULLSCREEN_STATES.UNSUPPORTED);
@@ -141,13 +161,41 @@ export class FullscreenController {
         this.doc.addEventListener(name, this._onFsChange);
       }
       // A rejected request can also surface as fullscreenerror.
-      this._onFsError = () => {
+      this._onFsError = (event) => {
+        this._recordError(event && event.type ? { name: 'FullscreenError', message: 'document fullscreenerror event (' + event.type + ')' } : event);
         if (this._state === FULLSCREEN_STATES.REQUESTING) this._set(FULLSCREEN_STATES.DENIED);
       };
       for (const name of ['fullscreenerror', 'webkitfullscreenerror']) {
         this.doc.addEventListener(name, this._onFsError);
       }
+      // Launch-mode changes (e.g. display-mode flips when an installed app
+      // starts): re-classify instead of trusting the boot-time snapshot.
+      if (typeof this.win.matchMedia === 'function') {
+        this._displayQuery = this.win.matchMedia('(display-mode: standalone)');
+        this._onDisplayMode = () => this.refresh();
+        const dq = this._displayQuery;
+        if (dq && typeof dq.addEventListener === 'function') dq.addEventListener('change', this._onDisplayMode);
+        else if (dq && typeof dq.addListener === 'function') dq.addListener(this._onDisplayMode);
+      }
     }
+  }
+
+  /**
+   * The display mode the app is running in — one of DISPLAY_MODES. This is
+   * the authoritative mode signal for UI decisions (a full-viewport CSS
+   * layout must never be reported as native fullscreen).
+   */
+  get displayMode() {
+    if (this._state === FULLSCREEN_STATES.STANDALONE) return DISPLAY_MODES.STANDALONE;
+    if (this._state === FULLSCREEN_STATES.ACTIVE) return DISPLAY_MODES.NATIVE_FULLSCREEN;
+    return DISPLAY_MODES.BROWSER;
+  }
+
+  /** Remember a fullscreen failure for the diagnostics panel. */
+  _recordError(err) {
+    const name = (err && (err.name || err.type)) || 'FullscreenError';
+    const message = (err && err.message) || 'fullscreen request failed';
+    this.lastError = { name: String(name), message: String(message), ts: Date.now() };
   }
 
   get state() {
@@ -247,6 +295,7 @@ export class FullscreenController {
     try {
       await request.call(el);
     } catch (err) {
+      this._recordError(err); // rejected promise — keep name+message for diagnostics
       await this._waitForElement(true, 250); // some engines resolve late
       if (!this.fullscreenElement()) {
         this._set(FULLSCREEN_STATES.DENIED);
@@ -254,11 +303,18 @@ export class FullscreenController {
       }
     }
     // Verify the REAL outcome — the resolved promise is not proof.
-    await this._waitForElement(true);
+    const reached = await this._waitForElement(true);
     if (!this.fullscreenElement()) {
+      // Promise resolved but the document never entered fullscreen: record
+      // it distinctly from an outright rejection (diagnostics tell them
+      // apart; both fall back to playable landscape browser mode).
+      if (!this.lastError) {
+        this._recordError({ name: 'TimeoutError', message: 'request resolved but fullscreenElement never appeared' });
+      }
       this._set(FULLSCREEN_STATES.DENIED);
       return this._state;
     }
+    this.lastError = null; // success clears the last failure
     this._set(FULLSCREEN_STATES.ACTIVE);
     await this._tryLockOrientation(opts.lockOrientation === undefined ? 'landscape' : opts.lockOrientation);
     return this._state;
@@ -311,6 +367,12 @@ export class FullscreenController {
       for (const name of ['fullscreenerror', 'webkitfullscreenerror']) {
         this.doc.removeEventListener(name, this._onFsError);
       }
+    }
+    if (this._displayQuery && this._onDisplayMode) {
+      const dq = this._displayQuery;
+      if (typeof dq.removeEventListener === 'function') dq.removeEventListener('change', this._onDisplayMode);
+      else if (typeof dq.removeListener === 'function') dq.removeListener('change', this._onDisplayMode);
+      this._displayQuery = null;
     }
     this._listeners = [];
   }

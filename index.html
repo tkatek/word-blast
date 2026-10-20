@@ -55,6 +55,12 @@
       0%, 55%, 100% { transform: rotate(0deg); }
       75%           { transform: rotate(-82deg); }
     }
+    /* Rotation-lock hint: the website cannot change the device's rotation
+       lock setting — say so instead of leaving the player stuck. */
+    #rotate-overlay .rotate-sub {
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 214, 10, 0.35);
+      color: #ffd60a; opacity: 0.85; font-size: clamp(11px, 3vw, 13px); line-height: 1.5;
+    }
     @media (prefers-reduced-motion: reduce) {
       #rotate-overlay .rotate-phone { animation: none; }
     }
@@ -101,6 +107,9 @@
       </svg>
       <h2>Rotate Your Phone</h2>
       <p>WORD BLAST is played in landscape.<br />Turn your phone sideways to continue.</p>
+      <p class="rotate-sub">If the picture doesn’t rotate, your device’s
+        <b>Rotation&nbsp;Lock</b> may be on — the website can’t change that
+        setting; turn it off in Control Center / Quick Settings.</p>
     </div>
   </div>
 
@@ -126,11 +135,13 @@
       </div>
       <div data-variant="hint" style="display:none">
         <div class="fs-inner">
-          <h2 class="fs-title">PLAY FULL SCREEN</h2>
-          <p class="fs-msg">This browser can't hide its address bar, but you can install the game:</p>
+          <h2 class="fs-title">PLAY WITHOUT THE ADDRESS BAR</h2>
+          <p class="fs-msg">This browser can’t hide its address bar for a web
+            page — but installing WORD BLAST as a Home&nbsp;Screen app can.
+            It takes about 20 seconds:</p>
           <ol class="fs-hint-steps"></ol>
           <button type="button" class="fs-btn fs-btn-continue">
-            <span class="fs-btn-label">CONTINUE PLAYING</span>
+            <span class="fs-btn-label">CONTINUE IN BROWSER</span>
           </button>
         </div>
       </div>

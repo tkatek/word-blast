@@ -27,6 +27,30 @@ import { WORLD } from '../config.js';
 export const DPR_CAP = 2;
 
 /**
+ * Below this (CSS px) a measured rect/viewport is a TRANSIENT value (iOS
+ * rotation animations, toolbar transitions, display toggles) — resizing
+ * the game to it would flash a sliver; instead we keep the last good size
+ * and retry until dimensions stabilize.
+ */
+export const MIN_USABLE_PX = 60;
+
+/**
+ * Pure: pick the usable CSS size for the canvas.
+ * @returns {{w:number, h:number, ok:boolean}} ok=false → every source is a
+ *   transient/degenerate measurement — callers must NOT resize to it; they
+ *   should keep the last good size and retry.
+ */
+export function usableCssSize(rectW, rectH, fallbackW, fallbackH) {
+  const w = Math.round(rectW || 0);
+  const h = Math.round(rectH || 0);
+  if (w >= MIN_USABLE_PX && h >= MIN_USABLE_PX) return { w, h, ok: true };
+  const fw = Math.round(fallbackW || 0);
+  const fh = Math.round(fallbackH || 0);
+  if (fw >= MIN_USABLE_PX && fh >= MIN_USABLE_PX) return { w: fw, h: fh, ok: true };
+  return { w: Math.max(2, fw), h: Math.max(2, fh), ok: false };
+}
+
+/**
  * Pure: given the canvas buffer size, compute the camera zoom and the
  * visible world rectangle that shows the ENTIRE 1280×720 world.
  *
@@ -182,38 +206,83 @@ export class ViewportController {
     }, delayMs ?? this.debounceMs);
   }
 
+  /**
+   * Bounded settle chain after a change: mobile viewport sources
+   * (visualViewport vs innerWidth vs the canvas rect) disagree while iOS
+   * toolbars animate or the rotation settles — re-check a few times until
+   * the measurement is stable, then stop. Each check is a no-op when
+   * nothing changed. Also used to WAIT for usable dimensions after a
+   * degenerate (transient) measurement instead of resizing to a sliver.
+   */
+  _settle(delays, attempt) {
+    if (!delays.length) return;
+    const [first, ...rest] = delays;
+    if (this._settleTimer) clearTimeout(this._settleTimer);
+    this._settleTimer = setTimeout(() => {
+      this._settleTimer = null;
+      this.applyNow(attempt);
+    }, first);
+    this._settleQueue = rest;
+  }
+
   /** Resize the canvas buffer to the visible viewport × DPR (idempotent). */
-  applyNow() {
+  applyNow(fromSettle = false) {
     const scale = this.game.scale;
     if (!scale || !this.game.canvas) return; // not booted yet ('ready' retries)
-    const { w, h } = visibleCssSize();
+    const visible = visibleCssSize();
+
+    // Transient/degenerate measurements (iOS rotation & toolbar animations,
+    // a briefly hidden shell): NEVER resize the game to a temporary
+    // near-zero value — keep the last good size and retry until stable.
+    const first = usableCssSize(null, null, visible.w, visible.h);
+    if (!first.ok) {
+      this._degenerateRetries = (this._degenerateRetries || 0) + 1;
+      if (this._degenerateRetries <= 10) this._settle([180, 350, 700, 1200], this._degenerateRetries);
+      return;
+    }
+    this._degenerateRetries = 0;
+
     // Shrink the fixed shell to the VISIBLE viewport when mobile toolbars
     // hide part of the layout viewport (visualViewport < innerHeight), so
     // the canvas CSS box always matches the buffer's CSS size — the bitmap
     // is never CSS-stretched and input scaling stays exact.
     const parent = scale.parent && scale.parent !== document.body ? scale.parent : null;
     if (parent) {
-      parent.style.width = w + 'px';
-      parent.style.height = h + 'px';
+      // Write styles only when they change (avoid layout churn during the
+      // resize/orientation event storm).
+      const wpx = visible.w + 'px';
+      const hpx = visible.h + 'px';
+      if (parent.style.width !== wpx) parent.style.width = wpx;
+      if (parent.style.height !== hpx) parent.style.height = hpx;
     }
-    // Authoritative source: the canvas's own CSS box (parent minus safe-area
-    // padding). Falls back to the raw viewport for degenerate rects.
+
+    // Authoritative source: the canvas's own CSS box (parent minus
+    // safe-area padding), re-measured AFTER the shell write so the buffer
+    // always matches the exact final box; the visible viewport is the
+    // fallback when the rect is still transient.
     const rect = this.game.canvas.getBoundingClientRect();
-    const cssW = Math.max(2, Math.round(rect.width || w));
-    const cssH = Math.max(2, Math.round(rect.height || h));
+    const usable = usableCssSize(rect.width, rect.height, visible.w, visible.h);
+    if (!usable.ok) { this._settle([180, 400], 0); return; }
+
     const dpr = effectiveDPR();
-    const bw = Math.max(2, Math.round(cssW * dpr));
-    const bh = Math.max(2, Math.round(cssH * dpr));
-    if (bw === this.lastW && bh === this.lastH) return;
+    const bw = Math.max(2, Math.round(usable.w * dpr));
+    const bh = Math.max(2, Math.round(usable.h * dpr));
+    if (bw === this.lastW && bh === this.lastH) {
+      // Stable — but an EVENT-triggered check can run before layout
+      // catches up with visualViewport: one settle re-check, never a loop
+      // (settle-triggered runs pass fromSettle=true and stop here).
+      if (!fromSettle) this._settle([300], 0);
+      return;
+    }
     this.lastW = bw;
     this.lastH = bh;
     // Emits 'resize' → cameras/renderer follow, scenes re-frame themselves.
     scale.resize(bw, bh);
     if (this.onChange) this.onChange();
-    // Mobile viewport sources (visualViewport vs innerWidth) can disagree
-    // while toolbars animate or the window settles: one cheap follow-up
-    // check heals any missed change. No-op when stable.
-    this.scheduleApply(300);
+    // Mobile viewport sources (visualViewport vs innerWidth vs layout) can
+    // disagree while toolbars animate or the window settles: a short
+    // bounded follow-up chain heals any missed change. No-op when stable.
+    this._settle([250, 900], 0);
   }
 
   /** Test/debug hook: force a re-read of the viewport. */
@@ -236,6 +305,8 @@ export class ViewportController {
         doc.removeEventListener(evt, this.schedule);
       }
     }
+    if (this._settleTimer) clearTimeout(this._settleTimer);
+    this._settleQueue = [];
     this.pending = false;
   }
 }
