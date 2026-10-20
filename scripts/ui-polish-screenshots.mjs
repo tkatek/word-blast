@@ -332,8 +332,15 @@ async function runDesktopPass() {
     console.log('shot 09-resume-button-closeup.png');
 
     /* 10 — resume restores color and the exact state */
-    await clickWorld(page, 640, 356); // the big centered resume button
-    await waitForFn(page, () => window.__WB__.state() === 'AIMING', 8000);
+    let resumed = false;
+    for (let i = 0; i < 3 && !resumed; i++) {
+      await clickWorld(page, 640, 356); // the big centered resume button
+      try {
+        await waitForFn(page, () => window.__WB__.state() === 'AIMING', 6000);
+        resumed = true;
+      } catch (e) { /* retry on a slow frame */ }
+    }
+    if (!resumed) throw new Error('resume button never resumed the game');
     const afterFx = await page.evaluate(() => {
       const s = window.__WB__.scene();
       return { gray: !!s.hud.pauseGray, blur: !!s.hud.pauseBlur };
@@ -342,21 +349,21 @@ async function runDesktopPass() {
     await snap(page, '10-resumed-color-restored.png');
 
     /* 11 — victory panel (wood + drawn stars) */
-    for (let q = 0; q < 4; q++) {
+    for (let guard = 0; guard < 6; guard++) {
       const st = await page.evaluate(() => window.__WB__.state());
       if (st === 'LEVEL_COMPLETE') break;
-      if (st !== 'AIMING') {
-        // a leftover feedback card from the flow above — close it
-        const f = await page.evaluate(() => window.__WB__.feedbackInfo());
-        if (f && f.visible) { await clickFeedbackAction(page); }
-        await waitForFn(page, () => window.__WB__.state() === 'AIMING', 20000);
-      }
-      let ok = await page.evaluate(() => !!window.__WB__.autoAim());
-      if (!ok) ok = await page.evaluate(() => !!window.__WB__.autoAim());
-      if (!ok) throw new Error('autoAim failed on question ' + (q + 1));
-      await waitForFn(page, () => window.__WB__.state() === 'ANSWER_FEEDBACK', 20000);
+      // fresh arena per question (same reload the RETRY path performs) so
+      // the aiming solution is always clean on the slow software renderer
+      await page.evaluate(() => {
+        const s = window.__WB__.scene();
+        s.loadQuestion(s.questionIndex);
+      });
+      await waitForFn(page, () => window.__WB__.state() === 'AIMING', 45000);
+      const hit = await autoAimRetry(page);
+      if (!hit) throw new Error('autoAim failed on question ' + (guard + 1));
       await clickFeedbackAction(page);
-      await waitForFn(page, () => ['AIMING', 'LEVEL_COMPLETE'].includes(window.__WB__.state()), 20000);
+      await waitForFn(page, () => ['AIMING', 'LEVEL_COMPLETE', 'NEXT_QUESTION', 'QUESTION_READY']
+        .includes(window.__WB__.state()), 45000);
     }
     await waitForFn(page, () => window.__WB__.state() === 'LEVEL_COMPLETE', 20000);
     await sleep(1300); // star pop-in choreography
@@ -396,7 +403,8 @@ async function runViewportPass(cfg, name) {
 
     const card1 = ls.cards.find((c) => c.id === 1);
     await clickWorld(page, card1.x, card1.y);
-    await waitForFn(page, () => window.__WB__.state() === 'AIMING', 30000);
+    await prepGameplay(page);
+    await waitForFn(page, () => window.__WB__.state() === 'AIMING', 45000);
     await sleep(350);
     await snap(page, `${name}-hud-gameplay.png`);
 
