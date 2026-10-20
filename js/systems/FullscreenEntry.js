@@ -129,6 +129,7 @@ export function installFullscreenEntry(game, controller) {
 
   /** Apply the computed mode to the DOM (idempotent, cheap). */
   const apply = () => {
+    raf = 0; // re-arm the debouncer — without this every later update is dropped
     const info = deviceInfo();
     const mode = computeEntryMode({
       booted: state.booted,
@@ -213,11 +214,13 @@ export function installFullscreenEntry(game, controller) {
     apply();
   });
 
-  /* ---- reactive wiring (single set of listeners, rAF-coalesced) ---- */
+  /* ---- reactive wiring (single set of listeners, coalesced) ---- */
 
+  // Timeout-coalesced (NOT rAF): rAF callbacks can stall while the document
+  // is fullscreen/occluded — the prompt must still update then.
   let raf = 0;
   const schedule = () => {
-    if (!raf) raf = win.requestAnimationFrame(apply);
+    if (!raf) raf = win.setTimeout(apply, 60);
   };
   win.addEventListener('resize', schedule);
   win.addEventListener('orientationchange', schedule);
@@ -254,7 +257,7 @@ export function installFullscreenEntry(game, controller) {
     uninstall: () => {
       win.removeEventListener('resize', schedule);
       win.removeEventListener('orientationchange', schedule);
-      if (raf) win.cancelAnimationFrame(raf);
+      if (raf) win.clearTimeout(raf);
       offController();
       offExit();
       card.classList.remove('is-visible');

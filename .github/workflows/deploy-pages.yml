@@ -60,6 +60,11 @@ jobs:
             || { echo "::error::dist/index.html does not reference compiled bundles"; exit 1; }
           grep -q '/word-blast/assets/' dist/index.html \
             || { echo "::error::build was not produced with the /word-blast/ base path"; exit 1; }
+          test -f dist/manifest.webmanifest || { echo "::error::manifest.webmanifest missing"; exit 1; }
+          grep -q 'rel="manifest"' dist/index.html \
+            || { echo "::error::index.html does not link the web app manifest"; exit 1; }
+          test -f dist/assets/images/icons/icon-512.png \
+            || { echo "::error::PWA icons missing"; exit 1; }
           test -d dist/assets/images && test -d dist/assets/audio \
             || { echo "::error::public assets were not copied into dist/"; exit 1; }
           echo "dist contents:" && ls -la dist dist/assets

@@ -65,6 +65,22 @@ and fairness, which automation cannot judge honestly.
       paused.
 - [ ] Progress persists across reloads; RESET SAVE on the menu works.
 
+## Mobile fullscreen (see MOBILE-FULLSCREEN-NOTES.md; automated base is
+   scripts/verify-fullscreen.mjs — these need REAL devices)
+
+- [ ] Android Chrome (real phone), landscape: PLAY FULLSCREEN card → tap →
+      toolbar hides, orientation locks; pause menu shows EXIT FULLSCREEN;
+      exit keeps the game paused; corner chip offers fullscreen again.
+- [ ] iPhone Safari (real phone), landscape: NO fullscreen button;
+      Add-to-Home-Screen card once; CONTINUE PLAYING keeps the game running;
+      guidance matches the installed iOS version (Share sheet wording).
+- [ ] iPhone, installed from Home Screen: standalone (no Safari bars), no
+      fullscreen prompts, gameplay responsive, rotation handled.
+- [ ] Notch/home-indicator devices: HUD, timer and pause menu never clipped
+      (safe-area insets).
+- [ ] Rotate mid-aim / while paused / during a question on a real device:
+      progress kept, no restart, manual pause survives.
+
 ## Known debug-phase limitations (by design, not bugs)
 
 - Placeholder graphics/text UI (final art phase comes next).

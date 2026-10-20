@@ -95,16 +95,38 @@ js/
 
 ## Testing
 
-- `npm test` — 37 Node tests: exact content counts (15/4/60/3/1), CEFR
+- `npm test` — Node suites: exact content counts (15/4/60/3/1), CEFR
   progression, layout validity, star-threshold feasibility, answer
   acceptance/rejection/duplicate-lock, deterministic scoring, save round-trips,
   corruption sanitization, unlock chain, state machine legality, trajectory
-  solver accuracy, input mapping.
+  solver accuracy, input mapping, **plus the fullscreen/PWA suite** (capability
+  detection, fullscreen state machine, prompt visibility, manifest/icons —
+  `tests/fullscreen-tests.mjs`).
 - Browser integration (run against `npm run dev` via the `window.__WB__` debug
   API): full Level-1 perfect play (score 6300 = theoretical max, 3 stars,
   save + unlock), wrong-answer penalty, miss recovery, out-of-shots failure →
   retry, pause/resume, restart reset, and a load+fire+resolve smoke of all 15
   levels. See `tests/MANUAL_CHECKLIST.md` for what still needs human eyes.
+- Mobile fullscreen experience: `npm run build && node scripts/verify-fullscreen.mjs`
+  — boots the built game with phone emulation and checks the whole matrix
+  (Android entry → verified fullscreen → pause-menu exit; iPhone-Safari
+  fallback; standalone mode; rotation progress preservation; extreme
+  landscape ratios; manifest). Screenshots land in `screenshots/fullscreen/`.
+
+## Mobile landscape & fullscreen
+
+Phones play in landscape only (portrait shows the rotate gate). On landscape,
+a wooden **PLAY FULLSCREEN** card appears where the browser supports it
+(Android Chrome/Edge/Firefox); iPhone Safari gets honest capability detection
+(no broken button — a one-time Add-to-Home-Screen hint instead, and the game
+stays fully playable). Installed home-screen web apps run standalone with no
+prompts. Full details, behavior matrix and limitations:
+**[MOBILE-FULLSCREEN-NOTES.md](MOBILE-FULLSCREEN-NOTES.md)**.
+
+The game is installable (`public/manifest.webmanifest` + generated icons). The
+manifest uses relative `start_url`/`scope`, so the same build works under
+`/word-blast/` (GitHub Pages), a local `dist/` server, and any future base
+path (e.g. a Boston English Center route) — only the Vite `--base` changes.
 
 ## Backend readiness (v2)
 
