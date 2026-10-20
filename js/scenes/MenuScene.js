@@ -66,9 +66,20 @@ export class MenuScene extends Phaser.Scene {
     for (const { key, file } of menuPreloadList()) {
       this.load.image(key, BASE + file);
     }
+    // PERF: the looping background track (the single largest audio asset)
+    // is deferred here from the boot batch — the menu is the ONLY place
+    // the music can be started from (the PLAY press / music toggle), and
+    // this preload always completes before those controls exist.
+    this.load.audio(
+      'music-theme',
+      ((import.meta.env && import.meta.env.BASE_URL) || '/') + 'assets/audio/music/background-music.mp3'
+    );
     // Headless test envs cannot fetch the artwork — procedural stand-ins
     // under the same keys keep the scene fully renderable (project pattern).
-    this.load.on('loaderror', (file) => ensureMenuArtFallback(this, file.key));
+    this.load.on('loaderror', (file) => {
+      if (file.key === 'music-theme') return; // AudioManager cache-checks every play
+      ensureMenuArtFallback(this, file.key);
+    });
   }
 
   create() {
@@ -80,7 +91,13 @@ export class MenuScene extends Phaser.Scene {
 
     // Audio: no music starts on menu entry — the background music begins
     // only from the PLAY press (a real user gesture). Button clicks are
-    // the only sounds before that.
+    // the only sounds before that. The deferred track has landed by now
+    // (create runs after preload completes): honor any recorded play
+    // intent from an earlier session state, exactly as the manager would.
+    const audio = this.registry.get('audio');
+    if (audio && typeof audio.startMusic === 'function' && audio.musicWanted?.()) {
+      audio.startMusic();
+    }
     this.buildBackground();
     this.buildLogo();
     this.buildSubtitle();

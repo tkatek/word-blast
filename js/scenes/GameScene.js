@@ -402,7 +402,10 @@ export class GameScene extends Phaser.Scene {
     this.onBlur = () => this.autoPause();
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     window.addEventListener('blur', this.onBlur);
-    this.events.on('shutdown', () => {
+    // once(): scene instances are REUSED across restarts and Phaser's
+    // Systems.shutdown() does NOT clear the events emitter — a plain on()
+    // here accumulated one stale closure per restart (slow listener leak).
+    this.events.once('shutdown', () => {
       document.removeEventListener('visibilitychange', this.onVisibilityChange);
       window.removeEventListener('blur', this.onBlur);
       this.stateChangeHandlers.length = 0;
@@ -467,10 +470,11 @@ export class GameScene extends Phaser.Scene {
     // everything sleeps. Towers are therefore at rest before the first
     // possible input; drift beyond SETTLE_MAX_DRIFT means the layout was
     // unstable (the generator battery guarantees this never ships).
-    const settle = this.factory.settleLayout(PHYSICS.SETTLE_STEPS);
-    if (settle.drift > PHYSICS.SETTLE_MAX_DRIFT || settle.lost > 0) {
-      DebugLog.warn(`L${this.levelId}/Q${index + 1} settle drift ${settle.drift.toFixed(1)}px, lost ${settle.lost}`);
-    }
+    // PERF: the steps are AMORTIZED across frames in update() (≈6/frame)
+    // — the old one-shot 75-step burst inside this call was a visible
+    // hitch at every question transition, especially on phones. The card
+    // intro covers the settle; arming waits for its completion either way.
+    this.factory.beginSettle(PHYSICS.SETTLE_STEPS);
 
     // Fix #9 — the parchment card now presents the question: ENTERING →
     // READING (4s mandatory, timer frozen) → MOVING_TO_TOP → onArmed fires
@@ -496,6 +500,13 @@ export class GameScene extends Phaser.Scene {
       // resume, otherwise the game would sit in QUESTION_READY forever.
       this.armPending = true;
       DebugLog.info('arming deferred: game paused');
+      return;
+    }
+    // The amortized build-settle must finish before the slingshot can arm
+    // (towers must be at rest). Same deferral path as pause: update()
+    // re-invokes armAiming the moment the settle completes.
+    if (this.factory.settling) {
+      this.armPending = true;
       return;
     }
     if (!this.stateMachine.is(STATES.QUESTION_READY) && !this.stateMachine.is(STATES.PHYSICS_RESOLVING)
@@ -785,6 +796,19 @@ export class GameScene extends Phaser.Scene {
     this.elapsedMs += delta;
     this.card?.tick(delta); // Fix #9 — question-card reading countdown (pause-gated here)
     this.updateLevelTimer(delta);
+    // amortized build-time settle (was a synchronous hitch — see loadQuestion)
+    if (this.factory.settling) {
+      const r = this.factory.stepSettle(6);
+      if (r.done) {
+        if (r.drift > PHYSICS.SETTLE_MAX_DRIFT || r.lost > 0) {
+          DebugLog.warn(`L${this.levelId}/Q${this.questionIndex + 1} settle drift ${r.drift.toFixed(1)}px, lost ${r.lost}`);
+        }
+        if (this.armPending) { // arming deferred only by the settle → run it now
+          this.armPending = false;
+          this.armAiming();
+        }
+      }
+    }
     this.factory.update(time, delta, this.elapsedMs);
 
     const s = this.stateMachine.current;

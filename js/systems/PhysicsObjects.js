@@ -51,7 +51,9 @@ export class ObjectFactory {
     this.explosionQueue = [];
     this.respawnQueue = []; // answer plaques that fell out of the world
     this.settling = false;  // true during the silent build-time settle phase
-    this.prevVel = new Map(); // body.id -> velocity before the last step
+    this.prevVel = new Map(); // body.id -> {x, y, gen} velocity before the last step
+    this._velGen = 0;       // capture generation (prune clock)
+    this.frozenCount = 0;   // blocks currently ice-frozen (gates the expiry scan)
     this.birdSkins = [];    // BirdSprite visual layers for bird projectiles
 
     this.scene.matter.world.on('beforeupdate', this.captureVelocities, this);
@@ -62,16 +64,33 @@ export class ObjectFactory {
     });
   }
 
-  /** Pre-resolution velocities: the honest measure of impact severity. */
+  /**
+   * Pre-resolution velocities: the honest measure of impact severity.
+   * PERF: records are POOLED and mutated in place — allocating a fresh
+   * {x,y} per body per physics step (this used to) produced thousands of
+   * short-lived objects per second during collapses and visible GC hitches
+   * on phones. A generation counter prunes records of destroyed bodies
+   * periodically instead of the old size>400 wipe.
+   */
   captureVelocities() {
     if (this.settling) return;
     const bodies = this.scene.matter.world.localWorld.bodies;
+    const gen = ++this._velGen;
+    let live = 0;
     for (let i = 0; i < bodies.length; i++) {
       const b = bodies[i];
       if (b.isStatic) continue;
-      this.prevVel.set(b.id, { x: b.velocity.x, y: b.velocity.y });
+      live++;
+      const v = b.velocity;
+      const rec = this.prevVel.get(b.id);
+      if (rec) { rec.x = v.x; rec.y = v.y; rec.gen = gen; }
+      else this.prevVel.set(b.id, { x: v.x, y: v.y, gen });
     }
-    if (this.prevVel.size > 400) this.prevVel.clear(); // bounded
+    if (gen % 300 === 0 && this.prevVel.size > live + 16) {
+      for (const [id, rec] of this.prevVel) {
+        if (rec.gen !== gen) this.prevVel.delete(id);
+      }
+    }
   }
 
   velocityOf(body) {
@@ -758,6 +777,7 @@ export class ObjectFactory {
     for (const block of this.blocks) {
       if (block.wb.removed) continue;
       if (Math.hypot(block.x - x, block.y - y) <= ICE.RADIUS) {
+        if (!block.wb.frozenUntil) this.frozenCount++;
         block.wb.frozenUntil = now + ICE.DURATION_MS;
         block.setTint(COLORS.FROZEN_TINT);
       }
@@ -774,35 +794,67 @@ export class ObjectFactory {
    * worst drift of any surviving piece (px) and how many were lost:
    * drift <= PHYSICS.SETTLE_MAX_DRIFT with lost === 0 is a normal
    * micro-settle; anything worse means the layout itself was unstable.
+   * Synchronous variant — kept for the headless test battery; the game
+   * itself uses the amortized beginSettle/stepSettle pair below.
    */
   settleLayout(steps) {
-    this.settling = true;
-    const start = new Map();
-    for (const b of this.blocks) start.set(b, { x: b.x, y: b.y });
-    let worst = 0;
-    let lost = 0;
-    for (let i = 0; i < steps; i++) {
-      this.scene.matter.world.step(1000 / 60);
-      for (const b of this.blocks) {
-        if (b.wb.removed) continue;
-        if (b.y > WORLD.HEIGHT || b.x < -50 || b.x > WORLD.WIDTH + 50) {
-          b.wb.removed = true;
-          lost++;
-          this.remove(b);
-        }
-      }
+    this.beginSettle(steps);
+    while (this._settleStepsLeft > 0) {
+      this._settleOneStep();
+      this._settleStepsLeft--;
     }
+    return this._finishSettle();
+  }
+
+  /** Begin the amortized build-time settle (frame-sliced, no hitch). */
+  beginSettle(steps) {
+    this.settling = true;
+    this._settleStepsLeft = steps;
+    this._settleStart = new Map();
+    for (const b of this.blocks) this._settleStart.set(b, { x: b.x, y: b.y });
+    this._settleWorst = 0;
+    this._settleLost = 0;
+  }
+
+  /**
+   * Advance the amortized settle by up to `perFrame` silent physics steps
+   * (called from the scene's update — pauses freeze it with everything
+   * else). Returns {done:false} while running and {done:true, drift, lost}
+   * on the completing call, after force-sleeping the world.
+   */
+  stepSettle(perFrame = 6) {
+    if (!this.settling) return { done: true, drift: this._settleWorst, lost: this._settleLost };
+    const n = Math.min(perFrame, this._settleStepsLeft);
+    for (let i = 0; i < n; i++) this._settleOneStep();
+    this._settleStepsLeft -= n;
+    if (this._settleStepsLeft > 0) return { done: false };
+    return this._finishSettle();
+  }
+
+  _settleOneStep() {
+    this.scene.matter.world.step(1000 / 60);
     for (const b of this.blocks) {
       if (b.wb.removed) continue;
-      const s = start.get(b);
-      worst = Math.max(worst, Math.hypot(b.x - s.x, b.y - s.y));
+      if (b.y > WORLD.HEIGHT || b.x < -50 || b.x > WORLD.WIDTH + 50) {
+        b.wb.removed = true;
+        this._settleLost++;
+        this.remove(b);
+      }
+    }
+  }
+
+  _finishSettle() {
+    for (const b of this.blocks) {
+      if (b.wb.removed) continue;
+      const s = this._settleStart.get(b);
+      this._settleWorst = Math.max(this._settleWorst, Math.hypot(b.x - s.x, b.y - s.y));
     }
     for (const b of this.blocks) {
       if (!b.wb.removed) MatterLib.Sleeping.set(b.body, true);
     }
     for (const t of this.targets) MatterLib.Sleeping.set(t.body, true);
     this.settling = false;
-    return { drift: worst, lost };
+    return { drift: this._settleWorst, lost: this._settleLost };
   }
 
   /* ------------------------------------------------------------------ */
@@ -856,11 +908,14 @@ export class ObjectFactory {
       }
     }
 
-    // frozen expiry
-    for (const block of this.blocks) {
-      if (!block.wb.removed && block.wb.frozenUntil && block.wb.frozenUntil < now) {
-        block.wb.frozenUntil = 0;
-        block.clearTint();
+    // frozen expiry (scan only while any block is actually frozen)
+    if (this.frozenCount > 0) {
+      for (const block of this.blocks) {
+        if (!block.wb.removed && block.wb.frozenUntil && block.wb.frozenUntil < now) {
+          block.wb.frozenUntil = 0;
+          this.frozenCount--;
+          block.clearTint();
+        }
       }
     }
 
@@ -886,6 +941,8 @@ export class ObjectFactory {
     const m = WORLD.KILL_MARGIN;
     for (const block of this.blocks) {
       if (block.wb.removed) continue;
+      // sleeping bodies cannot move out of bounds — skip most of the list
+      if (block.body && block.body.isSleeping) continue;
       if (block.y > WORLD.HEIGHT + m || block.x < -m || block.x > WORLD.WIDTH + m) {
         block.wb.removed = true;
         this.remove(block);
@@ -915,6 +972,7 @@ export class ObjectFactory {
     if (this.settling) return;
     for (const t of this.targets) {
       if (t.wb.hit || t.wb.respawned >= 3) continue;
+      if (t.body && t.body.isSleeping) continue; // asleep ⇒ still in bounds
       const out = t.y > WORLD.HEIGHT - 10
         || t.x < -20
         || t.x > WORLD.WIDTH - 30;
@@ -952,6 +1010,9 @@ export class ObjectFactory {
   clearQuestionObjects() {
     this.explosionQueue.length = 0;
     this.respawnQueue.length = 0;
+    this.frozenCount = 0;
+    this.settling = false;      // a restart mid-settle cancels the slice loop
+    this._settleStepsLeft = 0;
     for (const skin of this.birdSkins) skin.destroy();
     this.birdSkins = [];
     const all = [

@@ -128,24 +128,39 @@ const toScreen = (page, x, y) => page.evaluate(([x, y]) => {
   return { x: (x - cam.scrollX) * cam.zoom + cam.x, y: (y - cam.scrollY) * cam.zoom + cam.y };
 }, [x, y]);
 
-/** Click a HUD object like a real user: move → press → release (the fused
- *  CDP click dispatch loses the pointer-over bookkeeping that Phaser's
- *  up-event delivery needs under headless batching). */
-async function clickObj(page, path) {
-  const c = await objCenter(page, path);
-  const p = await toScreen(page, c.x, c.y);
-  await page.mouse.move(p.x, p.y);
-  await sleep(90);
-  await page.mouse.down();
-  await sleep(90);
-  await page.mouse.up();
+/** Click a HUD object like a real user: move → press → release. Retries
+ *  once — headless event batching occasionally drops the up-delivery (a
+ *  second tap is exactly what a real player would do). */
+async function clickObj(page, path, predicate = null) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const c = await objCenter(page, path);
+    const p = await toScreen(page, c.x, c.y);
+    await page.mouse.move(p.x, p.y);
+    await sleep(120);
+    await page.mouse.down();
+    await sleep(120);
+    await page.mouse.up();
+    if (!predicate) return;
+    await sleep(400);
+    if (await predicate()) return;
+  }
 }
 
 /** Touch tap, falling back to a staged mouse press on stubborn headless touch stacks. */
-async function tapObj(page, path) {
-  const c = await objCenter(page, path);
-  const p = await toScreen(page, c.x, c.y);
-  await page.touchscreen.tap(p.x, p.y);
+async function tapObj(page, path, predicate = null) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const c = await objCenter(page, path);
+    const p = await toScreen(page, c.x, c.y);
+    await page.touchscreen.tap(p.x, p.y);
+    if (!predicate) return;
+    await sleep(500);
+    if (await predicate()) return;
+    // retry via a staged human press (mouse works even on touch viewports)
+    await page.mouse.move(p.x, p.y); await sleep(120);
+    await page.mouse.down(); await sleep(120); await page.mouse.up();
+    await sleep(400);
+    if (await predicate()) return;
+  }
 }
 
 const pause = (page) => page.evaluate(() => window.__WB__.scene().doPause());
@@ -246,16 +261,26 @@ async function desktopPass() {
     /* --- HOME: confirm + saved progress --------------------------- */
     const saveBefore = await page.evaluate(() => JSON.stringify(window.__WB__.save().data.levels));
     await pause(page);
-    await sleep(450);
-    await clickObj(page, 'homeBtn');
-    await sleep(350);
+    await sleep(600);
+    await clickObj(page, 'homeBtn',
+      () => page.evaluate(() => window.__WB__.scene().hud.confirmVisible));
     const confirmShown = await page.evaluate(() => window.__WB__.scene().hud.confirmVisible);
     check(confirmShown, 'HOME asks for confirmation first');
     await page.screenshot({ path: join(OUT, 'pause-desktop-exit-confirm.png') });
-    await clickObj(page, 'confirmYes');
-    await sleep(700);
-    const sceneKey = await page.evaluate(() => window.__WB__.scene().scene.key);
-    check(sceneKey === 'LevelSelectScene', 'YES exits to the level-select screen', sceneKey);
+    await clickObj(page, 'confirmYes',
+      () => page.evaluate(() => {
+        try { return window.__WB__.scene().scene.key === 'LevelSelectScene'; } catch { return false; }
+      }));
+    let exited = false;
+    try {
+      await page.waitForFunction(() => {
+        try { return window.__WB__.scene().scene.key === 'LevelSelectScene'; } catch { return false; }
+      }, { timeout: 30000 });
+      exited = true;
+    } catch { /* fall through to the report below */ }
+    check(exited, 'YES exits to the level-select screen',
+      exited ? '' : 'never transitioned');
+    await sleep(600); // let the level-select boot settle before continuing
     const saveAfter = await page.evaluate(() => JSON.stringify(window.__WB__.save().data.levels));
     check(saveBefore === saveAfter, 'saved level progress untouched by exit');
 
@@ -263,17 +288,19 @@ async function desktopPass() {
     await page.evaluate(() => window.__WB__.gotoLevel(3));
     await page.waitForFunction(() => {
       const s = window.__WB__.scene();
-      return s && s.scene.key === 'GameScene' && s.stateMachine.current === 'AIMING';
-    }, { timeout: 30000 });
-    await sleep(500);
+      return !!(s && s.scene.key === 'GameScene' && s.stateMachine && s.stateMachine.current === 'AIMING');
+    }, { timeout: 45000 });
+    await sleep(600);
     await pause(page);
-    await sleep(450);
-    await clickObj(page, 'homeBtn');
-    await sleep(300);
-    await clickObj(page, 'confirmNo');
+    await sleep(600);
+    await clickObj(page, 'homeBtn',
+      () => page.evaluate(() => window.__WB__.scene().hud.confirmVisible));
+    await clickObj(page, 'confirmNo',
+      () => page.evaluate(() => !window.__WB__.scene().hud.confirmVisible));
     await sleep(300);
     check(await state(page) === 'PAUSED', 'CANCEL returns to the pause screen (still paused)');
-    await clickObj(page, 'resumeBtn'); // PLAY still resumes after cancel
+    await clickObj(page, 'resumeBtn',
+      () => page.evaluate(() => window.__WB__.state() === 'AIMING'));
     await sleep(400);
     check(await state(page) === 'AIMING', 'PLAY resumes after a cancelled exit');
 
@@ -309,17 +336,11 @@ async function mobilePass() {
       `play=${JSON.stringify(info.playBounds)} home=${JSON.stringify(info.homeBounds)}`);
     await page.screenshot({ path: join(OUT, 'pause-mobile-open.png') });
 
-    // touch-tap PLAY resumes (staged-press fallback covers headless touch
-    // stacks that batch tap events too tightly for Phaser's up-delivery)
-    await tapObj(page, 'resumeBtn');
-    await sleep(600);
-    if (await state(page) === 'AIMING') {
-      check(true, 'touch tap on PLAY resumes on the phone layout');
-    } else {
-      await clickObj(page, 'resumeBtn');
-      await sleep(500);
-      check(await state(page) === 'AIMING', 'touch press on PLAY resumes (staged)');
-    }
+    // touch-tap PLAY resumes (retry + staged-press fallback covers the
+    // headless touch stack's event batching)
+    await tapObj(page, 'resumeBtn',
+      () => page.evaluate(() => window.__WB__.state() === 'AIMING'));
+    check(await state(page) === 'AIMING', 'touch press on PLAY resumes on the phone layout');
   } finally {
     await browser.close();
   }

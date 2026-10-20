@@ -53,9 +53,15 @@ function createGame() {
         }
       },
       fps: {
-        // setTimeout-based loop: keeps running when the canvas is occluded
-        // (rAF stops), which headless testing and some embedded webviews need.
-        forceSetTimeOut: true,
+        // Loop strategy: real players get the vsync-aligned rAF loop
+        // (smoother pacing, no timer-coalescing jitter — the setTimeout
+        // loop was a stutter source on iPhone Safari). Headless automation
+        // keeps the setTimeout loop because rAF never fires on an occluded
+        // headless page (window.__WB__.step remains the manual fallback).
+        // ?wbtimeout=1 forces the setTimeout loop for debugging either way.
+        forceSetTimeOut: typeof window !== 'undefined'
+          && (/HeadlessChrome|PhantomJS|Puppeteer/.test(window.navigator.userAgent)
+            || /[?&#]wbtimeout(=1)?\b/.test(window.location.search + window.location.hash)),
         target: 60
       },
       input: {

@@ -76,10 +76,18 @@ function findBrowser() {
 
 const browser = await puppeteer.launch({
   executablePath: findBrowser(),
-  headless: 'new',
-  args: ['--no-sandbox', '--disable-gpu-sandbox', '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader', '--mute-audio', '--disable-dev-shm-usage',
-    '--no-first-run', '--autoplay-policy=no-user-gesture-required',
+  // HEADFUL + real GPU: SwiftShader headless throttles/occludes the page,
+  // which punishes the timer-driven loop with multi-second spikes — useless
+  // for before/after comparison. Headful with a real compositor reflects
+  // the JS+physics+render cost a capable device actually pays.
+  headless: false,
+  args: ['--no-sandbox', '--disable-gpu-sandbox', '--mute-audio',
+    '--disable-dev-shm-usage', '--no-first-run',
+    '--autoplay-policy=no-user-gesture-required',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--window-size=1400,900',
     '--js-flags=--expose-gc']
 });
 

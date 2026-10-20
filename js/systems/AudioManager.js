@@ -117,10 +117,17 @@ export function audioManifestKeys() {
  * Preload list: one {key, file} pair per loadable sound. Entries with
  * variations load ONLY the variation keys (the base key is never played
  * directly), so each file is decoded exactly once.
+ *
+ * {includeMusic:false} omits the looping background track (the single
+ * largest audio asset): BootScene defers it to MenuScene.preload so the
+ * 2.2 MB theme leaves the boot critical path — the menu scene (whose PLAY
+ * press is the only thing that can start the track) always finishes
+ * loading it before it can be needed.
  */
-export function audioPreloadList() {
+export function audioPreloadList({ includeMusic = true } = {}) {
   const list = [];
   for (const [key, def] of Object.entries(AUDIO_MANIFEST)) {
+    if (!includeMusic && def.cat === 'music') continue;
     if (def.vars && def.vars.length) {
       def.vars.forEach((v, i) => {
         list.push({ key: v, file: def.file.replace(/(-\d+)?\.wav$/, `-${i + 1}.wav`) });
@@ -708,6 +715,11 @@ export class AudioManager {
   _musicVolume() {
     const def = AUDIO_MANIFEST[this._music.key];
     return clamp01((def ? def.vol : 0.8) * this._catVolume('music') * this._music.duck);
+  }
+
+  /** True when a player gesture asked for the theme (deferred-load hook). */
+  musicWanted() {
+    return !!this._music.want;
   }
 
   /**
