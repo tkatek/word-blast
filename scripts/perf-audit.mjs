@@ -324,8 +324,13 @@ async function runProfile(profile) {
       bodies: s.matter.world.localWorld.bodies.length,
       children: scenes.reduce((a, sc) => a + sc.children.length, 0),
       textures: g.textures.getTextureKeys().length,
-      tweens: scenes.reduce((a, sc) => a + sc.tweens.getAllTweens().length, 0),
-      timers: scenes.reduce((a, sc) => a + sc.time.getAllEvents().length, 0),
+      tweens: scenes.reduce((a, sc) => a + (sc.tweens.tweens ? sc.tweens.tweens.length : 0), 0),
+      timers: scenes.reduce((a, sc) => {
+        const t = sc.time;
+        if (typeof t.getAllEvents === 'function') return a + t.getAllEvents().length;
+        if (t.timeline && Array.isArray(t.timeline.events)) return a + t.timeline.events.length;
+        return a;
+      }, 0),
       sounds: g.sound ? g.sound.sounds.length : 0,
       blocks: s.factory.blocks.length,
       projectiles: s.factory.projectiles.length,

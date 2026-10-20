@@ -822,6 +822,9 @@ export class GameHUD {
     this.fsBtn.on('pointerout', () => this.fsDisk.clearTint());
     this.fsBtn.on('pointerdown', () => this.markUi());
     this.fsBtn.on('pointerup', () => {
+      // invisible interactive objects can still be hit in Phaser — a hidden
+      // control must stay a strict no-op
+      if (!this.fsBtn.visible) return;
       this.audio?.emit('ui-click');
       this.actions.onExitFullscreen && this.actions.onExitFullscreen();
     });
@@ -869,7 +872,7 @@ export class GameHUD {
 
     // Fullscreen state wiring: the corner control mirrors the real document
     // state (never an assumption) and unsubscribes on destroy.
-    this.fsController = scene.registry.get('fullscreen') || null;
+    this.fsController = s.registry.get('fullscreen') || null;
     if (this.fsController && typeof this.fsController.onChange === 'function') {
       this.onFsState = (next) => this.syncFullscreen(next === 'active');
       this.offFsState = this.fsController.onChange(this.onFsState);
