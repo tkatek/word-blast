@@ -100,7 +100,10 @@ const PAUSE_UI = {
   PLAY_R: 108,              // wooden play disk radius (Ø 216 ≈ 30% of height)
   PLAY_Y: -122,             // play button center (menu-local)
   /** Top-left HOME control (world px): round wooden disk + home icon. */
-  HOME: { x: 72, y: 132, r: 37, hit: 48, icon: 0.64 }
+  HOME: { x: 72, y: 132, r: 37, hit: 48, icon: 0.64 },
+  /** Bottom-left EXIT-FULLSCREEN control (world px): same disk family;
+   *  exists ONLY while the document is actually fullscreen. */
+  FS_EXIT: { x: 72, y: 720 - 132, r: 33, hit: 44, icon: 0.6 }
 };
 
 /* ------------------------------------------------------------------ */
@@ -117,6 +120,7 @@ const TEX = {
   clock: 'wbhud-clock',
   pauseIcon: 'wbhud-pause-ico',
   playIcon: 'wbhud-play-ico',
+  fsExitIcon: 'wbhud-fs-exit-ico',
   soundOn: 'wbhud-sound-on',
   soundOff: 'wbhud-sound-off',
   coin: 'wbhud-coin',
@@ -275,6 +279,28 @@ export function ensureHudTextures(scene) {
     ], true);
     g.fillStyle(0xfff3c0, 0.85);
     g.fillTriangle(19, 15, 28, 21.5, 19, 24);
+  });
+
+  /* --- exit-fullscreen brackets (four corners pointing inward) ------- */
+  tex(TEX.fsExitIcon, 48, 48, () => {
+    const arm = 13, th = 5, m = 7;
+    const edge = 0x4d3218, face = PAL.parchLight;
+    // each entry: [horizontal arm x, y] + [vertical arm x, y] (top-left of
+    // each rect); arms always extend toward the tile center.
+    const hX = m, hX2 = 48 - m - arm, hY = m, hY2 = 48 - m - th;
+    const vX = m, vX2 = 48 - m - th, vY = m, vY2 = 48 - m - arm;
+    const brackets = [
+      [hX, hY, vX, vY], [hX2, hY, vX2, vY],
+      [hX, hY2, vX, vY2], [hX2, hY2, vX2, vY2]
+    ];
+    for (const [hx, hy, vx, vy] of brackets) {
+      g.fillStyle(edge, 1);
+      g.fillRect(hx - 1, hy - 1, arm + 2, th + 2);
+      g.fillRect(vx - 1, vy - 1, th + 2, arm + 2);
+      g.fillStyle(face, 1);
+      g.fillRect(hx, hy, arm, th);
+      g.fillRect(vx, vy, th, arm);
+    }
   });
 
   /* --- speaker icons ------------------------------------------------ */
@@ -771,7 +797,36 @@ export class GameHUD {
       );
     });
 
-    this.pauseStack = [this.resumeBtn, this.homeBtn];
+    // Bottom-left EXIT FULLSCREEN disk — exists ONLY while the document is
+    // actually fullscreen (the FullscreenController in the game registry
+    // owns the state; syncFullscreen flips visibility). Exiting resizes
+    // the canvas via the existing fullscreenchange → ViewportController
+    // path and re-arms the entry chip.
+    const F = PAUSE_UI.FS_EXIT;
+    this.fsBtn = s.add.container(F.x - WORLD.WIDTH / 2, F.y - WORLD.HEIGHT / 2)
+      .setVisible(false);
+    const fsShadow = s.add.circle(3, 7, F.r * 1.04, 0x000000, 0.3);
+    this.fsDisk = s.add.image(0, 0, HUD_ART.pauseBtn.key).setDisplaySize(F.r * 2, F.r * 2);
+    const fsIco = s.add.image(0, -3, TEX.fsExitIcon)
+      .setDisplaySize(F.r * 2 * F.icon, F.r * 2 * F.icon);
+    this.fsLabel = s.add.text(0, F.r + 13, 'EXIT FULLSCREEN', {
+      fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '13px',
+      color: '#f4e6c8', stroke: '#3a2410', strokeThickness: 3
+    }).setOrigin(0.5, 0);
+    this.fsBtn.add([fsShadow, this.fsDisk, fsIco, this.fsLabel]);
+    this.fsBtn.setSize(F.hit * 2, F.hit * 2).setInteractive({ useHandCursor: true });
+    this.fsBtn.on('pointerover', () => {
+      this.fsDisk.setTint(0xfff1d6);
+      if (this.isDesktop) this.audio?.emit('ui-hover');
+    });
+    this.fsBtn.on('pointerout', () => this.fsDisk.clearTint());
+    this.fsBtn.on('pointerdown', () => this.markUi());
+    this.fsBtn.on('pointerup', () => {
+      this.audio?.emit('ui-click');
+      this.actions.onExitFullscreen && this.actions.onExitFullscreen();
+    });
+
+    this.pauseStack = [this.resumeBtn, this.homeBtn, this.fsBtn];
     for (const b of this.pauseStack) {
       b.baseY = b.y;
       b.baseX = b.x;
@@ -782,6 +837,7 @@ export class GameHUD {
     // camera) wins ties and eats taps aimed at the HOME control.
     this.resumeBtn.setDepth(1000);
     this.homeBtn.setDepth(1000);
+    this.fsBtn.setDepth(1000);
 
     /* confirmation card (hidden until HOME asks for it) */
     this.confirmCard = s.add.container(0, 0).setVisible(false).setDepth(1001);
@@ -809,7 +865,16 @@ export class GameHUD {
     this.confirmCard.add([cBlocker, cCard, cInner, this.confirmTitle, this.confirmBody,
       this.confirmYes, this.confirmNo]);
 
-    this.menu.add([this.scrim, this.resumeBtn, this.homeBtn, this.confirmCard]);
+    this.menu.add([this.scrim, this.resumeBtn, this.homeBtn, this.fsBtn, this.confirmCard]);
+
+    // Fullscreen state wiring: the corner control mirrors the real document
+    // state (never an assumption) and unsubscribes on destroy.
+    this.fsController = scene.registry.get('fullscreen') || null;
+    if (this.fsController && typeof this.fsController.onChange === 'function') {
+      this.onFsState = (next) => this.syncFullscreen(next === 'active');
+      this.offFsState = this.fsController.onChange(this.onFsState);
+      this.syncFullscreen(this.fsController.isFullscreen);
+    }
 
     // Fix #22 — subtle desktop-only hover ticks on the confirm buttons
     for (const b of [this.confirmYes, this.confirmNo]) {
@@ -821,6 +886,17 @@ export class GameHUD {
     this.scene.tweens.add({
       targets: this.resumeBtn, scale: to, duration, ease: 'Sine.easeOut', overwrite: true
     });
+  }
+
+  /**
+   * Show/hide the pause-menu EXIT FULLSCREEN control. Pure presentation —
+   * the state comes from the FullscreenController; a full-viewport CSS
+   * layout is never reported as native fullscreen, so on iPhone Safari
+   * (no element fullscreen) this control simply never appears.
+   */
+  syncFullscreen(active) {
+    this.fsBtn?.setVisible(!!active);
+    this.fsFullscreen = !!active;
   }
 
   /** True while the pause overlay's exit confirmation card is on screen. */
@@ -1199,6 +1275,13 @@ export class GameHUD {
     s.tweens.add({
       targets: this.homeBtn, x: this.homeBtn.baseX, duration: 320, delay: 150, ease: 'Cubic.easeOut'
     });
+    // 4) exit-fullscreen (only present while ACTUALLY fullscreen) fades in
+    if (this.fsBtn.visible) {
+      this.fsBtn.setAlpha(0);
+      s.tweens.add({
+        targets: this.fsBtn, alpha: 1, duration: 250, delay: 220, ease: 'Sine.easeOut'
+      });
+    }
     this.startGlowPulse();
   }
 
@@ -1260,6 +1343,7 @@ export class GameHUD {
       ...this.heartIcons, ...this.starIcons.map((x) => x.group)]);
     if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);
     if (this.onUiScaleResize) s.scale.off('resize', this.onUiScaleResize);
+    if (this.offFsState) this.offFsState(); // drop the fullscreen subscription
     if (this.uiCam) s.cameras.remove(this.uiCam);
     this.uiCam = null;
     this.root?.destroy();

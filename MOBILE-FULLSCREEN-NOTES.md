@@ -4,14 +4,45 @@ Goal: phones get the largest practical landscape gameplay area while every
 existing gameplay behavior (physics, levels, questions, audio, scoring,
 controls, pause semantics) stays untouched.
 
-## The three mobile outcomes
+## Root cause of "fullscreen works in emulation but not on my iPhone"
 
-| Situation | What the player sees |
+**iPhone Safari has no element Fullscreen API — at all** (verified against
+WebKit/Apple documentation, current through iOS 26.4): only `<video>` can
+go fullscreen (`webkitEnterFullscreen`). `Element.requestFullscreen` and
+`webkitRequestFullscreen` do not exist for HTML elements on iPhone (they
+DO on iPadOS). Desktop Chrome's responsive emulation keeps Chrome's real
+Fullscreen API regardless of the emulated iPhone UA — so "PLAY FULLSCREEN"
+genuinely works there and genuinely cannot work on the device. This is a
+capability difference, not a request-path bug: no button, promise handling
+or user-gesture fix can change it.
+
+The supported iPhone experience is therefore **B: the Home Screen
+standalone web app** (install once, launches without Safari's bars), with
+**C: normal landscape browser play** always available. The failures that
+DID exist on the real device path and are fixed in this build:
+
+| Real-device defect | Fix |
 | --- | --- |
-| Phone in **portrait** | Existing "Rotate Your Phone" gate (unchanged, `OrientationGate.js`); gameplay frozen behind it, progress kept |
-| Phone in **landscape**, Fullscreen API available (Android Chrome, Edge, Firefox, desktop) | Wooden **⛶ PLAY FULLSCREEN** card ("Play with more screen space.") + "Not now — keep playing". After dismissal or after exiting fullscreen: a small corner chip keeps the control available without blocking |
-| Phone in **landscape**, Fullscreen API absent/blocked (**iPhone Safari**, iframe without `allowfullscreen`) | No fullscreen button at all. A one-time "Add to Home Screen" guidance card (Share → Add to Home Screen) + CONTINUE PLAYING. The game stays fully playable in normal landscape |
-| Launched from the **Home Screen** (installed web app / standalone) | Nothing — the browser chrome is already gone |
+| Install instructions said "tap Share in Safari" — invisible in landscape Safari (Share lives in the page menu), no "Open as Web App" mention | 7-step guide matching the real device flow (Safari → Share via the page menu → Add to Home Screen → keep Open as Web App → Add → launch → rotate); card scrolls safely on short viewports |
+| After dismissing the guidance the install route was gone for the session (read as "the feature failed") | Compact ⌂ INSTALL corner chip keeps the route reachable and re-opens the instructions on demand; it never auto-prompts |
+| No rotation-lock hint when the phone did not rotate | The rotate overlay mentions the device Rotation Lock honestly (the site cannot change it) |
+| Rejections were indistinguishable from "no API" on-device | `FullscreenController.lastError` records name+message from `fullscreenerror` events, rejected promises and resolve-but-never-entered cases; shown in diagnostics |
+| No way to tell WHICH build the phone was running | Build ID (`version+git-hash@timestamp`) injected at build time, printed to console, on `<html data-wb-build>`, in `?diag=1` |
+| Transient measurements during iOS rotation could resize the canvas to a sliver | `ViewportController` ignores sub-60px transient sizes, keeps the last good size and re-checks on a bounded settle chain |
+| The pause-menu EXIT FULLSCREEN control was lost in the pause-menu redesign | Restored as a bottom-left disk, visible only while `document.fullscreenElement` is genuinely set |
+
+## The three display modes (never conflated)
+
+| Mode | Detected by | Consequence |
+| --- | --- | --- |
+| **A. Native element fullscreen** | Fullscreen API probed on `documentElement` (std/webkit/ms), `fullscreenEnabled`, and — the only proof — `document.fullscreenElement` after the request | PLAY FULLSCREEN card/chip; pause-menu EXIT FULLSCREEN; orientation lock attempted (Android) |
+| **B. Home Screen standalone** | `(display-mode: standalone|fullscreen|minimal-ui)` media queries + legacy `navigator.standalone` | No fullscreen UI at all (no chrome to reclaim); safe-area insets respected |
+| **C. Browser play** | Neither of the above | Game fills the visible viewport (VisualViewport-aware); iPhone shows the install guide once + chip; game fully playable without installing |
+
+A full-viewport CSS layout is **never** reported as native fullscreen, and
+standalone never needs `document.fullscreenElement`. Capability detection
+is runtime probing — never a UA-string decision (an iPhone UA under Chrome
+emulation still gets fullscreen because the API really is there).
 
 ## Files
 

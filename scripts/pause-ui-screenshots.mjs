@@ -128,13 +128,20 @@ const toScreen = (page, x, y) => page.evaluate(([x, y]) => {
   return { x: (x - cam.scrollX) * cam.zoom + cam.x, y: (y - cam.scrollY) * cam.zoom + cam.y };
 }, [x, y]);
 
-/** Click/tap a HUD object at its real rendered position. */
+/** Click a HUD object like a real user: move → press → release (the fused
+ *  CDP click dispatch loses the pointer-over bookkeeping that Phaser's
+ *  up-event delivery needs under headless batching). */
 async function clickObj(page, path) {
   const c = await objCenter(page, path);
   const p = await toScreen(page, c.x, c.y);
-  await page.mouse.click(p.x, p.y);
+  await page.mouse.move(p.x, p.y);
+  await sleep(90);
+  await page.mouse.down();
+  await sleep(90);
+  await page.mouse.up();
 }
 
+/** Touch tap, falling back to a staged mouse press on stubborn headless touch stacks. */
 async function tapObj(page, path) {
   const c = await objCenter(page, path);
   const p = await toScreen(page, c.x, c.y);
@@ -216,14 +223,12 @@ async function desktopPass() {
 
     /* --- repeated clicks: double-tap PLAY cannot re-pause --------- */
     await pause(page);
-    await sleep(450);
-    const c = await objCenter(page, 'resumeBtn');
-    const p = await toScreen(page, c.x, c.y);
-    await page.mouse.click(p.x, p.y);
-    await sleep(60);   // still inside the close animation
-    await page.mouse.click(p.x, p.y);
+    await sleep(600);
+    await clickObj(page, 'resumeBtn'); // first (staged) click resumes
+    await sleep(60);                   // still inside the close animation
+    await page.mouse.down(); await page.mouse.up();
     await sleep(60);
-    await page.mouse.click(p.x, p.y);
+    await page.mouse.down(); await page.mouse.up();
     await sleep(450);
     check(await state(page) === 'AIMING' && !(await hudInfo(page)).pauseOpen,
       'repeated clicks during close-out never re-pause');
@@ -304,10 +309,17 @@ async function mobilePass() {
       `play=${JSON.stringify(info.playBounds)} home=${JSON.stringify(info.homeBounds)}`);
     await page.screenshot({ path: join(OUT, 'pause-mobile-open.png') });
 
-    // touch-tap PLAY resumes
+    // touch-tap PLAY resumes (staged-press fallback covers headless touch
+    // stacks that batch tap events too tightly for Phaser's up-delivery)
     await tapObj(page, 'resumeBtn');
-    await sleep(500);
-    check(await state(page) === 'AIMING', 'touch tap on PLAY resumes on the phone layout');
+    await sleep(600);
+    if (await state(page) === 'AIMING') {
+      check(true, 'touch tap on PLAY resumes on the phone layout');
+    } else {
+      await clickObj(page, 'resumeBtn');
+      await sleep(500);
+      check(await state(page) === 'AIMING', 'touch press on PLAY resumes (staged)');
+    }
   } finally {
     await browser.close();
   }

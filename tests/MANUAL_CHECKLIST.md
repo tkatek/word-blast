@@ -68,18 +68,44 @@ and fairness, which automation cannot judge honestly.
 ## Mobile fullscreen (see MOBILE-FULLSCREEN-NOTES.md; automated base is
    scripts/verify-fullscreen.mjs — these need REAL devices)
 
-- [ ] Android Chrome (real phone), landscape: PLAY FULLSCREEN card → tap →
-      toolbar hides, orientation locks; pause menu shows EXIT FULLSCREEN;
-      exit keeps the game paused; corner chip offers fullscreen again.
-- [ ] iPhone Safari (real phone), landscape: NO fullscreen button;
-      Add-to-Home-Screen card once; CONTINUE PLAYING keeps the game running;
-      guidance matches the installed iOS version (Share sheet wording).
-- [ ] iPhone, installed from Home Screen: standalone (no Safari bars), no
-      fullscreen prompts, gameplay responsive, rotation handled.
-- [ ] Notch/home-indicator devices: HUD, timer and pause menu never clipped
-      (safe-area insets).
-- [ ] Rotate mid-aim / while paused / during a question on a real device:
-      progress kept, no restart, manual pause survives.
+**Verification status: NOT yet verified on a physical iPhone.** Everything
+below passed in desktop Chrome with phone emulation (including an
+iPhone-Safari emulation that removes the element Fullscreen API exactly
+like real iOS). Emulation is a layout/capability test, NOT device proof —
+run the on-device pass and record model + iOS version + build ID.
+
+**On-device diagnostics**: open
+`https://tkatek.github.io/word-blast/?diag=1` on the phone → 🛠 button
+(bottom-left) → panel with build ID, launch mode, fullscreen capability,
+last fullscreen error and live dimensions → COPY and paste it into the
+bug report. No personal data is included.
+
+- [ ] **A. Safari tab, portrait (iPhone):** styled rotation screen with the
+      Rotation Lock hint; no broken loading UI.
+- [ ] **B. Safari tab, landscape (iPhone):** game fits the viewport under
+      the address bar; "PLAY WITHOUT THE ADDRESS BAR" card with the 7-step
+      install guide; CONTINUE IN BROWSER keeps playing; ⌂ INSTALL chip can
+      re-open the guide; the steps match the installed iOS version.
+- [ ] **C. Home Screen app, landscape (iPhone):** no Safari bars; game
+      fills the app viewport; all controls reachable; no install/fullscreen
+      prompts; `?diag=1` reports `launch.standalone: true`.
+- [ ] **D. Home Screen app, portrait:** rotation screen works; progress
+      unchanged after rotating back.
+- [ ] **E. Android Chrome (real phone), landscape:** PLAY FULLSCREEN card →
+      tap → REAL fullscreen (`fs.fullscreenElement` set in ?diag=1);
+      orientation locks where supported; pause menu shows EXIT FULLSCREEN;
+      exit keeps the game paused; ⛶ chip offers fullscreen again.
+- [ ] **F. Gameplay on device:** aim, launch, ability tap, feedback,
+      question progression, pause/resume/restart, complete a level.
+- [ ] **G. Interruptions:** rotate repeatedly, app-switch, lock/unlock;
+      no frozen overlays, lost shots, duplicate audio or offset touches
+      (verify the bird stays under the finger while dragging).
+- [ ] **H. Regression:** desktop fullscreen (F11 + card), Android
+      rejection path (decline the browser permission if shown) and exit
+      paths all leave a working game.
+- [ ] Record phone model, iOS version, browser, build ID (from ?diag=1)
+      and launch mode with each pass. A short screen recording is ideal
+      evidence for B and C.
 
 ## Known debug-phase limitations (by design, not bugs)
 

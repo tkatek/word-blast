@@ -54,7 +54,10 @@ const server = createServer((req, res) => {
     res.writeHead(404).end('not found: ' + rel);
     return;
   }
-  res.writeHead(200, { 'content-type': MIME[extname(file)] || 'application/octet-stream' });
+  res.writeHead(200, {
+    'content-type': MIME[extname(file)] || 'application/octet-stream',
+    'cache-control': 'no-store' // every load is cold — comparable load numbers
+  });
   createReadStream(file).pipe(res);
 });
 await new Promise((r) => server.listen(PORT, r));
@@ -127,6 +130,33 @@ const COLLECTOR = () => {
   }, 50);
 };
 
+/**
+ * Wait for a stable playable state, clicking through answer feedback the
+ * same way the CONTINUE button does (a wild shot can hit a wrong plaque).
+ * Returns 'AIMING' | 'LEVEL_FAILED' | 'LEVEL_COMPLETE'.
+ */
+async function settleToAiming(page, timeout = 30000) {
+  const t0 = Date.now();
+  for (;;) {
+    const st = await page.evaluate(() => window.__WB__.state());
+    if (st === 'AIMING') return st;
+    if (st === 'ANSWER_FEEDBACK') {
+      await page.evaluate(() => {
+        const s = window.__WB__.scene();
+        if (s.feedbackArmed) s.onFeedbackAction();
+        else if (s.feedbackCard) s.feedbackCard.setActionEnabled(true);
+      });
+      await sleep(250);
+    } else if (st === 'LEVEL_FAILED' || st === 'LEVEL_COMPLETE') {
+      return st;
+    } else if (Date.now() - t0 > timeout) {
+      throw new Error('settleToAiming timeout, state=' + st);
+    } else {
+      await sleep(200);
+    }
+  }
+}
+
 /** Start/stop sampling into a phase bucket. */
 async function phase(page, name, ms) {
   await page.evaluate((n) => { window.__perf.phase = n; window.__perf.ticks.length = 0; }, name);
@@ -143,10 +173,10 @@ function stats(name, arr) {
   if (!arr.length) return { phase: name, frames: 0 };
   const s = [...arr].sort((a, b) => a - b);
   const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
-  const sum = s.reduce((a, b) => a + b, 0);
+  const total = s.reduce((a, b) => a + b, 0);
   return {
     phase: name, frames: s.length,
-    avgMs: +sum(s) / s.length,
+    avgMs: total / s.length,
     p50: q(0.5), p95: q(0.95), p99: q(0.99), max: s[s.length - 1],
     over20ms: s.filter((v) => v > 20).length,
     over33ms: s.filter((v) => v > 33.3).length
@@ -154,10 +184,8 @@ function stats(name, arr) {
 }
 const sum = (s) => s.reduce((a, b) => a + b, 0);
 
-/** Cold-load measurement (cache disabled): navigationStart -> boot OK. */
+/** Cold-load measurement (server sends no-store): navigationStart -> boot OK. */
 async function coldLoad(page) {
-  const client = await page.createCDPSession();
-  await client.send('Network.setCacheEnabled', { enabled: false });
   const t0 = Date.now();
   await page.goto(`http://localhost:${PORT}${PREFIX}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__wbBoot && window.__wbBoot.booted, { timeout: 30000 });
@@ -168,7 +196,6 @@ async function coldLoad(page) {
     for (const r of rs) { bytes += r.transferSize || 0; count++; }
     return { bytes, count, fcp: window.__perf.fcpAt, canvas: window.__perf.canvasAt };
   });
-  await client.send('Network.setCacheEnabled', { enabled: true });
   return { bootMs, wallMs: Date.now() - t0, ...res };
 }
 
@@ -193,7 +220,8 @@ async function runProfile(profile) {
 
   // ---- enter gameplay -------------------------------------------------
   await page.goto(`http://localhost:${PORT}${PREFIX}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.__WB__ && window.__wbBoot.booted, { timeout: 30000 });
+  await page.waitForFunction(() => window.__WB__ && window.__wbBoot.booted
+    && window.__WB__.game.registry.get('levels'), { timeout: 30000 });
   await page.evaluate(() => {
     window.__WB__.setAutoPause(false);
     // shorten the card intro BEFORE the level boots so every phase starts
@@ -223,7 +251,7 @@ async function runProfile(profile) {
   results.phases.push(await phase(page, 'idle', 3000));
 
   // ---- aim-drag (real pointer input through the canvas) ----------------
-  const drag = page.evaluate(() => {
+  const drag = await page.evaluate(() => {
     const wb = window.__WB__;
     const s = wb.scene();
     // pull down-left from the pouch: power without a launch until release
@@ -244,14 +272,13 @@ async function runProfile(profile) {
   // ---- flight -----------------------------------------------------------
   await page.evaluate(() => window.__WB__.simulateShot({ vx: 17, vy: -4, type: 'basic' }));
   results.phases.push(await phase(page, 'flight', 2500));
-  await page.waitForFunction(() => window.__WB__.state() === 'AIMING', { timeout: 20000 });
+  await settleToAiming(page);
 
   // ---- collapse (bomb into the towers) -----------------------------------
   const bombFired = await page.evaluate(() => window.__WB__.simulateShot({ vx: 17, vy: -3, type: 'bomb' }));
   if (!bombFired) console.log('  [warn] bomb shot refused — collapse phase may measure idle');
   results.phases.push(await phase(page, 'collapse', 6000));
-  await page.waitForFunction(() => window.__WB__.state() === 'AIMING'
-    || window.__WB__.state() === 'LEVEL_FAILED', { timeout: 25000 });
+  await settleToAiming(page);
 
   // ---- question transition (includes synchronous 75-step settle) ----------
   const t0 = Date.now();
