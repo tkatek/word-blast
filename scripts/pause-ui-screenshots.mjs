@@ -359,8 +359,10 @@ async function mobilePass() {
   try {
     const page = await newPage(browser, { w: 844, h: 390, mobile: true, touch: true });
     await bootToAiming(page, 3);
+    await dismissPromos(page); // the promo re-arms on scene restarts
     await pause(page);
-    await sleep(750);
+    await sleep(900);
+    await dismissPromos(page); // once more — it can pop over the paused game
     const info = await hudInfo(page);
     check(info.pauseOpen && info.playVisible && info.homeVisible, 'phone pause shows PLAY + HOME');
     check(info.blurOn, 'phone uses the mobile blur tier', `blurOn=${info.blurOn}`);
