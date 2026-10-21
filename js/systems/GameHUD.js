@@ -697,7 +697,15 @@ export class GameHUD {
     if (!this.uiCam) return;
     const s = this.scene;
     const main = s.cameras.main;
-    this.uiCam.setSize(s.scale.width, s.scale.height);
+    const w = s.scale.width, h = s.scale.height;
+    // no-op when already mirroring — keeps the one-shot resync below from
+    // becoming a per-frame loop
+    if (this.uiCam.width === w && this.uiCam.height === h
+      && this.uiCam.zoom === main.zoom
+      && this.uiCam.scrollX === main.scrollX && this.uiCam.scrollY === main.scrollY) {
+      return;
+    }
+    this.uiCam.setSize(w, h);
     this.uiCam.setZoom(main.zoom);
     this.uiCam.setScroll(main.scrollX, main.scrollY);
     // The gameplay camera is reframed by the ViewportController, whose
