@@ -127,7 +127,9 @@ const main = async () => {
     assert(QUESTION_CARD.TOP.width >= 620 * 0.80 - 1, 'card not smaller than 20%');
     assert(cardBottom < 260, 'card bottom clears the slingshot fork (y>=260)');
     if (h.state() !== 'AIMING') { console.log('DIAG state=', h.state(), 'phase=', api.cardInfo() && api.cardInfo().phase, 'paused=', h.scene().stateMachine.isPaused(), 'armPending=', h.scene().armPending, 'shots=', h.scene().shotsLeft, 'sel=', h.scene().selectedProjectile, 'ammo=', JSON.stringify(h.scene().birdInventory.snapshot()), 'cardPhase=', api.cardInfo() && api.cardInfo().phase); }
-    assert(h.state() === 'AIMING', 'AIMING armed once the card rests');
+    // arming may trail the card by a few frames: the amortized build-settle
+    // defers armAiming until the towers rest (same deferral as pause)
+    await h.waitFor(() => h.state() === 'AIMING', 2500, 'AIMING armed once the card rests');
     assert(h.scene().slingshot.enabled, 'slingshot enabled after the move');
   });
 
