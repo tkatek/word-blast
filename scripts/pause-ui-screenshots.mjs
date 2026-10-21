@@ -75,6 +75,15 @@ async function newPage(browser, { w, h, mobile = false, touch = false }) {
   return page;
 }
 
+/** Dismiss the DOM fullscreen promo if it appears (mobile emulation shows
+ *  "MORE ROOM TO PLAY" — it would cover pause screenshots). */
+const dismissPromos = (page) => page.evaluate(() => {
+  const link = document.querySelector('.fs-dismiss');
+  if (link) link.click();
+  const card = document.getElementById('fs-entry');
+  if (card) card.style.display = 'none';
+});
+
 async function bootToAiming(page, levelId = 3) {
   // Cold starts after a rebuild can wedge (hashed assets re-download under
   // software GL): one full reload retry before giving up, fix19-style.
