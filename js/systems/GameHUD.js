@@ -693,7 +693,15 @@ export class GameHUD {
     const view = computeFitView(s.scale.gameSize.width, s.scale.gameSize.height);
     this.uiCam.setSize(s.scale.width, s.scale.height);
     this.uiCam.setZoom(view.zoom);
-    this.uiCam.centerOn(WORLD.WIDTH / 2, WORLD.HEIGHT / 2);
+    // Scroll EXPLICITLY to the fit-view position. Camera.centerOn() runs
+    // its mid-point math against a zoom change that lands one frame later
+    // on some paths, which desynchronises this camera from the gameplay
+    // camera on non-16:9 viewports — the pause controls then RENDER offset
+    // from where input maps them (taps miss on phones in landscape).
+    this.uiCam.setScroll(
+      WORLD.WIDTH / 2 - (s.scale.width / 2) / view.zoom,
+      WORLD.HEIGHT / 2 - (s.scale.height / 2) / view.zoom
+    );
   }
 
   /* ---------------------------------------------------------------- */

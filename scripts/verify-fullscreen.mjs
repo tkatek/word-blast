@@ -471,7 +471,7 @@ try {
   await diagPage.waitForSelector('#wb-diag-button', { timeout: 8000 });
   const preOpen = await diagPage.evaluate(() => window.__WB__.diag());
   check('F2 diag(): build/launch/fullscreen/dimensions reported',
-    /^\d+\+[0-9a-f]+@/.test(preOpen.build)
+    /^\d+(\.\d+)*\+[0-9a-f]+@/.test(preOpen.build)
     && preOpen.launch && typeof preOpen.launch.standalone === 'boolean'
     && preOpen.fullscreen && typeof preOpen.fullscreen.supported === 'boolean'
     && preOpen.fullscreen.lastError === null

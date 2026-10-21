@@ -284,13 +284,11 @@ async function desktopPass() {
     check(confirmShown, 'HOME asks for confirmation first');
     await page.screenshot({ path: join(OUT, 'pause-desktop-exit-confirm.png') });
     await clickObj(page, 'confirmYes',
-      () => page.evaluate(() => {
-        try { return window.__WB__.scene().scene.key === 'LevelSelectScene'; } catch { return false; }
-      }));
+      () => page.evaluate(() => window.__WB__.game.scene.isActive('LevelSelectScene')));
     let exited = false;
     try {
       await page.waitForFunction(() => {
-        try { return window.__WB__.scene().scene.key === 'LevelSelectScene'; } catch { return false; }
+        try { return window.__WB__.game.scene.isActive('LevelSelectScene'); } catch { return false; }
       }, { timeout: 30000 });
       exited = true;
     } catch { /* fall through to the report below */ }
