@@ -22,17 +22,12 @@ import { DebugLog } from '../systems/DebugLog.js';
 import { GameHUD, woodPanel, woodButton, chunkyText } from '../systems/GameHUD.js';
 import { LevelTimer } from '../systems/LevelTimer.js';
 import { HeartsSystem } from '../systems/HeartsSystem.js';
-<<<<<<< Updated upstream
 import { QuestionCard } from '../systems/QuestionCard.js';
 import { BirdInventory } from '../systems/BirdInventory.js';
 import { BirdSelector, AbilityButton, SELECTOR_ORDER, SELECTOR_LAYOUT } from '../systems/BirdSelector.js';
 import { planQuestion } from '../systems/AnswerPanel.js';
 import { AnswerPeek } from '../systems/AnswerPeek.js';
 import { FeedbackCard } from '../systems/FeedbackCard.js';
-=======
-import { BirdInventory } from '../systems/BirdInventory.js';
-import { BirdSelector, AbilityButton } from '../systems/BirdSelector.js';
->>>>>>> Stashed changes
 
 const DEPTH = { HUD: 50, PANEL: 80, OVERLAY: 100 };
 

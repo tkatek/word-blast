@@ -418,11 +418,8 @@ export const STATE_TRANSITIONS = {
  * under pause/portrait/auto-pause exactly like the level timer):
  *   CARD_ENTERING (350) → CARD_READING (4000) → CARD_MOVING_TO_TOP (600)
  *   → CARD_READY (gameplay armed) → CARD_EXITING (240) on question change.
-<<<<<<< Updated upstream
  * After docking the card is tappable (Fix #21): EXPANDING (460) → EXPANDED
  * (timer frozen, aiming blocked) → COLLAPSING (460) → CARD_READY again.
-=======
->>>>>>> Stashed changes
  *
  * TIMINGS is a mutable runtime object: the debug API
  * (window.__WB__.setCardTimings) shortens the phases for automated test
@@ -438,7 +435,6 @@ export const QUESTION_CARD = {
   /** Center presentation (world px inside the fixed 1280×720 world). */
   CENTER: { x: 640, y: 352, width: 860 },
   /**
-<<<<<<< Updated upstream
    * Docked resting spot (Fix #21): upper-LEFT, below the HUD. The card is
    * the SAME artwork ~18% smaller than the Fix #9 top card (620 → 505) and
    * its left edge sits SAFE_X from the world's left margin, keeping the
@@ -458,35 +454,16 @@ export const QUESTION_CARD = {
     // the enlarged view shows the identical layout scaled up — the "tap to
     // enlarge" hint covers the rare minimum-size case.
     MAIN: { size: 30, min: 12, color: '#3d2814' }
-=======
-   * Top resting spot: below the HUD (safe 10px gap under its y≤76 band).
-   * Deliberately biased left of the tower band: a top-CENTER card would
-   * cover up to 22.8% of the answer plaques (they reach y=102 in level
-   * 11); at x 110..730 the card covers effectively zero plaques across
-   * all 15 levels and leaves the slingshot (x≈195, fork y≥260) clear.
-   */
-  TOP: { x: 420, y: 158, width: 620 },
-  TYPE: {
-    KICKER: { size: 18, min: 12, color: '#8a5a2b' },
-    MAIN: { size: 30, min: 15, color: '#3d2814' }
->>>>>>> Stashed changes
   },
   TIMINGS: {
     enterMs: 350,     // fade + 0.9→1.0 scale, Sine.easeOut
     readingMs: 4000,  // mandatory centered reading time (spec §2)
-<<<<<<< Updated upstream
     moveMs: 600,      // center → dock, Sine.easeInOut (spec §3)
     exitMs: 240,      // brief exit fade on question change / level end
     peekMs: 460       // dock ↔ enlarged reading view, Cubic.easeInOut (Fix #21)
   },
   /** Enlarged reading view (Fix #21): scrim + close affordance. */
   PEEK: { scrimAlpha: 0.38 },
-=======
-    moveMs: 600,      // center → top, Sine.easeInOut (spec §3)
-    exitMs: 240,      // brief exit fade on question change / level end
-    peekMs: 320       // top ↔ enlarged reading view
-  },
->>>>>>> Stashed changes
   SHADOW: { dy: 7, alpha: 0.2 }
 };
 
