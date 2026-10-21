@@ -1365,6 +1365,7 @@ export class GameHUD {
       ...this.heartIcons, ...this.starIcons.map((x) => x.group)]);
     if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);
     if (this.onUiScaleResize) s.scale.off('resize', this.onUiScaleResize);
+    if (this._uiCamResync) s.events.off(Phaser.Scenes.Events.POST_UPDATE, this._uiCamResync);
     if (this.offFsState) this.offFsState(); // drop the fullscreen subscription
     if (this.uiCam) s.cameras.remove(this.uiCam);
     this.uiCam = null;
