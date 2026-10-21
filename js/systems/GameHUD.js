@@ -54,7 +54,7 @@ import { DebugLog } from './DebugLog.js';
 import { projectileVisual } from '../data/birds.js';
 import { HUD_ART, ensureAllHudArt } from './HudArt.js';
 import { computeHudLayout } from './HudLayout.js';
-import { computeFitView } from './Viewport.js';
+import { computeFitView } from './Viewport.js'; // fit-view math (tests mirror it)
 
 export const HUD_DEPTH = { BAR: 50, MENU: 120 };
 
@@ -687,21 +687,26 @@ export class GameHUD {
   }
 
   /** Mirror the gameplay camera's whole-world fit framing (no shake). */
+  /** Mirror the gameplay camera's live whole-world framing (no shake). */
   reframeUiCamera() {
     if (!this.uiCam) return;
     const s = this.scene;
-    const view = computeFitView(s.scale.gameSize.width, s.scale.gameSize.height);
+    const main = s.cameras.main;
     this.uiCam.setSize(s.scale.width, s.scale.height);
-    this.uiCam.setZoom(view.zoom);
-    // Scroll EXPLICITLY to the fit-view position. Camera.centerOn() runs
-    // its mid-point math against a zoom change that lands one frame later
-    // on some paths, which desynchronises this camera from the gameplay
-    // camera on non-16:9 viewports — the pause controls then RENDER offset
-    // from where input maps them (taps miss on phones in landscape).
-    this.uiCam.setScroll(
-      WORLD.WIDTH / 2 - (s.scale.width / 2) / view.zoom,
-      WORLD.HEIGHT / 2 - (s.scale.height / 2) / view.zoom
-    );
+    this.uiCam.setZoom(main.zoom);
+    this.uiCam.setScroll(main.scrollX, main.scrollY);
+    // The gameplay camera is reframed by the ViewportController, whose
+    // resize handling runs AFTER this HUD's listener inside the same
+    // event — copy once more on the next frame so the two cameras can
+    // never disagree (a disagreement detaches pause-control taps from
+    // where the controls render).
+    if (!this._uiCamResync) {
+      this._uiCamResync = s.events.once(Phaser.Scenes.Events.POST_UPDATE,
+        () => {
+          this._uiCamResync = null;
+          this.reframeUiCamera();
+        });
+    }
   }
 
   /* ---------------------------------------------------------------- */
