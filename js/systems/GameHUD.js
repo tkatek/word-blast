@@ -1062,8 +1062,15 @@ export class GameHUD {
   hideConfirm() {
     this.pendingConfirm = null;
     this.confirmCard.setVisible(false);
-    // re-armed only while the pause screen itself is open
-    if (this.pauseOpenState) this.setPauseInputEnabled(true);
+    // Re-arm PLAY/HOME only AFTER the answering tap has fully finished:
+    // the dialog actions fire on pointerdown, and re-enabling immediately
+    // would let that same tap's pointerup land on the PLAY button that
+    // sits underneath the dialog (an accidental instant resume).
+    this.scene.time.delayedCall(160, () => {
+      if (this.pauseOpenState && !this.confirmCard.visible) {
+        this.setPauseInputEnabled(true);
+      }
+    });
   }
 
   runConfirm() {
