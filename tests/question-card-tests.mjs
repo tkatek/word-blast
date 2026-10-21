@@ -109,6 +109,7 @@ const main = async () => {
 
   await test('card rests at the top below the HUD and arms gameplay', async () => {
     api.setCardTimings(FAST);
+    h.scene().stateChangeHandlers.push((n, p2) => console.log('TRANS', p2, '->', n));
     await h.gotoLevel(1);
     await h.waitFor(() => api.cardInfo()?.phase === 'READY_TOP', 4000, 'READY_TOP');
     const c = api.cardInfo();
