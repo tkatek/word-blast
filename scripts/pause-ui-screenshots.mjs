@@ -114,6 +114,7 @@ async function bootToAiming(page, levelId = 3) {
     }, { timeout: 90000 }).then(() => true).catch(() => false);
     if (ok) {
       await page.evaluate(() => window.__WB__.setAutoPause(false));
+      await dismissPromos(page);
       await sleep(700);
       return;
     }
