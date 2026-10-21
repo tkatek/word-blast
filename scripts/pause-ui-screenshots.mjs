@@ -385,6 +385,18 @@ async function mobilePass() {
       await page.evaluate(() => window.dispatchEvent(new Event('resize')));
       await sleep(500);
     }
+    // last resort on a stubborn boot: apply the canonical fit-view frame
+    // directly to both cameras (same math the ViewportController uses)
+    await page.evaluate(() => {
+      const s = window.__WB__.scene();
+      const gs = s.scale.gameSize;
+      const z = Math.min(gs.width / 1280, gs.height / 720);
+      for (const cam of [s.cameras.main, s.hud.uiCam]) {
+        cam.setZoom(z);
+        cam.setScroll(640 - (gs.width / 2) / z, 360 - (gs.height / 2) / z);
+      }
+    });
+    await sleep(400);
     const info = await hudInfo(page);
     check(info.pauseOpen && info.playVisible && info.homeVisible, 'phone pause shows PLAY + HOME');
     check(info.blurOn, 'phone uses the mobile blur tier', `blurOn=${info.blurOn}`);
