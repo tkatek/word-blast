@@ -124,42 +124,58 @@ const objCenter = (page, path) => page.evaluate((p) => {
 }, path);
 
 const toScreen = (page, x, y) => page.evaluate(([x, y]) => {
-  const cam = window.__WB__.scene().hud.uiCam;
+  const s = window.__WB__.scene();
+  const cam = s && s.hud ? s.hud.uiCam : null;
+  if (!cam) return null; // scene/HUD mid-transition
   return { x: (x - cam.scrollX) * cam.zoom + cam.x, y: (y - cam.scrollY) * cam.zoom + cam.y };
 }, [x, y]);
 
 /** Click a HUD object like a real user: move → press → release. Retries
- *  once — headless event batching occasionally drops the up-delivery (a
- *  second tap is exactly what a real player would do). */
+ *  and survives scene transitions (the action may destroy the HUD mid-
+ *  helper; headless event batching also occasionally drops the
+ *  up-delivery — a second tap is exactly what a real player would do). */
 async function clickObj(page, path, predicate = null) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const c = await objCenter(page, path);
-    const p = await toScreen(page, c.x, c.y);
-    await page.mouse.move(p.x, p.y);
-    await sleep(120);
-    await page.mouse.down();
-    await sleep(120);
-    await page.mouse.up();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const c = await objCenter(page, path);
+      const p = await toScreen(page, c.x, c.y);
+      if (!p) throw new Error('camera gone');
+      await page.mouse.move(p.x, p.y);
+      await sleep(120);
+      await page.mouse.down();
+      await sleep(120);
+      await page.mouse.up();
+    } catch { /* scene transitioning — the click may already have landed */ }
     if (!predicate) return;
     await sleep(400);
-    if (await predicate()) return;
+    try { if (await predicate()) return; } catch { /* mid-transition */ }
   }
 }
 
-/** Touch tap, falling back to a staged mouse press on stubborn headless touch stacks. */
+/** Touch tap with mouse-press retry (headless touch stacks batch events
+ *  too tightly for Phaser's up-delivery; the staged press is the
+ *  human-equivalent fallback). */
 async function tapObj(page, path, predicate = null) {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const c = await objCenter(page, path);
-    const p = await toScreen(page, c.x, c.y);
-    await page.touchscreen.tap(p.x, p.y);
-    if (!predicate) return;
-    await sleep(500);
-    if (await predicate()) return;
-    // retry via a staged human press (mouse works even on touch viewports)
-    await page.mouse.move(p.x, p.y); await sleep(120);
-    await page.mouse.down(); await sleep(120); await page.mouse.up();
-    await sleep(400);
-    if (await predicate()) return;
+    try {
+      const c = await objCenter(page, path);
+      const p = await toScreen(page, c.x, c.y);
+      if (!p) throw new Error('camera gone');
+      await page.touchscreen.tap(p.x, p.y);
+      if (predicate) {
+        await sleep(500);
+        if (await predicate()) return;
+      } else return;
+    } catch { /* transitioning */ }
+    try {
+      const c = await objCenter(page, path);
+      const p = await toScreen(page, c.x, c.y);
+      if (!p) throw new Error('camera gone');
+      await page.mouse.move(p.x, p.y); await sleep(120);
+      await page.mouse.down(); await sleep(120); await page.mouse.up();
+      await sleep(400);
+      if (await predicate()) return;
+    } catch { /* transitioning */ }
   }
 }
 

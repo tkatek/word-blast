@@ -865,6 +865,12 @@ export class GameHUD {
       x: 92, y: 72, w: 168, h: 54, label: 'CANCEL', color: 'green', size: 19,
       onClick: () => this.hideConfirm(), markUi: () => this.markUi()
     });
+    // Touch-robust: the dialog actions also fire on the press itself —
+    // both are idempotent (runConfirm re-runs nothing once the pending
+    // action is cleared; hideConfirm is a no-op when already hidden), so
+    // a following pointerup can never double-trigger anything.
+    this.confirmYes.on('pointerdown', () => this.runConfirm());
+    this.confirmNo.on('pointerdown', () => this.hideConfirm());
     this.confirmCard.add([cBlocker, cCard, cInner, this.confirmTitle, this.confirmBody,
       this.confirmYes, this.confirmNo]);
 
@@ -1299,7 +1305,7 @@ export class GameHUD {
     this.pauseOpenState = false;
     this.hideConfirm();
     this.setPauseInputEnabled(false);
-    this.setPauseTopOnly(true);
+    this.setPauseTopOnly(false); // restore the normal topOnly hit-sorting
     this.stopGlowPulse();
     this.fadePauseFx();
     const s = this.scene;

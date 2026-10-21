@@ -207,28 +207,25 @@ export class ViewportController {
   }
 
   /**
-   * Bounded settle chain after a change: mobile viewport sources
-   * (visualViewport vs innerWidth vs the canvas rect) disagree while iOS
-   * toolbars animate or the rotation settles — re-check a few times until
-   * the measurement is stable, then stop. Each check is a no-op when
-   * nothing changed. Also used to WAIT for usable dimensions after a
-   * degenerate (transient) measurement instead of resizing to a sliver.
+   * One outstanding settle check at a time (reschedules freely — the
+   * newest deadline wins). Bounded by _settleDepth so a chain can never
+   * loop forever: normal chains stop after 3 unchanged checks, degenerate
+   * (transient/hidden) measurements retry at most 10 times.
    */
-  _settle(delays, attempt) {
-    if (!delays.length) return;
-    const [first, ...rest] = delays;
+  _later(ms) {
     if (this._settleTimer) clearTimeout(this._settleTimer);
     this._settleTimer = setTimeout(() => {
       this._settleTimer = null;
-      this.applyNow(attempt);
-    }, first);
-    this._settleQueue = rest;
+      this._settleDepth = (this._settleDepth || 0) + 1;
+      this.applyNow(true);
+    }, ms);
   }
 
   /** Resize the canvas buffer to the visible viewport × DPR (idempotent). */
   applyNow(fromSettle = false) {
     const scale = this.game.scale;
     if (!scale || !this.game.canvas) return; // not booted yet ('ready' retries)
+    if (!fromSettle) this._settleDepth = 0;  // a real event restarts the chain
     const visible = visibleCssSize();
 
     // Transient/degenerate measurements (iOS rotation & toolbar animations,
@@ -236,11 +233,11 @@ export class ViewportController {
     // near-zero value — keep the last good size and retry until stable.
     const first = usableCssSize(null, null, visible.w, visible.h);
     if (!first.ok) {
-      this._degenerateRetries = (this._degenerateRetries || 0) + 1;
-      if (this._degenerateRetries <= 10) this._settle([180, 350, 700, 1200], this._degenerateRetries);
+      if ((this._settleDepth || 0) < 10) {
+        this._later(180 + (this._settleDepth || 0) * 120);
+      }
       return;
     }
-    this._degenerateRetries = 0;
 
     // Shrink the fixed shell to the VISIBLE viewport when mobile toolbars
     // hide part of the layout viewport (visualViewport < innerHeight), so
@@ -262,16 +259,21 @@ export class ViewportController {
     // fallback when the rect is still transient.
     const rect = this.game.canvas.getBoundingClientRect();
     const usable = usableCssSize(rect.width, rect.height, visible.w, visible.h);
-    if (!usable.ok) { this._settle([180, 400], 0); return; }
+    if (!usable.ok) {
+      if ((this._settleDepth || 0) < 10) this._later(180);
+      return;
+    }
 
     const dpr = effectiveDPR();
     const bw = Math.max(2, Math.round(usable.w * dpr));
     const bh = Math.max(2, Math.round(usable.h * dpr));
     if (bw === this.lastW && bh === this.lastH) {
       // Stable — but an EVENT-triggered check can run before layout
-      // catches up with visualViewport: one settle re-check, never a loop
-      // (settle-triggered runs pass fromSettle=true and stop here).
-      if (!fromSettle) this._settle([300], 0);
+      // catches up with visualViewport, and a just-applied change can be
+      // superseded moments later: at most 3 short follow-up checks, then
+      // the chain stops until the next real event.
+      if (this._settleDepth === 0) this._later(300);
+      else if (this._settleDepth < 3) this._later(650);
       return;
     }
     this.lastW = bw;
@@ -280,9 +282,10 @@ export class ViewportController {
     scale.resize(bw, bh);
     if (this.onChange) this.onChange();
     // Mobile viewport sources (visualViewport vs innerWidth vs layout) can
-    // disagree while toolbars animate or the window settles: a short
-    // bounded follow-up chain heals any missed change. No-op when stable.
-    this._settle([250, 900], 0);
+    // disagree while toolbars animate or the window settles: follow up
+    // shortly, then once more (bounded by the depth counter).
+    this._settleDepth = 1;
+    this._later(250);
   }
 
   /** Test/debug hook: force a re-read of the viewport. */
@@ -306,7 +309,7 @@ export class ViewportController {
       }
     }
     if (this._settleTimer) clearTimeout(this._settleTimer);
-    this._settleQueue = [];
+    this._settleDepth = 0;
     this.pending = false;
   }
 }
