@@ -18,7 +18,12 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(8097, r));
 
-const exe = ['C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'].find(existsSync);
+const exe = [
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+].find(existsSync);
 const browser = await puppeteer.launch({ executablePath: exe, headless: 'new', args: ['--no-sandbox', '--mute-audio', '--window-size=1400,900'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 720 });
