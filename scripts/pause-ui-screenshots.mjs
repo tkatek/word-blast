@@ -331,9 +331,14 @@ async function desktopPass() {
     await sleep(600);
     await clickObj(page, 'homeBtn',
       () => page.evaluate(() => window.__WB__.scene().hud.confirmVisible));
-    await clickObj(page, 'confirmNo',
-      () => page.evaluate(() => !window.__WB__.scene().hud.confirmVisible));
-    await sleep(300);
+    // single-shot presses only: a blind retry could land on the PLAY
+    // button that sits under the dialog once it closes
+    for (let i = 0; i < 3; i++) {
+      const stillShown = await page.evaluate(() => window.__WB__.scene().hud.confirmVisible);
+      if (!stillShown) break;
+      await clickObj(page, 'confirmNo'); // no predicate → exactly one press
+      await sleep(350);
+    }
     check(await state(page) === 'PAUSED', 'CANCEL returns to the pause screen (still paused)');
     await clickObj(page, 'resumeBtn',
       () => page.evaluate(() => window.__WB__.state() === 'AIMING'));

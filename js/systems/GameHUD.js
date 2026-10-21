@@ -1062,15 +1062,25 @@ export class GameHUD {
   hideConfirm() {
     this.pendingConfirm = null;
     this.confirmCard.setVisible(false);
-    // Re-arm PLAY/HOME only AFTER the answering tap has fully finished:
-    // the dialog actions fire on pointerdown, and re-enabling immediately
-    // would let that same tap's pointerup land on the PLAY button that
-    // sits underneath the dialog (an accidental instant resume).
-    this.scene.time.delayedCall(160, () => {
-      if (this.pauseOpenState && !this.confirmCard.visible) {
-        this.setPauseInputEnabled(true);
-      }
-    });
+    // Re-arm PLAY/HOME only once the answering tap has fully RELEASED.
+    // The dialog sits on top of the PLAY button and its actions fire on
+    // pointerdown; Phaser's per-frame over-processing re-lists an enabled
+    // object under a held pointer, so re-enabling mid-press would let the
+    // same tap's release land on PLAY (an accidental instant resume).
+    const s = this.scene;
+    const arm = () => {
+      if (this.pauseOpenState && !this.confirmCard.visible) this.setPauseInputEnabled(true);
+    };
+    const ptr = s.input && s.input.activePointer;
+    if (ptr && ptr.isDown) {
+      const onRelease = () => {
+        s.input.off('pointerup', onRelease);
+        arm();
+      };
+      s.input.on('pointerup', onRelease);
+    } else {
+      s.time.delayedCall(160, arm);
+    }
   }
 
   runConfirm() {
