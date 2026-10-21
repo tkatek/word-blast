@@ -29,7 +29,10 @@ const SLING = { x: 195, y: 335 }; // canonical desktop anchor (SLINGSHOT.ANCHORS
  * plaques already placed to the left, which are real physical bodies.
  * Pure math over the baked geometry — the same integrator the game uses.
  */
-const PLAQUE = { w: 116, h: 80 }; // TARGETS sign_blank logical size
+const PLAQUE = { w: 116, h: 80 };    // narrowest parchment variant (arc core)
+const PLAQUE_MAX_HALF = 85;          // widest variant half width — clearance
+// margin around structures so ground anchors never visually overlap a
+// tower regardless of which panel variant the answer word selects
 
 // The SAME launch angles the integration tests and debugAutoAim sweep —
 // a layout is only shipped when an arc at one of THESE angles clears it,
@@ -192,7 +195,7 @@ function tryLayout(levelId, qIndex, rand) {
   // gentle because its towers are small and its slots sit low.)
   const groundXs = [];
   for (let x = 620; x <= 1165; x += 10) groundXs.push(x);
-  const clearGround = (x) => occupied.every(([a, b]) => x < a - 58 || x > b + 58);
+  const clearGround = (x) => occupied.every(([a, b]) => x < a - PLAQUE_MAX_HALF || x > b + PLAQUE_MAX_HALF);
   while (anchors.length < 3) {
     const candidates = groundXs.filter((x) => clearGround(x)
       && anchorsApart(anchors, x, TERRACE_TOP - GROUND_MARGIN)

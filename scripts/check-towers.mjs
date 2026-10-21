@@ -14,7 +14,9 @@ import { TEMPLATES } from '../js/data/towers.js';
 import { TOWER_ASSETS } from '../js/data/tower-assets.js';
 import { TUNNELING } from '../js/config.js';
 
-const PLAQUE_W = 116, PLAQUE_H = 80;
+// widest parchment answer panel (TARGETS.VARIANTS L) — support checks must
+// hold for ANY plaque that can spawn on a slot, so they use the max width
+const PLAQUE_W = 170, PLAQUE_H = 80;
 
 function corners(p) {
   const a = TOWER_ASSETS[p.a];

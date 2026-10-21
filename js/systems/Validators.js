@@ -164,7 +164,11 @@ export function validateLevels(levelsData, questions) {
         }
       }
       // Fix #19 — bird ammunition must keep every question completable:
+<<<<<<< Updated upstream
       // keys ⊆ roster, non-negative integers, total >= shotsPerQuestion.
+=======
+      // keys ⊆ roster, positive integers, total >= shotsPerQuestion.
+>>>>>>> Stashed changes
       // (levels without "birdAmmo" inherit BIRD_AMMO.DEFAULTS at runtime,
       // which satisfies the same rule for the shipped rosters.)
       if (lvl.birdAmmo != null) {

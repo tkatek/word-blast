@@ -96,7 +96,11 @@
                 "y": 204
               },
               {
+<<<<<<< Updated upstream
                 "x": 1050,
+=======
+                "x": 1080,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -146,6 +150,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 655,
                 "y": 304
               },
@@ -156,55 +161,101 @@
               {
                 "x": 1131,
                 "y": 235
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1123,
+                "y": 278
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L1Q2-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 775,
+=======
+                "x": 765,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L1Q2-p1",
                 "a": "wood_triangle",
+<<<<<<< Updated upstream
                 "x": 775,
+=======
+                "x": 765,
+>>>>>>> Stashed changes
                 "y": 256,
                 "rot": 0
               },
               {
                 "id": "L1Q2-p2",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 905,
+=======
+                "x": 895,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               },
               {
                 "id": "L1Q2-p3",
+<<<<<<< Updated upstream
                 "a": "wood_crate_panel",
                 "x": 1167,
                 "y": 393.5,
+=======
+                "a": "wood_log",
+                "x": 1093,
+                "y": 398,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L1Q2-p4",
+<<<<<<< Updated upstream
                 "a": "wood_crate_panel",
                 "x": 1095,
                 "y": 393.5,
+=======
+                "a": "wood_log",
+                "x": 1153,
+                "y": 398,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L1Q2-p5",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 1131,
                 "y": 317,
+=======
+                "a": "wood_beam_h",
+                "x": 1123,
+                "y": 343,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L1Q2-p6",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 655,
+=======
+                "x": 645,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -226,8 +277,13 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 1110,
                 "y": 386
+=======
+                "x": 1117,
+                "y": 304
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
@@ -255,6 +311,16 @@
               {
                 "id": "L1Q3-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
+=======
+                "x": 1117,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L1Q3-p4",
+                "a": "wood_crate_cross",
+>>>>>>> Stashed changes
                 "x": 645,
                 "y": 386,
                 "rot": 0
@@ -287,6 +353,67 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
+=======
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 902,
+                "y": 304
+              },
+              {
+                "x": 1131,
+                "y": 319
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L2Q0-p0",
+                "a": "wood_beam_v",
+                "x": 772,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p1",
+                "a": "wood_triangle",
+                "x": 772,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 902,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p3",
+                "a": "wood_crate_panel",
+                "x": 1131,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L2Q0-p4",
+                "a": "wood_crate_cross",
+                "x": 655,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q02_2",
+          "layout": {
+            "targets": [
+              {
+>>>>>>> Stashed changes
                 "x": 635,
                 "y": 304
               },
@@ -301,28 +428,44 @@
             ],
             "pieces": [
               {
+<<<<<<< Updated upstream
                 "id": "L2Q0-p0",
+=======
+                "id": "L2Q1-p0",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 750,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L2Q0-p1",
+=======
+                "id": "L2Q1-p1",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 874,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L2Q0-p2",
+=======
+                "id": "L2Q1-p2",
+>>>>>>> Stashed changes
                 "a": "wood_beam_h",
                 "x": 812,
                 "y": 269,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L2Q0-p3",
+=======
+                "id": "L2Q1-p3",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 635,
                 "y": 386,
@@ -331,7 +474,11 @@
             ],
             "pigs": [
               {
+<<<<<<< Updated upstream
                 "id": "L2Q0-g0",
+=======
+                "id": "L2Q1-g0",
+>>>>>>> Stashed changes
                 "a": "pig_small",
                 "x": 812,
                 "y": 400
@@ -341,7 +488,11 @@
           }
         },
         {
+<<<<<<< Updated upstream
           "questionId": "q02_2",
+=======
+          "questionId": "q02_3",
+>>>>>>> Stashed changes
           "layout": {
             "targets": [
               {
@@ -353,34 +504,54 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 1150,
+=======
+                "x": 1160,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
+<<<<<<< Updated upstream
                 "id": "L2Q1-p0",
+=======
+                "id": "L2Q2-p0",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 765,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L2Q1-p1",
+=======
+                "id": "L2Q2-p1",
+>>>>>>> Stashed changes
                 "a": "wood_triangle",
                 "x": 765,
                 "y": 256,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L2Q1-p2",
+=======
+                "id": "L2Q2-p2",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 895,
                 "y": 386,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L2Q1-p3",
+=======
+                "id": "L2Q2-p3",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -392,6 +563,7 @@
           }
         },
         {
+<<<<<<< Updated upstream
           "questionId": "q02_3",
           "layout": {
             "targets": [
@@ -450,10 +622,13 @@
           }
         },
         {
+=======
+>>>>>>> Stashed changes
           "questionId": "q02_4",
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 665,
                 "y": 304
               },
@@ -463,6 +638,17 @@
               },
               {
                 "x": 1120,
+=======
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 830,
+                "y": 204
+              },
+              {
+                "x": 1140,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -470,28 +656,44 @@
               {
                 "id": "L2Q3-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 779,
+=======
+                "x": 768,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L2Q3-p1",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 903,
+=======
+                "x": 892,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L2Q3-p2",
                 "a": "wood_beam_h",
+<<<<<<< Updated upstream
                 "x": 841,
+=======
+                "x": 830,
+>>>>>>> Stashed changes
                 "y": 269,
                 "rot": 0
               },
               {
                 "id": "L2Q3-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 665,
+=======
+                "x": 655,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -500,7 +702,11 @@
               {
                 "id": "L2Q3-g0",
                 "a": "pig_small",
+<<<<<<< Updated upstream
                 "x": 841,
+=======
+                "x": 830,
+>>>>>>> Stashed changes
                 "y": 400
               }
             ],
@@ -530,6 +736,60 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
+=======
+                "x": 665,
+                "y": 304
+              },
+              {
+                "x": 911,
+                "y": 304
+              },
+              {
+                "x": 1150,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L3Q0-p0",
+                "a": "wood_beam_v",
+                "x": 781,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L3Q0-p1",
+                "a": "wood_triangle",
+                "x": 781,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L3Q0-p2",
+                "a": "wood_crate_cross",
+                "x": 911,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L3Q0-p3",
+                "a": "wood_crate_cross",
+                "x": 665,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q03_2",
+          "layout": {
+            "targets": [
+              {
+>>>>>>> Stashed changes
                 "x": 655,
                 "y": 304
               },
@@ -538,34 +798,54 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 1130,
+=======
+                "x": 1140,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
+<<<<<<< Updated upstream
                 "id": "L3Q0-p0",
+=======
+                "id": "L3Q1-p0",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 772,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q0-p1",
+=======
+                "id": "L3Q1-p1",
+>>>>>>> Stashed changes
                 "a": "wood_triangle",
                 "x": 772,
                 "y": 256,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q0-p2",
+=======
+                "id": "L3Q1-p2",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 902,
                 "y": 386,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q0-p3",
+=======
+                "id": "L3Q1-p3",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 655,
                 "y": 386,
@@ -577,7 +857,11 @@
           }
         },
         {
+<<<<<<< Updated upstream
           "questionId": "q03_2",
+=======
+          "questionId": "q03_3",
+>>>>>>> Stashed changes
           "layout": {
             "targets": [
               {
@@ -595,35 +879,55 @@
             ],
             "pieces": [
               {
+<<<<<<< Updated upstream
                 "id": "L3Q1-p0",
+=======
+                "id": "L3Q2-p0",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 765,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q1-p1",
+=======
+                "id": "L3Q2-p1",
+>>>>>>> Stashed changes
                 "a": "wood_triangle",
                 "x": 765,
                 "y": 256,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q1-p2",
+=======
+                "id": "L3Q2-p2",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 895,
                 "y": 386,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q1-p3",
+=======
+                "id": "L3Q2-p3",
+>>>>>>> Stashed changes
                 "a": "wood_crate_panel",
                 "x": 1136,
                 "y": 393.5,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q1-p4",
+=======
+                "id": "L3Q2-p4",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -635,7 +939,11 @@
           }
         },
         {
+<<<<<<< Updated upstream
           "questionId": "q03_3",
+=======
+          "questionId": "q03_4",
+>>>>>>> Stashed changes
           "layout": {
             "targets": [
               {
@@ -653,49 +961,77 @@
             ],
             "pieces": [
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p0",
+=======
+                "id": "L3Q3-p0",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 754,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p1",
+=======
+                "id": "L3Q3-p1",
+>>>>>>> Stashed changes
                 "a": "wood_beam_v",
                 "x": 878,
                 "y": 361,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p2",
+=======
+                "id": "L3Q3-p2",
+>>>>>>> Stashed changes
                 "a": "wood_beam_h",
                 "x": 816,
                 "y": 269,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p3",
+=======
+                "id": "L3Q3-p3",
+>>>>>>> Stashed changes
                 "a": "wood_crate_panel",
                 "x": 1064,
                 "y": 393.5,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p4",
+=======
+                "id": "L3Q3-p4",
+>>>>>>> Stashed changes
                 "a": "wood_crate_panel",
                 "x": 1136,
                 "y": 393.5,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p5",
+=======
+                "id": "L3Q3-p5",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 1100,
                 "y": 317,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-p6",
+=======
+                "id": "L3Q3-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 635,
                 "y": 386,
@@ -704,7 +1040,11 @@
             ],
             "pigs": [
               {
+<<<<<<< Updated upstream
                 "id": "L3Q2-g0",
+=======
+                "id": "L3Q3-g0",
+>>>>>>> Stashed changes
                 "a": "pig_small",
                 "x": 816,
                 "y": 400
@@ -712,6 +1052,7 @@
             ],
             "moving": []
           }
+<<<<<<< Updated upstream
         },
         {
           "questionId": "q03_4",
@@ -770,6 +1111,8 @@
             "pigs": [],
             "moving": []
           }
+=======
+>>>>>>> Stashed changes
         }
       ],
       "birdAmmo": {
@@ -803,8 +1146,13 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 1130,
                 "y": 386
+=======
+                "x": 1120,
+                "y": 304
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
@@ -832,6 +1180,16 @@
               {
                 "id": "L4Q0-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
+=======
+                "x": 1120,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L4Q0-p4",
+                "a": "wood_crate_cross",
+>>>>>>> Stashed changes
                 "x": 645,
                 "y": 386,
                 "rot": 0
@@ -846,6 +1204,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 655,
                 "y": 304
               },
@@ -855,6 +1214,17 @@
               },
               {
                 "x": 1120,
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1140,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -862,28 +1232,44 @@
               {
                 "id": "L4Q1-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 771,
+=======
+                "x": 765,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L4Q1-p1",
                 "a": "wood_triangle",
+<<<<<<< Updated upstream
                 "x": 771,
+=======
+                "x": 765,
+>>>>>>> Stashed changes
                 "y": 256,
                 "rot": 0
               },
               {
                 "id": "L4Q1-p2",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 895,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               },
               {
                 "id": "L4Q1-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 655,
+=======
+                "x": 645,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -897,6 +1283,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 635,
                 "y": 304
               },
@@ -906,6 +1293,17 @@
               },
               {
                 "x": 1120,
+=======
+                "x": 655,
+                "y": 304
+              },
+              {
+                "x": 901,
+                "y": 304
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -913,32 +1311,53 @@
               {
                 "id": "L4Q2-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 746,
+=======
+                "x": 771,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L4Q2-p1",
+<<<<<<< Updated upstream
                 "a": "wood_beam_v",
                 "x": 870,
                 "y": 361,
+=======
+                "a": "wood_triangle",
+                "x": 771,
+                "y": 256,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L4Q2-p2",
+<<<<<<< Updated upstream
                 "a": "wood_beam_h",
                 "x": 808,
                 "y": 269,
+=======
+                "a": "wood_crate_cross",
+                "x": 901,
+                "y": 386,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L4Q2-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 635,
+=======
+                "x": 655,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L4Q2-g0",
@@ -947,6 +1366,9 @@
                 "y": 400
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -955,6 +1377,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 625,
                 "y": 388
               },
@@ -965,18 +1388,67 @@
               {
                 "x": 1130,
                 "y": 388
+=======
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 808,
+                "y": 204
+              },
+              {
+                "x": 1130,
+                "y": 386
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L4Q3-p0",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 810,
+=======
+                "a": "wood_beam_v",
+                "x": 746,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L4Q3-p1",
+                "a": "wood_beam_v",
+                "x": 870,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L4Q3-p2",
+                "a": "wood_beam_h",
+                "x": 808,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L4Q3-p3",
+                "a": "wood_crate_cross",
+                "x": 635,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [],
+=======
+            "pigs": [
+              {
+                "id": "L4Q3-g0",
+                "a": "pig_small",
+                "x": 808,
+                "y": 400
+              }
+            ],
+>>>>>>> Stashed changes
             "moving": []
           }
         }
@@ -1005,6 +1477,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 645,
                 "y": 304
               },
@@ -1014,6 +1487,17 @@
               },
               {
                 "x": 1080,
+=======
+                "x": 635,
+                "y": 304
+              },
+              {
+                "x": 812,
+                "y": 204
+              },
+              {
+                "x": 1070,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -1021,28 +1505,44 @@
               {
                 "id": "L5Q0-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 883,
+=======
+                "x": 750,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q0-p1",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 759,
+=======
+                "x": 874,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q0-p2",
                 "a": "wood_beam_h",
+<<<<<<< Updated upstream
                 "x": 821,
+=======
+                "x": 812,
+>>>>>>> Stashed changes
                 "y": 269,
                 "rot": 0
               },
               {
                 "id": "L5Q0-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 645,
+=======
+                "x": 635,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -1051,7 +1551,11 @@
               {
                 "id": "L5Q0-g0",
                 "a": "pig_small",
+<<<<<<< Updated upstream
                 "x": 821,
+=======
+                "x": 812,
+>>>>>>> Stashed changes
                 "y": 400
               }
             ],
@@ -1063,6 +1567,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 665,
                 "y": 304
               },
@@ -1072,6 +1577,17 @@
               },
               {
                 "x": 1080,
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 821,
+                "y": 204
+              },
+              {
+                "x": 1100,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -1079,28 +1595,44 @@
               {
                 "id": "L5Q1-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 906,
+=======
+                "x": 883,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q1-p1",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 782,
+=======
+                "x": 759,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q1-p2",
                 "a": "wood_beam_h",
+<<<<<<< Updated upstream
                 "x": 844,
+=======
+                "x": 821,
+>>>>>>> Stashed changes
                 "y": 269,
                 "rot": 0
               },
               {
                 "id": "L5Q1-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 665,
+=======
+                "x": 645,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -1109,7 +1641,11 @@
               {
                 "id": "L5Q1-g0",
                 "a": "pig_small",
+<<<<<<< Updated upstream
                 "x": 844,
+=======
+                "x": 821,
+>>>>>>> Stashed changes
                 "y": 400
               }
             ],
@@ -1125,11 +1661,19 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 843,
                 "y": 204
               },
               {
                 "x": 1120,
+=======
+                "x": 844,
+                "y": 204
+              },
+              {
+                "x": 1110,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -1137,21 +1681,33 @@
               {
                 "id": "L5Q2-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 781,
+=======
+                "x": 906,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q2-p1",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 905,
+=======
+                "x": 782,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q2-p2",
                 "a": "wood_beam_h",
+<<<<<<< Updated upstream
                 "x": 843,
+=======
+                "x": 844,
+>>>>>>> Stashed changes
                 "y": 269,
                 "rot": 0
               },
@@ -1167,7 +1723,11 @@
               {
                 "id": "L5Q2-g0",
                 "a": "pig_small",
+<<<<<<< Updated upstream
                 "x": 843,
+=======
+                "x": 844,
+>>>>>>> Stashed changes
                 "y": 400
               }
             ],
@@ -1179,6 +1739,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 625,
                 "y": 304
               },
@@ -1188,6 +1749,17 @@
               },
               {
                 "x": 1150,
+=======
+                "x": 665,
+                "y": 304
+              },
+              {
+                "x": 843,
+                "y": 204
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -1195,28 +1767,44 @@
               {
                 "id": "L5Q3-p0",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 743,
+=======
+                "x": 781,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q3-p1",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 867,
+=======
+                "x": 905,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L5Q3-p2",
                 "a": "wood_beam_h",
+<<<<<<< Updated upstream
                 "x": 805,
+=======
+                "x": 843,
+>>>>>>> Stashed changes
                 "y": 269,
                 "rot": 0
               },
               {
                 "id": "L5Q3-p3",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 625,
+=======
+                "x": 665,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -1225,7 +1813,11 @@
               {
                 "id": "L5Q3-g0",
                 "a": "pig_small",
+<<<<<<< Updated upstream
                 "x": 805,
+=======
+                "x": 843,
+>>>>>>> Stashed changes
                 "y": 400
               }
             ],
@@ -1261,65 +1853,119 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 895,
                 "y": 304
               },
               {
                 "x": 1106,
                 "y": 204
+=======
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1136,
+                "y": 304
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L6Q0-p0",
+<<<<<<< Updated upstream
                 "a": "wood_beam_v",
                 "x": 765,
                 "y": 361,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q0-p1",
+<<<<<<< Updated upstream
                 "a": "wood_triangle",
                 "x": 765,
                 "y": 256,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q0-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 895,
                 "y": 386,
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q0-p3",
+<<<<<<< Updated upstream
                 "a": "wood_beam_v",
                 "x": 1168,
                 "y": 361,
+=======
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q0-p4",
                 "a": "wood_beam_v",
+<<<<<<< Updated upstream
                 "x": 1044,
+=======
+                "x": 1006,
+>>>>>>> Stashed changes
                 "y": 361,
                 "rot": 0
               },
               {
                 "id": "L6Q0-p5",
+<<<<<<< Updated upstream
                 "a": "wood_beam_h",
                 "x": 1106,
                 "y": 269,
+=======
+                "a": "wood_triangle",
+                "x": 1006,
+                "y": 256,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q0-p6",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
+=======
+                "x": 1136,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L6Q0-p7",
+                "a": "wood_crate_cross",
+>>>>>>> Stashed changes
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L6Q0-g0",
@@ -1328,6 +1974,9 @@
                 "y": 400
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -1344,22 +1993,35 @@
                 "y": 172
               },
               {
+<<<<<<< Updated upstream
                 "x": 1160,
                 "y": 386
+=======
+                "x": 1105,
+                "y": 235
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L6Q1-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L6Q1-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
@@ -1379,6 +2041,30 @@
               },
               {
                 "id": "L6Q1-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "wood_crate_panel",
+                "x": 1069,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p5",
+                "a": "wood_crate_panel",
+                "x": 1141,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p6",
+                "a": "wood_crate_cross",
+                "x": 1105,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L6Q1-p7",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -1398,52 +2084,113 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1160,
                 "y": 386
+=======
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1106,
+                "y": 204
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L6Q2-p0",
+<<<<<<< Updated upstream
                 "a": "glass_column",
                 "x": 749,
                 "y": 384,
+=======
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q2-p1",
+<<<<<<< Updated upstream
                 "a": "glass_column",
                 "x": 901,
                 "y": 384,
+=======
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q2-p2",
+<<<<<<< Updated upstream
                 "a": "glass_beam_h",
                 "x": 825,
                 "y": 305,
+=======
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q2-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
                 "y": 241,
+=======
+                "a": "wood_beam_v",
+                "x": 1168,
+                "y": 361,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L6Q2-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "wood_beam_v",
+                "x": 1044,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L6Q2-p5",
+                "a": "wood_beam_h",
+                "x": 1106,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L6Q2-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [],
+=======
+            "pigs": [
+              {
+                "id": "L6Q2-g0",
+                "a": "pig_small",
+                "x": 1106,
+                "y": 400
+              }
+            ],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -1460,22 +2207,35 @@
                 "y": 172
               },
               {
+<<<<<<< Updated upstream
                 "x": 1093,
                 "y": 235
+=======
+                "x": 1160,
+                "y": 386
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L6Q3-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L6Q3-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
@@ -1495,6 +2255,7 @@
               },
               {
                 "id": "L6Q3-p4",
+<<<<<<< Updated upstream
                 "a": "wood_crate_panel",
                 "x": 1129,
                 "y": 393.5,
@@ -1516,6 +2277,8 @@
               },
               {
                 "id": "L6Q3-p7",
+=======
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -1556,31 +2319,53 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 895,
                 "y": 304
               },
               {
                 "x": 1106,
                 "y": 172
+=======
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1160,
+                "y": 386
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L7Q0-p0",
+<<<<<<< Updated upstream
                 "a": "wood_beam_v",
                 "x": 765,
                 "y": 361,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L7Q0-p1",
+<<<<<<< Updated upstream
                 "a": "wood_triangle",
                 "x": 765,
                 "y": 256,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L7Q0-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 895,
                 "y": 386,
@@ -1604,18 +2389,32 @@
                 "id": "L7Q0-p5",
                 "a": "glass_beam_h",
                 "x": 1106,
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L7Q0-p6",
                 "a": "stone_block_s",
                 "x": 1106,
+=======
+                "id": "L7Q0-p3",
+                "a": "stone_block_s",
+                "x": 825,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L7Q0-p7",
+=======
+                "id": "L7Q0-p4",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -1639,7 +2438,11 @@
                 "y": 172
               },
               {
+<<<<<<< Updated upstream
                 "x": 1105,
+=======
+                "x": 1093,
+>>>>>>> Stashed changes
                 "y": 235
               }
             ],
@@ -1647,14 +2450,22 @@
               {
                 "id": "L7Q1-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L7Q1-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
@@ -1675,21 +2486,33 @@
               {
                 "id": "L7Q1-p4",
                 "a": "wood_crate_panel",
+<<<<<<< Updated upstream
                 "x": 1069,
+=======
+                "x": 1129,
+>>>>>>> Stashed changes
                 "y": 393.5,
                 "rot": 0
               },
               {
                 "id": "L7Q1-p5",
                 "a": "wood_crate_panel",
+<<<<<<< Updated upstream
                 "x": 1141,
+=======
+                "x": 1057,
+>>>>>>> Stashed changes
                 "y": 393.5,
                 "rot": 0
               },
               {
                 "id": "L7Q1-p6",
                 "a": "wood_crate_cross",
+<<<<<<< Updated upstream
                 "x": 1105,
+=======
+                "x": 1093,
+>>>>>>> Stashed changes
                 "y": 317,
                 "rot": 0
               },
@@ -1710,6 +2533,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 625,
                 "y": 388
               },
@@ -1720,13 +2544,79 @@
               {
                 "x": 1130,
                 "y": 388
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1106,
+                "y": 172
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L7Q2-p0",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 810,
+=======
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p3",
+                "a": "glass_column",
+                "x": 1182,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p4",
+                "a": "glass_column",
+                "x": 1030,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p5",
+                "a": "glass_beam_h",
+                "x": 1106,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p6",
+                "a": "stone_block_s",
+                "x": 1106,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L7Q2-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -1744,38 +2634,96 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 895,
                 "y": 304
               },
               {
                 "x": 1120,
                 "y": 386
+=======
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1105,
+                "y": 235
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L7Q3-p0",
+<<<<<<< Updated upstream
                 "a": "wood_beam_v",
                 "x": 765,
                 "y": 361,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L7Q3-p1",
+<<<<<<< Updated upstream
                 "a": "wood_triangle",
                 "x": 765,
                 "y": 256,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L7Q3-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 895,
                 "y": 386,
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L7Q3-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p4",
+                "a": "wood_crate_panel",
+                "x": 1069,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p5",
+                "a": "wood_crate_panel",
+                "x": 1141,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p6",
+                "a": "wood_crate_cross",
+                "x": 1105,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L7Q3-p7",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -1813,6 +2761,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 645,
                 "y": 304
               },
@@ -1823,10 +2772,23 @@
               {
                 "x": 1111,
                 "y": 142
+=======
+                "x": 625,
+                "y": 388
+              },
+              {
+                "x": 700,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 388
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
+<<<<<<< Updated upstream
                 "id": "L8Q0-p2",
                 "a": "wood_crate_cross",
                 "x": 965,
@@ -1997,6 +2959,13 @@
                 "x": 1110,
                 "y": 319,
                 "rot": 0
+=======
+                "id": "L8Q0-p0",
+                "a": "wood_crate_cross",
+                "x": 700,
+                "y": 386,
+                "rot": 0
+>>>>>>> Stashed changes
               }
             ],
             "pigs": [],
@@ -2004,10 +2973,144 @@
           }
         },
         {
+<<<<<<< Updated upstream
+=======
+          "questionId": "q08_2",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1140,
+                "y": 386
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L8Q1-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L8Q1-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L8Q1-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L8Q1-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+            "moving": []
+          }
+        },
+        {
+          "questionId": "q08_3",
+          "layout": {
+            "targets": [
+              {
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1111,
+                "y": 230
+              }
+            ],
+            "pieces": [
+              {
+                "id": "L8Q2-p0",
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p1",
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p2",
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p3",
+                "a": "glass_column",
+                "x": 1051,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p4",
+                "a": "glass_column",
+                "x": 1171,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p5",
+                "a": "glass_beam_h",
+                "x": 1111,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L8Q2-p6",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L8Q2-g0",
+                "a": "pig_small",
+                "x": 1111,
+                "y": 400
+              }
+            ],
+            "moving": []
+          }
+        },
+        {
+>>>>>>> Stashed changes
           "questionId": "q08_4",
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 635,
                 "y": 304
               },
@@ -2018,31 +3121,56 @@
               {
                 "x": 1111,
                 "y": 386
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1106,
+                "y": 204
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L8Q3-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L8Q3-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 955,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L8Q3-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 890,
+=======
+                "x": 825,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L8Q3-p7",
                 "a": "wood_crate_cross",
                 "x": 635,
@@ -2055,13 +3183,52 @@
                 "x": 890,
                 "y": 245,
                 "rot": 0
+=======
+                "id": "L8Q3-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p4",
+                "a": "wood_beam_v",
+                "x": 1044,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p5",
+                "a": "wood_beam_v",
+                "x": 1168,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p6",
+                "a": "wood_beam_h",
+                "x": 1106,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L8Q3-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+>>>>>>> Stashed changes
               }
             ],
             "pigs": [
               {
                 "id": "L8Q3-g0",
                 "a": "pig_small",
+<<<<<<< Updated upstream
                 "x": 1111,
+=======
+                "x": 1106,
+>>>>>>> Stashed changes
                 "y": 400
               }
             ],
@@ -2095,6 +3262,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 645,
                 "y": 304
               },
@@ -2105,11 +3273,24 @@
               {
                 "x": 1106,
                 "y": 204
+=======
+                "x": 625,
+                "y": 388
+              },
+              {
+                "x": 700,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 388
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L9Q0-p0",
+<<<<<<< Updated upstream
                 "a": "glass_column",
                 "x": 749,
                 "y": 384,
@@ -2161,10 +3342,15 @@
                 "id": "L9Q0-p7",
                 "a": "wood_crate_cross",
                 "x": 645,
+=======
+                "a": "wood_crate_cross",
+                "x": 700,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L9Q0-g0",
@@ -2173,6 +3359,9 @@
                 "y": 400
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -2189,8 +3378,13 @@
                 "y": 172
               },
               {
+<<<<<<< Updated upstream
                 "x": 1150,
                 "y": 386
+=======
+                "x": 1111,
+                "y": 230
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
@@ -2224,13 +3418,48 @@
               },
               {
                 "id": "L9Q1-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_column",
+                "x": 1051,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p5",
+                "a": "glass_column",
+                "x": 1171,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p6",
+                "a": "glass_beam_h",
+                "x": 1111,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L9Q1-p7",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [],
+=======
+            "pigs": [
+              {
+                "id": "L9Q1-g0",
+                "a": "pig_small",
+                "x": 1111,
+                "y": 400
+              }
+            ],
+>>>>>>> Stashed changes
             "moving": [
               {
                 "m": "stone",
@@ -2241,7 +3470,11 @@
                 "axis": "y",
                 "range": 70,
                 "speed": 0.8,
+<<<<<<< Updated upstream
                 "phase": 3.632068583218129
+=======
+                "phase": 1.984479765822047
+>>>>>>> Stashed changes
               }
             ]
           }
@@ -2251,6 +3484,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 665,
                 "y": 235
               },
@@ -2261,25 +3495,50 @@
               {
                 "x": 1120,
                 "y": 386
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1106,
+                "y": 204
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L9Q2-p0",
+<<<<<<< Updated upstream
                 "a": "wood_crate_panel",
                 "x": 629,
                 "y": 393.5,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L9Q2-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_panel",
                 "x": 701,
                 "y": 393.5,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L9Q2-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 665,
                 "y": 317,
@@ -2287,6 +3546,57 @@
               }
             ],
             "pigs": [],
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p4",
+                "a": "wood_beam_v",
+                "x": 1044,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p5",
+                "a": "wood_beam_v",
+                "x": 1168,
+                "y": 361,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p6",
+                "a": "wood_beam_h",
+                "x": 1106,
+                "y": 269,
+                "rot": 0
+              },
+              {
+                "id": "L9Q2-p7",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [
+              {
+                "id": "L9Q2-g0",
+                "a": "pig_small",
+                "x": 1106,
+                "y": 400
+              }
+            ],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -2295,12 +3605,21 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 700,
                 "y": 230
               },
               {
                 "x": 950,
                 "y": 386
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+>>>>>>> Stashed changes
               },
               {
                 "x": 1160,
@@ -2311,20 +3630,29 @@
               {
                 "id": "L9Q3-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 760,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L9Q3-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 640,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L9Q3-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 700,
                 "y": 305,
                 "rot": 0
@@ -2338,6 +3666,28 @@
                 "y": 400
               }
             ],
+=======
+                "x": 825,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L9Q3-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L9Q3-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         }
@@ -2377,8 +3727,13 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 1140,
                 "y": 386
+=======
+                "x": 1131,
+                "y": 235
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
@@ -2405,6 +3760,30 @@
               },
               {
                 "id": "L10Q0-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "wood_crate_panel",
+                "x": 1095,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L10Q0-p4",
+                "a": "wood_crate_panel",
+                "x": 1167,
+                "y": 393.5,
+                "rot": 0
+              },
+              {
+                "id": "L10Q0-p5",
+                "a": "wood_crate_cross",
+                "x": 1131,
+                "y": 317,
+                "rot": 0
+              },
+              {
+                "id": "L10Q0-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -2499,6 +3878,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 681,
                 "y": 230
               },
@@ -2508,26 +3888,50 @@
               },
               {
                 "x": 1140,
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 895,
+                "y": 304
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
                 "id": "L10Q2-p0",
+<<<<<<< Updated upstream
                 "a": "glass_column",
                 "x": 621,
                 "y": 384,
+=======
+                "a": "wood_beam_v",
+                "x": 765,
+                "y": 361,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L10Q2-p1",
+<<<<<<< Updated upstream
                 "a": "glass_column",
                 "x": 741,
                 "y": 384,
+=======
+                "a": "wood_triangle",
+                "x": 765,
+                "y": 256,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L10Q2-p2",
+<<<<<<< Updated upstream
                 "a": "glass_beam_h",
                 "x": 681,
                 "y": 305,
@@ -2542,6 +3946,22 @@
                 "y": 400
               }
             ],
+=======
+                "a": "wood_crate_cross",
+                "x": 895,
+                "y": 386,
+                "rot": 0
+              },
+              {
+                "id": "L10Q2-p3",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+              }
+            ],
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -2558,7 +3978,11 @@
                 "y": 172
               },
               {
+<<<<<<< Updated upstream
                 "x": 1130,
+=======
+                "x": 1100,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -2636,11 +4060,19 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1100,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -2648,33 +4080,67 @@
               {
                 "id": "L11Q0-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L11Q0-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L11Q0-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 815,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
                 "id": "L11Q0-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
+=======
+                "a": "glass_block_s",
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L11Q0-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q0-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L11Q0-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -2690,6 +4156,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 645,
                 "y": 304
               },
@@ -2700,11 +4167,24 @@
               {
                 "x": 1130,
                 "y": 386
+=======
+                "x": 625,
+                "y": 388
+              },
+              {
+                "x": 700,
+                "y": 304
+              },
+              {
+                "x": 1130,
+                "y": 388
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L11Q1-p0",
+<<<<<<< Updated upstream
                 "a": "glass_column",
                 "x": 761,
                 "y": 384,
@@ -2749,6 +4229,10 @@
                 "id": "L11Q1-p6",
                 "a": "wood_crate_cross",
                 "x": 645,
+=======
+                "a": "wood_crate_cross",
+                "x": 700,
+>>>>>>> Stashed changes
                 "y": 386,
                 "rot": 0
               }
@@ -2766,44 +4250,95 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 870,
                 "y": 144
               },
               {
                 "x": 1160,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1150,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
                 "id": "L11Q2-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 870,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L11Q2-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L11Q2-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L11Q2-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q2-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L11Q2-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L11Q2-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L11Q2-g0",
@@ -2812,6 +4347,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -2828,7 +4366,11 @@
                 "y": 102
               },
               {
+<<<<<<< Updated upstream
                 "x": 1110,
+=======
+                "x": 1150,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -2921,8 +4463,13 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 870,
                 "y": 144
+=======
+                "x": 815,
+                "y": 102
+>>>>>>> Stashed changes
               },
               {
                 "x": 1160,
@@ -2932,33 +4479,76 @@
             "pieces": [
               {
                 "id": "L12Q0-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 870,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L12Q0-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L12Q0-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L12Q0-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q0-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q0-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L12Q0-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L12Q0-g0",
@@ -2967,6 +4557,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -2979,11 +4572,19 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1150,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -2991,33 +4592,67 @@
               {
                 "id": "L12Q1-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L12Q1-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L12Q1-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 815,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
                 "id": "L12Q1-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
+=======
+                "a": "glass_block_s",
+                "x": 847,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L12Q1-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q1-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L12Q1-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -3037,11 +4672,19 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1160,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -3049,33 +4692,67 @@
               {
                 "id": "L12Q2-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L12Q2-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L12Q2-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 815,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
                 "id": "L12Q2-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
+=======
+                "a": "glass_block_s",
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L12Q2-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q2-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L12Q2-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -3095,8 +4772,13 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 870,
                 "y": 144
+=======
+                "x": 825,
+                "y": 172
+>>>>>>> Stashed changes
               },
               {
                 "x": 1160,
@@ -3106,33 +4788,62 @@
             "pieces": [
               {
                 "id": "L12Q3-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 870,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L12Q3-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L12Q3-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L12Q3-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L12Q3-p4",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L12Q3-g0",
@@ -3141,6 +4852,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         }
@@ -3175,6 +4889,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 705,
                 "y": 304
               },
@@ -3184,6 +4899,17 @@
               },
               {
                 "x": 1118,
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1120,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -3191,25 +4917,38 @@
               {
                 "id": "L13Q0-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L13Q0-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 955,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L13Q0-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 890,
+=======
+                "x": 825,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L13Q0-p6",
                 "a": "wood_crate_cross",
                 "x": 705,
@@ -3221,6 +4960,19 @@
                 "a": "wood_beam_h",
                 "x": 890,
                 "y": 245,
+=======
+                "id": "L13Q0-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L13Q0-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+>>>>>>> Stashed changes
                 "rot": 0
               }
             ],
@@ -3235,7 +4987,11 @@
                 "axis": "y",
                 "range": 70,
                 "speed": 0.8,
+<<<<<<< Updated upstream
                 "phase": 1.860404014711842
+=======
+                "phase": 1.3822514860826225
+>>>>>>> Stashed changes
               }
             ]
           }
@@ -3245,6 +5001,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 635,
                 "y": 304
               },
@@ -3254,6 +5011,17 @@
               },
               {
                 "x": 1100,
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1110,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -3261,25 +5029,38 @@
               {
                 "id": "L13Q1-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L13Q1-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 955,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L13Q1-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 890,
+=======
+                "x": 825,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L13Q1-p4",
                 "a": "wood_crate_cross",
                 "x": 635,
@@ -3292,6 +5073,20 @@
                 "x": 890,
                 "y": 245,
                 "rot": 0
+=======
+                "id": "L13Q1-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L13Q1-p4",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+                "rot": 0
+>>>>>>> Stashed changes
               }
             ],
             "pigs": [],
@@ -3307,44 +5102,81 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 885,
                 "y": 144
               },
               {
                 "x": 1118,
+=======
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1130,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
                 "id": "L13Q2-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 885,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L13Q2-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 885,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L13Q2-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 885,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L13Q2-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L13Q2-p4",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L13Q2-g0",
@@ -3353,6 +5185,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -3361,6 +5196,7 @@
           "layout": {
             "targets": [
               {
+<<<<<<< Updated upstream
                 "x": 635,
                 "y": 304
               },
@@ -3371,31 +5207,56 @@
               {
                 "x": 1118,
                 "y": 386
+=======
+                "x": 645,
+                "y": 304
+              },
+              {
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1116,
+                "y": 102
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L13Q3-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 749,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L13Q3-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 955,
+=======
+                "x": 901,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L13Q3-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 890,
+=======
+                "x": 825,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
+<<<<<<< Updated upstream
                 "id": "L13Q3-p4",
                 "a": "wood_crate_cross",
                 "x": 635,
@@ -3407,6 +5268,61 @@
                 "a": "wood_beam_h",
                 "x": 890,
                 "y": 245,
+=======
+                "id": "L13Q3-p3",
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p4",
+                "a": "glass_column",
+                "x": 1062,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p5",
+                "a": "glass_column",
+                "x": 1170,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p6",
+                "a": "glass_beam_h",
+                "x": 1116,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p7",
+                "a": "glass_block_s",
+                "x": 1084,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p8",
+                "a": "glass_block_s",
+                "x": 1148,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p9",
+                "a": "glass_beam_h",
+                "x": 1116,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L13Q3-p10",
+                "a": "wood_crate_cross",
+                "x": 645,
+                "y": 386,
+>>>>>>> Stashed changes
                 "rot": 0
               }
             ],
@@ -3453,22 +5369,35 @@
                 "y": 102
               },
               {
+<<<<<<< Updated upstream
                 "x": 1130,
                 "y": 386
+=======
+                "x": 1106,
+                "y": 172
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L14Q0-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 869,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L14Q0-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 761,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
@@ -3482,14 +5411,22 @@
               {
                 "id": "L14Q0-p3",
                 "a": "glass_block_s",
+<<<<<<< Updated upstream
                 "x": 847,
+=======
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L14Q0-p4",
                 "a": "glass_block_s",
+<<<<<<< Updated upstream
                 "x": 783,
+=======
+                "x": 847,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
@@ -3502,6 +5439,37 @@
               },
               {
                 "id": "L14Q0-p6",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_column",
+                "x": 1030,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p7",
+                "a": "glass_column",
+                "x": 1182,
+                "y": 384,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p8",
+                "a": "glass_beam_h",
+                "x": 1106,
+                "y": 305,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p9",
+                "a": "stone_block_s",
+                "x": 1106,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q0-p10",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -3521,44 +5489,95 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 870,
                 "y": 144
               },
               {
                 "x": 1160,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1150,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
                 "id": "L14Q1-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 870,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L14Q1-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L14Q1-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L14Q1-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q1-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q1-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L14Q1-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L14Q1-g0",
@@ -3567,6 +5586,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -3583,7 +5605,11 @@
                 "y": 102
               },
               {
+<<<<<<< Updated upstream
                 "x": 1160,
+=======
+                "x": 1140,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -3591,14 +5617,22 @@
               {
                 "id": "L14Q2-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 761,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L14Q2-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 869,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
@@ -3612,14 +5646,22 @@
               {
                 "id": "L14Q2-p3",
                 "a": "glass_block_s",
+<<<<<<< Updated upstream
                 "x": 783,
+=======
+                "x": 847,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L14Q2-p4",
                 "a": "glass_block_s",
+<<<<<<< Updated upstream
                 "x": 847,
+=======
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
@@ -3651,11 +5693,19 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1090,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1160,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -3663,33 +5713,67 @@
               {
                 "id": "L14Q3-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L14Q3-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L14Q3-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 815,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
                 "id": "L14Q3-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
+=======
+                "a": "glass_block_s",
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L14Q3-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L14Q3-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L14Q3-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -3735,11 +5819,19 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1080,
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1160,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
@@ -3747,33 +5839,67 @@
               {
                 "id": "L15Q0-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L15Q0-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L15Q0-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 815,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
                 "id": "L15Q0-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
+=======
+                "a": "glass_block_s",
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L15Q0-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q0-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L15Q0-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -3793,45 +5919,123 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 825,
                 "y": 172
               },
               {
                 "x": 1140,
                 "y": 386
+=======
+                "x": 815,
+                "y": 102
+              },
+              {
+                "x": 1161,
+                "y": 254
+>>>>>>> Stashed changes
               }
             ],
             "pieces": [
               {
                 "id": "L15Q1-p0",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 749,
+=======
+                "x": 761,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L15Q1-p1",
                 "a": "glass_column",
+<<<<<<< Updated upstream
                 "x": 901,
+=======
+                "x": 869,
+>>>>>>> Stashed changes
                 "y": 384,
                 "rot": 0
               },
               {
                 "id": "L15Q1-p2",
                 "a": "glass_beam_h",
+<<<<<<< Updated upstream
                 "x": 825,
+=======
+                "x": 815,
+>>>>>>> Stashed changes
                 "y": 305,
                 "rot": 0
               },
               {
                 "id": "L15Q1-p3",
+<<<<<<< Updated upstream
                 "a": "stone_block_s",
                 "x": 825,
+=======
+                "a": "glass_block_s",
+                "x": 783,
+>>>>>>> Stashed changes
                 "y": 241,
                 "rot": 0
               },
               {
                 "id": "L15Q1-p4",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p6",
+                "a": "stone_block_l",
+                "x": 1161,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p7",
+                "a": "stone_block_l",
+                "x": 1001,
+                "y": 390,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p8",
+                "a": "stone_block_s",
+                "x": 1161,
+                "y": 323,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p9",
+                "a": "stone_block_s",
+                "x": 1001,
+                "y": 323,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p10",
+                "a": "stone_beam_h",
+                "x": 1081,
+                "y": 262,
+                "rot": 0
+              },
+              {
+                "id": "L15Q1-p11",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
@@ -3851,8 +6055,13 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 870,
                 "y": 144
+=======
+                "x": 815,
+                "y": 102
+>>>>>>> Stashed changes
               },
               {
                 "x": 1160,
@@ -3862,33 +6071,76 @@
             "pieces": [
               {
                 "id": "L15Q2-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 870,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 761,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L15Q2-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 869,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L15Q2-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L15Q2-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "glass_block_s",
+                "x": 783,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q2-p4",
+                "a": "glass_block_s",
+                "x": 847,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q2-p5",
+                "a": "glass_beam_h",
+                "x": 815,
+                "y": 177,
+                "rot": 0
+              },
+              {
+                "id": "L15Q2-p6",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L15Q2-g0",
@@ -3897,6 +6149,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         },
@@ -3909,44 +6164,81 @@
                 "y": 304
               },
               {
+<<<<<<< Updated upstream
                 "x": 870,
                 "y": 144
               },
               {
                 "x": 1160,
+=======
+                "x": 825,
+                "y": 172
+              },
+              {
+                "x": 1140,
+>>>>>>> Stashed changes
                 "y": 386
               }
             ],
             "pieces": [
               {
                 "id": "L15Q3-p0",
+<<<<<<< Updated upstream
                 "a": "stone_block_l",
                 "x": 870,
                 "y": 390,
+=======
+                "a": "glass_column",
+                "x": 749,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L15Q3-p1",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 310,
+=======
+                "a": "glass_column",
+                "x": 901,
+                "y": 384,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L15Q3-p2",
+<<<<<<< Updated upstream
                 "a": "wood_crate_cross",
                 "x": 870,
                 "y": 226,
+=======
+                "a": "glass_beam_h",
+                "x": 825,
+                "y": 305,
+>>>>>>> Stashed changes
                 "rot": 0
               },
               {
                 "id": "L15Q3-p3",
+<<<<<<< Updated upstream
+=======
+                "a": "stone_block_s",
+                "x": 825,
+                "y": 241,
+                "rot": 0
+              },
+              {
+                "id": "L15Q3-p4",
+>>>>>>> Stashed changes
                 "a": "wood_crate_cross",
                 "x": 645,
                 "y": 386,
                 "rot": 0
               }
             ],
+<<<<<<< Updated upstream
             "pigs": [
               {
                 "id": "L15Q3-g0",
@@ -3955,6 +6247,9 @@
                 "y": 395
               }
             ],
+=======
+            "pigs": [],
+>>>>>>> Stashed changes
             "moving": []
           }
         }
