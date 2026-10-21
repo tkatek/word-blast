@@ -38,6 +38,15 @@ for (const t of TARGETS) {
   const p = join(IMG, t.file);
   try {
     const before = statSync(p).size;
+    // idempotence guard: never re-encode an already right-sized file
+    // (repeated lossy re-quantization degrades quality generation by
+    // generation — the slingshot PNG shrank 151→124→111→98KB across
+    // accidental re-runs before this guard existed).
+    const meta = await sharp(p).metadata();
+    if (meta.width <= t.width && meta.height <= t.height) {
+      console.log(`${t.file.padEnd(30)} already ${meta.width}×${meta.height} — skipped`);
+      continue;
+    }
     const isPng = p.endsWith('.png');
     let pipe = sharp(p).resize(t.width, t.height, { kernel: 'lanczos3', fit: 'fill' });
     pipe = isPng

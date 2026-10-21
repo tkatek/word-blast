@@ -371,6 +371,20 @@ async function mobilePass() {
     await pause(page);
     await sleep(900);
     await dismissPromos(page); // once more — it can pop over the paused game
+    // headless boots occasionally miss the initial camera reframe (the
+    // game then renders unzoomed/clipped) — nudge a resize until the
+    // gameplay camera carries the canonical fit-view zoom
+    for (let i = 0; i < 4; i++) {
+      const framed = await page.evaluate(() => {
+        const s = window.__WB__.scene();
+        const gs = s.scale.gameSize;
+        const z = Math.min(gs.width / 1280, gs.height / 720);
+        return Math.abs(s.cameras.main.zoom - z) < 0.02 && Math.abs(s.hud.uiCam.zoom - z) < 0.02;
+      }).catch(() => false);
+      if (framed) break;
+      await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+      await sleep(500);
+    }
     const info = await hudInfo(page);
     check(info.pauseOpen && info.playVisible && info.homeVisible, 'phone pause shows PLAY + HOME');
     check(info.blurOn, 'phone uses the mobile blur tier', `blurOn=${info.blurOn}`);
