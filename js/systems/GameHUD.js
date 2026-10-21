@@ -98,9 +98,14 @@ const PAUSE_UI = {
   SCRIM_ALPHA: 0.52,        // darkening over the blurred scenery
   SCRIM_ALPHA_FLAT: 0.66,   // Canvas fallback (no post-fx blur available)
   PLAY_R: 108,              // wooden play disk radius (Ø 216 ≈ 30% of height)
-  PLAY_Y: -122,             // play button center (menu-local)
-  /** Top-left HOME control (world px): round wooden disk + home icon. */
-  HOME: { x: 72, y: 132, r: 37, hit: 48, icon: 0.64 },
+  PLAY_Y: 0,                // dead-center of the world (the ONLY control)
+  /** Top-left HOME control: takes over the top bar's pause-button slot
+   *  (the bars button is hidden while paused — the slot is otherwise
+   *  occupied and every spot below the bar collides with the docked
+   *  question card). World px; aligned via the HUD layout per device. */
+  HOME_R: 34,
+  HOME_HIT: 46,
+  HOME_ICON: 0.62,
   /** Bottom-left EXIT-FULLSCREEN control (world px): same disk family;
    *  exists ONLY while the document is actually fullscreen. */
   FS_EXIT: { x: 72, y: 720 - 132, r: 33, hit: 44, icon: 0.6 }
@@ -772,11 +777,15 @@ export class GameHUD {
       this.actions.onResume && this.actions.onResume();
     });
 
-    // top-left HOME: same round wooden artwork family, home icon on top.
+    // top-left HOME: takes over the top bar's pause-button slot (that slot
+    // is the only clean top-left corner — everything below the HUD band
+    // collides with the docked question card). The bars button itself is
+    // hidden while paused; see openPause/closePause.
     // Confirmed before leaving (in-level progress protection) — the card
     // appears only after this button is tapped, never on the resting
     // pause screen.
-    const H = PAUSE_UI.HOME;
+    const P = this.layout.elements.pause;
+    const H = { x: P.x, y: P.y, r: PAUSE_UI.HOME_R, hit: PAUSE_UI.HOME_HIT, icon: PAUSE_UI.HOME_ICON };
     const homeIconKey = s.textures.exists(PAUSE_ICON_ART.home.key)
       ? PAUSE_ICON_ART.home.key : TEX.homeIcon;
     this.homeBtn = s.add.container(H.x - WORLD.WIDTH / 2, H.y - WORLD.HEIGHT / 2);
@@ -1265,6 +1274,8 @@ export class GameHUD {
     s.tweens.killTweensOf(items);
     this.menu.setVisible(true);
     this.setPauseInputEnabled(true);
+    // the bars button's slot now hosts HOME — hide the bars while paused
+    this.pauseBtn?.setVisible(false);
     // resting transforms (also the reduced-motion end state)
     this.scrim.setAlpha(1);
     for (const b of this.pauseStack) {
@@ -1319,6 +1330,7 @@ export class GameHUD {
     this.hideConfirm();
     this.setPauseInputEnabled(false);
     this.setPauseTopOnly(false); // restore the normal topOnly hit-sorting
+    this.pauseBtn?.setVisible(true); // the bars button reclaims its slot
     this.stopGlowPulse();
     this.fadePauseFx();
     const s = this.scene;
