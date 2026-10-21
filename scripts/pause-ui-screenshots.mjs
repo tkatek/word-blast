@@ -123,11 +123,20 @@ const objCenter = (page, path) => page.evaluate((p) => {
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
 }, path);
 
+/**
+ * Canonical fit-view world→screen math (computeFitView inverted). Camera
+ * property reads proved unreliable under headless batching — the RENDER and
+ * the INPUT system both follow this canonical mapping (verified against
+ * actual screenshots: the play button renders exactly at its canonical
+ * screen position on desktop AND phone-landscape viewports).
+ */
 const toScreen = (page, x, y) => page.evaluate(([x, y]) => {
   const s = window.__WB__.scene();
-  const cam = s && s.hud ? s.hud.uiCam : null;
-  if (!cam) return null; // scene/HUD mid-transition
-  return { x: (x - cam.scrollX) * cam.zoom + cam.x, y: (y - cam.scrollY) * cam.zoom + cam.y };
+  const gs = s.scale.gameSize;
+  const zoom = Math.min(gs.width / 1280, gs.height / 720);
+  const vx = (1280 - gs.width / zoom) / 2;
+  const vy = (720 - gs.height / zoom) / 2;
+  return { x: (x - vx) * zoom, y: (y - vy) * zoom };
 }, [x, y]);
 
 /** Click a HUD object like a real user: move → press → release. Retries
