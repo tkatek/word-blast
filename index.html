@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Word Blast" />
+  <meta name="theme-color" content="#081c15" />
+  <meta name="description" content="Word Blast — a physics-based English-learning slingshot game." />
+  <!-- Installable web app: manifest lives at the deployment root next to this
+       page (relative URL → correct under /word-blast/ on GitHub Pages, local
+       builds and any future base path). Icons are committed PNGs. -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="./assets/images/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./assets/images/icons/apple-touch-icon.png" />
+  <title>WORD BLAST</title>
+  <!-- Critical inline styles (Fix: unstyled "Rotate Your Phone" white page).
+       These mirror css/style.css for the page shell + orientation overlay and
+       are intentionally inlined so a failed/404 external stylesheet can NEVER
+       leave a raw, unstyled overlay visible. The full stylesheet layers the
+       refinements on top when it loads. -->
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #081c15; touch-action: none;
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      overscroll-behavior: none;
+    }
+    #game { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; box-sizing: border-box;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                     env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    /* dynamic viewport units where supported (mobile toolbars) */
+    #game { width: 100dvw; height: 100dvh; }
+    #game canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    #rotate-overlay {
+      position: fixed; inset: 0; z-index: 1000; display: none;
+      align-items: center; justify-content: center; box-sizing: border-box;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+      background: rgba(8, 28, 21, 0.97); color: #ffd60a;
+      font-family: Arial, Helvetica, sans-serif; text-align: center;
+      touch-action: none; -webkit-user-select: none; user-select: none;
+    }
+    #rotate-overlay.is-visible { display: flex; }
+    #rotate-overlay .rotate-card {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      padding: 24px; max-width: min(86vw, 420px);
+    }
+    #rotate-overlay h2 { margin: 0; font-size: clamp(22px, 6vw, 34px); letter-spacing: 0.02em; }
+    #rotate-overlay p { margin: 0; color: #ffffff; font-size: clamp(14px, 4vw, 17px); line-height: 1.5; }
+    #rotate-overlay .rotate-phone { transform-origin: 60px 66px; animation: wb-rotate-nudge 2.2s ease-in-out infinite; }
+    @keyframes wb-rotate-nudge {
+      0%, 55%, 100% { transform: rotate(0deg); }
+      75%           { transform: rotate(-82deg); }
+    }
+    /* Rotation-lock hint: the website cannot change the device's rotation
+       lock setting — say so instead of leaving the player stuck. */
+    #rotate-overlay .rotate-sub {
+      margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 214, 10, 0.35);
+      color: #ffd60a; opacity: 0.85; font-size: clamp(11px, 3vw, 13px); line-height: 1.5;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #rotate-overlay .rotate-phone { animation: none; }
+    }
+    /* Fullscreen entry (mobile landscape): hidden until js/systems/
+       FullscreenEntry.js decides. Critical basics inline so a CSS 404 can
+       never leave a broken card; the wooden styling lives in style.css. */
+    #fs-entry { position: fixed; inset: 0; z-index: 900; display: none;
+      align-items: center; justify-content: center; touch-action: none;
+      -webkit-user-select: none; user-select: none; }
+    #fs-entry.is-visible { display: flex; }
+    #fs-entry .fs-scrim { position: absolute; inset: 0; background: rgba(8,28,21,.55); }
+    #fs-entry .fs-card { position: relative; max-width: min(88vw, 430px);
+      margin: 0; padding: 0; background: #a4713d; border: 4px solid #4d3218;
+      border-radius: 18px; color: #fff; text-align: center;
+      font-family: Arial, Helvetica, sans-serif; box-sizing: border-box; }
+    #fs-entry button { font: bold 19px Arial, Helvetica, sans-serif; cursor: pointer; }
+    #fs-chip { position: fixed; z-index: 900; display: none; right: calc(12px + env(safe-area-inset-right));
+      bottom: calc(12px + env(safe-area-inset-bottom)); padding: 8px 14px;
+      background: #a4713d; border: 3px solid #4d3218; border-radius: 999px;
+      color: #fff; font: bold 15px Arial, Helvetica, sans-serif; cursor: pointer;
+      touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+    #fs-chip.is-visible { display: block; }
+    #fs-chip[disabled] { opacity: .6; }
+  </style>
+  <script type="module" crossorigin src="/word-blast/assets/index-DLwPFSHr.js"></script>
+  <link rel="stylesheet" crossorigin href="/word-blast/assets/index-CzauLPs9.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- Landscape-only gate: fullscreen on phones held in portrait (Fix #2).
+       Shown/hidden by js/systems/OrientationGate.js on every scene. -->
+  <div id="rotate-overlay" role="dialog" aria-label="Rotate your phone" aria-hidden="true">
+    <div class="rotate-card">
+      <svg class="rotate-icon" viewBox="0 0 140 120" width="140" height="120" aria-hidden="true">
+        <!-- rotating phone -->
+        <g class="rotate-phone">
+          <rect x="34" y="18" width="52" height="96" rx="10" fill="none" stroke="#ffd60a" stroke-width="6"/>
+          <rect x="42" y="30" width="36" height="60" rx="4" fill="none" stroke="#ffd60a" stroke-width="3"/>
+          <rect x="53" y="96" width="14" height="4" rx="2" fill="#ffd60a"/>
+        </g>
+        <!-- rotation arrow -->
+        <path d="M 112 62 A 54 54 0 0 0 96 26" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+        <polygon points="88,16 106,14 100,32" fill="#ffffff"/>
+      </svg>
+      <h2>Rotate Your Phone</h2>
+      <p>WORD BLAST is played in landscape.<br />Turn your phone sideways to continue.</p>
+      <p class="rotate-sub">If the picture doesn’t rotate, your device’s
+        <b>Rotation&nbsp;Lock</b> may be on — the website can’t change that
+        setting; turn it off in Control Center / Quick Settings.</p>
+    </div>
+  </div>
+
+  <!-- Mobile landscape fullscreen prompt (js/systems/FullscreenEntry.js).
+       Two variants share one wooden card:
+         [play] ⛶ PLAY FULLSCREEN + "Not now" (Fullscreen API available)
+         [hint] Add to Home Screen guidance (iPhone Safari & blocked iframes)
+       A compact corner chip (#fs-chip) keeps the control available after
+       dismissal / after exiting fullscreen without covering gameplay. -->
+  <div id="fs-entry" role="dialog" aria-label="Fullscreen" aria-hidden="true">
+    <div class="fs-scrim"></div>
+    <div class="fs-card">
+      <div data-variant="play">
+        <div class="fs-inner">
+          <h2 class="fs-title">MORE ROOM TO PLAY</h2>
+          <p class="fs-msg fs-play-note">Play with more screen space.</p>
+          <button type="button" class="fs-btn fs-btn-play" aria-live="polite">
+            <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="fs-btn-label">PLAY FULLSCREEN</span>
+          </button>
+          <a href="#" class="fs-dismiss" role="button">Not now — keep playing</a>
+        </div>
+      </div>
+      <div data-variant="hint" style="display:none">
+        <div class="fs-inner">
+          <h2 class="fs-title">PLAY WITHOUT THE ADDRESS BAR</h2>
+          <p class="fs-msg">This browser can’t hide its address bar for a web
+            page — but installing WORD BLAST as a Home&nbsp;Screen app can.
+            It takes about 20 seconds:</p>
+          <ol class="fs-hint-steps"></ol>
+          <button type="button" class="fs-btn fs-btn-continue">
+            <span class="fs-btn-label">CONTINUE IN BROWSER</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button type="button" id="fs-chip" aria-label="Play fullscreen" aria-hidden="true">
+    <span class="fs-chip-label">⛶</span>
+  </button>
+
+  <noscript>
+    <p style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;margin:0;background:#081c15;color:#ffd60a;font-family:Arial,sans-serif;text-align:center;padding:24px;">
+      WORD BLAST needs JavaScript enabled to run.
+    </p>
+  </noscript>
+
+  <!-- Boot watchdog (Fix: Live Server blank screen). Dependency-free inline
+       script so it survives any bundling/base-path problem and even a CSS 404:
+       shows a loading chip, records module/resource errors and, if the Phaser
+       canvas never appears, replaces the blank page with an actionable error
+       card instead of an unexplained light-blue screen. js/main.js handshakes
+       via window.__wbBoot.ok()/fail(). -->
+  <script>
+    (function () {
+      var TIMEOUT_MS = 8000;
+      var problems = [];
+      var chip = null, card = null, timer = null, booted = false;
+
+      function el(tag, style, text) {
+        var n = document.createElement(tag);
+        for (var k in style) n.style[k] = style[k];
+        if (text) n.textContent = text;
+        return n;
+      }
+
+      function showChip() {
+        chip = el('div', {
+          position: 'fixed', right: '10px', bottom: '10px', zIndex: '2147483000',
+          padding: '6px 12px', borderRadius: '14px', background: 'rgba(8,28,21,.85)',
+          color: '#ffd60a', font: '13px Arial, sans-serif', pointerEvents: 'none'
+        }, 'Loading WORD BLAST\u2026');
+        document.body.appendChild(chip);
+      }
+
+      function isUncompiledRoot() {
+        return problems.some(function (p) {
+          return /Failed to resolve module specifier|Relative references must start/.test(p);
+        });
+      }
+
+      function showCard(reason) {
+        if (booted || !document.body) return;
+        if (chip && chip.parentNode) chip.parentNode.removeChild(chip);
+        if (card && card.parentNode) card.parentNode.removeChild(card);
+
+        card = el('div', {
+          position: 'fixed', inset: '0', zIndex: '2147483001', boxSizing: 'border-box',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(8,28,21,.97)', padding: '24px',
+          fontFamily: 'Arial, Helvetica, sans-serif', color: '#fff', overflow: 'auto'
+        });
+        var box = el('div', { maxWidth: '560px', width: '100%' });
+        box.appendChild(el('h2', { margin: '0 0 8px', color: '#ffd60a', fontSize: '22px' }, 'WORD BLAST failed to start'));
+        box.appendChild(el('p', { margin: '0 0 12px', lineHeight: '1.5', fontSize: '15px' }, reason));
+
+        if (isUncompiledRoot()) {
+          box.appendChild(el('p', { margin: '0 0 12px', lineHeight: '1.5', fontSize: '15px', color: '#ffd60a' },
+            'Cause: the browser was served the UNCOMPILED project root instead of the compiled game. ' +
+            'Run "npm run build" (or keep "npm run watch" running), make sure VS Code Live Server serves the ' +
+            'dist/ folder (see .vscode/settings.json), then reload.'));
+        } else {
+          box.appendChild(el('p', { margin: '0 0 12px', lineHeight: '1.5', fontSize: '15px' },
+            'Check the browser console (F12) and network tab for details, then reload the page.'));
+        }
+
+        if (problems.length) {
+          var list = el('div', {
+            margin: '0 0 12px', padding: '10px 12px', boxSizing: 'border-box',
+            background: 'rgba(255,255,255,.08)', borderRadius: '8px',
+            font: '12px/1.6 Consolas, monospace', color: '#ffb4a2', wordBreak: 'break-all'
+          });
+          problems.slice(0, 6).forEach(function (p) { list.appendChild(el('div', null, '\u2022 ' + p)); });
+          box.appendChild(list);
+        }
+        card.appendChild(box);
+        document.body.appendChild(card);
+      }
+
+      function record(msg) {
+        if (problems.length < 12) problems.push(msg);
+      }
+
+      // Script/CSS/image/audio 404s fire 'error' on the element (no bubbling).
+      window.addEventListener('error', function (e) {
+        var t = e.target;
+        if (t && t !== window && (t.tagName === 'SCRIPT' || t.tagName === 'LINK' ||
+            t.tagName === 'IMG' || t.tagName === 'AUDIO')) {
+          record('Failed to load ' + (t.src || t.href || t.tagName));
+        } else if (e && e.message) {
+          record(e.message + (e.filename ? '  (' + e.filename + (e.lineno ? ':' + e.lineno : '') + ')' : ''));
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason;
+        record('Unhandled promise rejection: ' + ((r && r.message) ? r.message : String(r)));
+      });
+
+      window.__wbBoot = {
+        get booted() { return booted; },
+        /** Recorded resource/boot problems for the ?diag=1 diagnostics. */
+        problems: function () { return problems.slice(); },
+        ok: function () {
+          booted = true;
+          if (timer) { clearTimeout(timer); timer = null; }
+          if (chip && chip.parentNode) chip.parentNode.removeChild(chip);
+          if (card && card.parentNode) card.parentNode.removeChild(card);
+        },
+        fail: function (reason) { showCard(String(reason || 'Unknown initialization error.')); }
+      };
+
+      function start() {
+        showChip();
+        timer = setTimeout(function () {
+          if (booted) return;
+          var canvas = document.querySelector('#game canvas');
+          if (canvas) { window.__wbBoot.ok(); return; }
+          showCard('The game did not finish initializing. Possible causes: missing or moved build output, ' +
+            'a failed asset/module load, or a browser without WebGL support.');
+        }, TIMEOUT_MS);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else {
+        start();
+      }
+    })();
+  </script>
+
+</body>
+</html>
