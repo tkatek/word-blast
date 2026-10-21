@@ -45,13 +45,29 @@ const dump = (page) => page.evaluate(() => {
   const hud = s.hud;
   const blur = hud.pauseBlur;
   const cam = s.cameras.main;
+  let fxNames = null;
+  try { fxNames = cam.postFX ? cam.postFX.list.map((p) => p.name || '?') : null; } catch (e) { fxNames = ['ERR']; }
   return {
     open: hud.pauseOpen, state: s.stateMachine.current, menuVis: hud.menu.visible,
+    menuAlpha: hud.menu.alpha, scrimAlpha: hud.scrim.alpha,
     blur: !!blur, strength: blur ? blur.strength : null,
-    fxList: cam.postFX ? cam.postFX.list.length : -1,
+    fxNames,
+    sceneStatus: s.sys.settings.status,
+    timeScale: s.tweens.timeScale,
     now: s.time.now
   };
 });
+
+const rafLiveness = (page) => page.evaluate(() => new Promise((resolve) => {
+  let n = 0;
+  const t0 = performance.now();
+  const tick = () => {
+    n++;
+    if (performance.now() - t0 >= 500) resolve(n);
+    else requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}));
 
 const browser = await puppeteer.launch({
   executablePath: findBrowser(),
@@ -101,11 +117,15 @@ for (let i = 0; i < 40; i++) {
   d = await dump(page);
   if (d.open || d.state !== 'AIMING') { console.log(`iter ${i}: BAD CLOSE (click miss?)`, JSON.stringify(d)); break; }
   // give the fade + guard ample time every 10 iterations
-  if (i % 10 === 9) {
-    await sleep(800);
+  if (i % 5 === 4) {
+    await sleep(500);
     d = await dump(page);
-    if (d.blur) {
-      console.log(`iter ${i}: STUCK BLUR`, JSON.stringify(d));
+    console.log(`iter ${i}: fx=[${d.fxNames}] blur=${d.blur} menu=${d.menuVis}`);
+    if (d.blur || d.menuVis) {
+      console.log(`iter ${i}: STUCK`, JSON.stringify(d));
+      const rafs = await rafLiveness(page);
+      const d2 = await dump(page);
+      console.log(`raf(500ms)=${rafs} second-sample:`, JSON.stringify(d2));
       stuck = d;
       break;
     }
