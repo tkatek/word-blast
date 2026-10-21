@@ -31,14 +31,19 @@
  *     and labels are separate game objects drawn on top; nothing is baked
  *     into the images. Panel geometry (inner windows, compartment bounds)
  *     comes from pixel measurements of the artwork, never eyeballed.
- *   - Layout lives in the fixed 1280×720 world and is computed by ONE pure
- *     function (HudLayout.computeHudLayout) per device class — desktop /
- *     tablet share the full row, phones get a compact row with enlarged
- *     touch hit-boxes. The Viewport always frames the whole world, so the
- *     layout never re-flows on resize.
+ *   - Layout is computed by ONE pure function (HudLayout.computeHudLayout)
+ *     per device class. Desktop/tablet rows are laid out across the FULL
+ *     VISIBLE VIEW width (computeFitView — the same calculation that frames
+ *     the gameplay camera) and re-flow on resize; phones keep the fixed
+ *     1280-wide compact row with enlarged touch hit-boxes (unchanged).
  *   - The HUD renders through its OWN camera: the gameplay camera's impact
  *     shake/flash never reaches it (cameras.main ignores the HUD tree).
- *     Both cameras share the same fit-view framing.
+ *     The UI camera applies the SAME canonical fit-view framing
+ *     (computeFitView over scale.gameSize → setZoom + centerOn world
+ *     center) — never a copy of the gameplay camera, whose own framing is
+ *     applied later in the same create() and used to be missed entirely
+ *     (the HUD then rendered at zoom 1, bunched top-left: the pause scrim
+ *     covered only part of the screen on every viewport ≠ 1280×720).
  *   - The HUD band stays above y 76 (78 on phones) — below the question
  *     card's top resting spot (y 86), so the existing dock needs no change.
  *     `barBottom` exposes the occupied band for future coordination.
@@ -90,25 +95,32 @@ const BTN_COLORS = {
 };
 
 /**
- * Pause overlay geometry + tuning (world px inside the fixed 1280×720
- * world; the menu container is centered on the world center).
+ * Pause overlay tuning (world px inside the fixed 1280×720 world unless
+ * noted). The menu container is centered on the world center — which the
+ * fit-view framing places at the CENTER OF THE VISIBLE VIEW — and the scrim
+ * is sized in reflowPauseChrome() to cover the ENTIRE visible view
+ * (computeFitView rect, ≥ 1280×720), so there is never a visible rectangle
+ * edge: one continuous dark overlay over the blurred gameplay.
  */
 const PAUSE_UI = {
   SCRIM: 0x050d08,          // near-black green-tinted dark overlay
   SCRIM_ALPHA: 0.52,        // darkening over the blurred scenery
   SCRIM_ALPHA_FLAT: 0.66,   // Canvas fallback (no post-fx blur available)
   PLAY_R: 108,              // wooden play disk radius (Ø 216 ≈ 30% of height)
-  PLAY_Y: 0,                // dead-center of the world (the ONLY control)
+  PLAY_Y: 0,                // center of the visible view (the ONLY control)
   /** Top-left HOME control: takes over the top bar's pause-button slot
    *  (the bars button is hidden while paused — the slot is otherwise
    *  occupied and every spot below the bar collides with the docked
-   *  question card). World px; aligned via the HUD layout per device. */
+   *  question card). Anchored via the HUD layout per device; reflowed
+   *  with the bar. World px radii. */
   HOME_R: 34,
   HOME_HIT: 46,
   HOME_ICON: 0.62,
   /** Bottom-left EXIT-FULLSCREEN control (world px): same disk family;
-   *  exists ONLY while the document is actually fullscreen. */
-  FS_EXIT: { x: 72, y: 720 - 132, r: 33, hit: 44, icon: 0.6 }
+   *  exists ONLY while the document is actually fullscreen. Desktop rows
+   *  hug the VISIBLE view's bottom-left corner (reflowPauseChrome);
+   *  phones keep the historical world-anchored spot. */
+  FS_EXIT: { x: 72, dy: 132, r: 33, hit: 44, icon: 0.6 }
 };
 
 /* ------------------------------------------------------------------ */
@@ -476,7 +488,9 @@ export class GameHUD {
     }
 
     const device = scene.registry.get('device') || { type: 'desktop' };
-    this.layout = computeHudLayout(device.type);
+    this.deviceType = device.type;
+    this.view = this.computeView();
+    this.layout = computeHudLayout(this.deviceType, this.view.width);
 
     // presentation-only caches
     this.displayScore = 0;
@@ -488,6 +502,7 @@ export class GameHUD {
     this.heartAnim = null;         // { index, until }
     this.lastShotsLeft = -1;       // shots-decrease pulse guard
     this.pauseOpenState = false;
+    this.lastSnap = null;          // last sync() snapshot (bar rebuilds re-apply it)
 
     this.root = scene.add.container(0, 0).setDepth(HUD_DEPTH.BAR);
     this.buildBar();
@@ -495,6 +510,21 @@ export class GameHUD {
     this.setupUiCamera();
 
     scene.events.once('shutdown', () => this.destroy());
+  }
+
+  /**
+   * The ONE viewport calculation shared by both interfaces: the same
+   * canonical fit-view the gameplay camera receives from attachViewport
+   * (Viewport.js computeFitView over scale.gameSize). Never mixes CSS
+   * pixels or renderer scaling — gameSize is already the canvas buffer.
+   */
+  computeView() {
+    return computeFitView(this.scene.scale.gameSize.width, this.scene.scale.gameSize.height);
+  }
+
+  /** World-x where the visible view's left edge sits (0 on 16:9 screens). */
+  get viewX() {
+    return this.layout.mode === 'phone' ? 0 : this.view.x;
   }
 
   get reducedMotion() {
@@ -509,14 +539,40 @@ export class GameHUD {
   /* ---------------------------------------------------------------- */
   /* Top bar                                                           */
   /* ---------------------------------------------------------------- */
+  /**
+   * (Re)builds every bar object from the current layout. Called once at
+   * construction and again on resize for non-phone rows (the whole row is
+   * destroyed and recreated — one code path, no incremental repositioning
+   * of 25+ interdependent objects). Live presentation state (score, timer,
+   * hearts, stars, shots, level texts) is re-applied from the last sync
+   * snapshot, so a mid-game resize never shows a reset HUD.
+   */
   buildBar() {
     const s = this.scene;
     const L = this.layout;
     const E = L.elements;
     const TY = L.type;
+    const vx = this.viewX; // visible view's left edge in world space
+
+    // fresh objects → fresh per-object caches (starLit kept: no star-pop
+    // replays on resize)
+    this.star1Progress = -1;
+    this.lastShotsLeft = -1;
+    this.heartAnim = null;
+    this.displayScore = this.scoreTarget;
+
+    if (this.root.list.length) {
+      const collect = (o, acc) => {
+        acc.push(o);
+        if (o.list) for (const c of o.list) collect(c, acc);
+        return acc;
+      };
+      s.tweens.killTweensOf(collect(this.root, []));
+      this.root.removeAll(true);
+    }
 
     /* LEFT — round pause button ------------------------------------- */
-    this.pauseBtn = s.add.container(E.pause.x, E.pause.y);
+    this.pauseBtn = s.add.container(vx + E.pause.x, E.pause.y);
     const pauseBg = s.add.image(0, 0, HUD_ART.pauseBtn.key)
       .setDisplaySize(E.pause.w, E.pause.h);
     const pauseIco = s.add.image(0, 0, TEX.pauseIcon)
@@ -532,13 +588,16 @@ export class GameHUD {
       this.pauseBtn.setScale(1);
       this.actions.onPause && this.actions.onPause();
     });
+    // a rebuild while the pause menu is open must keep the slot hidden
+    this.pauseBtn.setVisible(!this.pauseOpenState);
 
     /* LEVEL plaque --------------------------------------------------- */
-    this.levelPanel = s.add.image(E.level.x, E.level.y, HUD_ART.level.key)
+    this.levelPanel = s.add.image(vx + E.level.x, E.level.y, HUD_ART.level.key)
       .setDisplaySize(E.level.w, E.level.h);
     const li = HUD_ART.level.inner;
-    const lx0 = E.level.x - E.level.w / 2 + li.x0 * E.level.w;
-    const lx1 = E.level.x - E.level.w / 2 + li.x1 * E.level.w;
+    const lLeft = vx + E.level.x - E.level.w / 2;
+    const lx0 = lLeft + li.x0 * E.level.w;
+    const lx1 = lLeft + li.x1 * E.level.w;
     const ly0 = E.level.y - E.level.h / 2 + li.y0 * E.level.h;
     const ly1 = E.level.y + E.level.h / 2 - (1 - li.y1) * E.level.h;
     const lMidX = (lx0 + lx1) / 2;
@@ -556,16 +615,16 @@ export class GameHUD {
     this.levelTitleMaxW = (lx1 - lx0) - 6;
 
     /* CENTER — Q | clock MM:SS | stars ------------------------------- */
-    this.progressPanel = s.add.image(E.progress.x, E.progress.y, HUD_ART.progress.key)
+    this.progressPanel = s.add.image(vx + E.progress.x, E.progress.y, HUD_ART.progress.key)
       .setDisplaySize(E.progress.w, E.progress.h);
 
     const qc = L.cells.question;
-    this.questionText = inkText(s, qc.cx, qc.cy, 'Q 1/4', TY.question).setOrigin(0.5);
+    this.questionText = inkText(s, vx + qc.cx, qc.cy, 'Q 1/4', TY.question).setOrigin(0.5);
 
     const tc = L.cells.timer;
-    const clock = s.add.image(tc.x0 + TY.timerIcon / 2 + 1, tc.cy, TEX.clock)
+    const clock = s.add.image(vx + tc.x0 + TY.timerIcon / 2 + 1, tc.cy, TEX.clock)
       .setDisplaySize(TY.timerIcon, TY.timerIcon);
-    this.timerText = inkText(s, tc.x0 + TY.timerIcon + 5, tc.cy, '00:00', TY.timer)
+    this.timerText = inkText(s, vx + tc.x0 + TY.timerIcon + 5, tc.cy, '00:00', TY.timer)
       .setOrigin(0, 0.5);
     // reserve the full MM:SS width so the ticking clock never shifts the HUD
     this.timerText.setFixedSize(Math.ceil(TY.timer * 0.62 * 5) + 4, Math.ceil(TY.timer * 1.25));
@@ -578,7 +637,7 @@ export class GameHUD {
       // phone: one summary star doubles as the question-progress dial
       const empty = s.add.image(0, 0, TEX.starEmpty).setDisplaySize(TY.stars, TY.stars);
       const full = s.add.image(0, 0, TEX.star).setDisplaySize(TY.stars, TY.stars).setVisible(false);
-      const g = s.add.container(sc.cx, sc.cy, [empty, full]);
+      const g = s.add.container(vx + sc.cx, sc.cy, [empty, full]);
       this.starIcons.push({ empty, full, group: g });
     } else {
       const gap = Math.max(1, (sc.w - starN * TY.stars) / (starN - 1));
@@ -586,18 +645,18 @@ export class GameHUD {
       for (let i = 0; i < starN; i++) {
         const empty = s.add.image(0, 0, TEX.starEmpty).setDisplaySize(TY.stars, TY.stars);
         const full = s.add.image(0, 0, TEX.star).setDisplaySize(TY.stars, TY.stars).setVisible(false);
-        const g = s.add.container(sc.cx - total / 2 + TY.stars / 2 + i * (TY.stars + gap), sc.cy,
+        const g = s.add.container(vx + sc.cx - total / 2 + TY.stars / 2 + i * (TY.stars + gap), sc.cy,
           [empty, full]);
         this.starIcons.push({ empty, full, group: g });
       }
     }
 
     /* RIGHT — hearts | shots | score | sound -------------------------- */
-    this.heartsPanel = s.add.image(E.hearts.x, E.hearts.y, HUD_ART.hearts.key)
+    this.heartsPanel = s.add.image(vx + E.hearts.x, E.hearts.y, HUD_ART.hearts.key)
       .setDisplaySize(E.hearts.w, E.hearts.h);
     const hi = HUD_ART.hearts.inner;
-    const hx0 = E.hearts.x - E.hearts.w / 2 + hi.x0 * E.hearts.w;
-    const hx1 = E.hearts.x - E.hearts.w / 2 + hi.x1 * E.hearts.w;
+    const hx0 = vx + E.hearts.x - E.hearts.w / 2 + hi.x0 * E.hearts.w;
+    const hx1 = vx + E.hearts.x - E.hearts.w / 2 + hi.x1 * E.hearts.w;
     this.heartIcons = [];
     const hGap = Math.max(4, (hx1 - hx0 - 3 * TY.hearts) / 4);
     for (let i = 0; i < 3; i++) {
@@ -607,20 +666,20 @@ export class GameHUD {
       );
     }
 
-    this.shotsPanel = s.add.image(E.shots.x, E.shots.y, HUD_ART.shots.key)
+    this.shotsPanel = s.add.image(vx + E.shots.x, E.shots.y, HUD_ART.shots.key)
       .setDisplaySize(E.shots.w, E.shots.h);
     const si = HUD_ART.shots.inner;
-    const sx0 = E.shots.x - E.shots.w / 2 + si.x0 * E.shots.w;
-    const sx1 = E.shots.x - E.shots.w / 2 + si.x1 * E.shots.w;
+    const sx0 = vx + E.shots.x - E.shots.w / 2 + si.x0 * E.shots.w;
+    const sx1 = vx + E.shots.x - E.shots.w / 2 + si.x1 * E.shots.w;
     this.shotsBird = s.add.image(sx0 + TY.shotsIcon / 2 + 2, E.shots.y, TEX.coin);
     this.shotsText = inkText(s, sx0 + TY.shotsIcon + 6, E.shots.y, '×0', TY.shots)
       .setOrigin(0, 0.5);
     this.shotsMaxX = sx1;
 
-    this.scorePanel = s.add.image(E.score.x, E.score.y, HUD_ART.score.key)
+    this.scorePanel = s.add.image(vx + E.score.x, E.score.y, HUD_ART.score.key)
       .setDisplaySize(E.score.w, E.score.h);
     const ci = HUD_ART.score.inner;
-    const cx0 = E.score.x - E.score.w / 2 + ci.x0 * E.score.w;
+    const cx0 = vx + E.score.x - E.score.w / 2 + ci.x0 * E.score.w;
     this.scoreCoin = s.add.image(cx0 + TY.scoreIcon / 2 + 2, E.score.y, TEX.coin)
       .setDisplaySize(TY.scoreIcon, TY.scoreIcon);
     this.scoreText = chunkyText(s, cx0 + TY.scoreIcon + 6, E.score.y, '0', TY.score,
@@ -630,7 +689,7 @@ export class GameHUD {
     // panels' inner window without touching the carved frame)
     this.scoreText.setFixedSize(Math.ceil(TY.score * 0.6 * 7) + 4, Math.ceil(TY.score * 1.3));
 
-    this.soundBtn = s.add.container(E.sound.x, E.sound.y);
+    this.soundBtn = s.add.container(vx + E.sound.x, E.sound.y);
     this.soundBg = s.add.image(0, 0, HUD_ART.soundBtn.key)
       .setDisplaySize(E.sound.w, E.sound.h);
     this.soundIco = s.add.image(0, 0, TEX.soundOn)
@@ -663,6 +722,30 @@ export class GameHUD {
       this.soundBtn,
       this.stateChip
     ]);
+
+    // re-apply the live presentation state after a mid-game rebuild (the
+    // scene's per-frame setTimer refresh takes over from the next frame)
+    if (this.lastSnap) {
+      this.sync(this.lastSnap);
+      this.scoreText.setText(formatScore(this.scoreTarget));
+      if (this.lastTimerText) this.timerText.setText(this.lastTimerText);
+      if (this.timerLowActive) this.timerText.setColor('#c1121f');
+    }
+  }
+
+  /**
+   * Resize re-flow: recompute the canonical view + layout, rebuild the bar
+   * (desktop/tablet only — phone rows are viewport-independent) and re-
+   * anchor the pause chrome. Runs after the same 'resize' event that
+   * re-frames the gameplay camera, so both interfaces always share ONE
+   * viewport calculation.
+   */
+  onViewChanged() {
+    if (!this.root) return;
+    this.view = this.computeView();
+    this.layout = computeHudLayout(this.deviceType, this.view.width);
+    if (this.layout.mode !== 'phone') this.buildBar();
+    this.reflowPauseChrome();
   }
 
   /* ---------------------------------------------------------------- */
@@ -686,40 +769,36 @@ export class GameHUD {
     // DisplayList is NOT an EventEmitter — adds are announced on the scene's
     // own event bus as 'addedtoscene'
     s.events.on('addedtoscene', this.onUiChildAdded);
-    this.onUiScaleResize = () => this.reframeUiCamera();
+    this.onUiScaleResize = () => {
+      this.reframeUiCamera();
+      this.onViewChanged();
+    };
     s.scale.on('resize', this.onUiScaleResize);
     this.reframeUiCamera();
   }
 
-  /** Mirror the gameplay camera's whole-world fit framing (no shake). */
-  /** Mirror the gameplay camera's live whole-world framing (no shake). */
+  /**
+   * Canonical fit-view framing — the SAME calculation (and the SAME calls)
+   * the gameplay camera receives from attachViewport: computeFitView over
+   * scale.gameSize → setZoom + centerOn world center.
+   *
+   * This deliberately does NOT copy cameras.main. The old copy had a
+   * startup hole: at construction both cameras still carried their
+   * defaults, the equality guard early-returned, and the main camera's
+   * first real framing (applied by attachViewport later in the SAME
+   * create(), with no 'resize' event) was never picked up — the HUD then
+   * rendered at zoom 1 anchored top-left on every viewport ≠ 1280×720
+   * (bunched small top bar, pause scrim covering only part of the screen).
+   * Computing canonically from gameSize removes the ordering dependency:
+   * both cameras derive from one source and can never disagree.
+   */
   reframeUiCamera() {
     if (!this.uiCam) return;
     const s = this.scene;
-    const main = s.cameras.main;
-    const w = s.scale.width, h = s.scale.height;
-    // no-op when already mirroring — keeps the one-shot resync below from
-    // becoming a per-frame loop
-    if (this.uiCam.width === w && this.uiCam.height === h
-      && this.uiCam.zoom === main.zoom
-      && this.uiCam.scrollX === main.scrollX && this.uiCam.scrollY === main.scrollY) {
-      return;
-    }
-    this.uiCam.setSize(w, h);
-    this.uiCam.setZoom(main.zoom);
-    this.uiCam.setScroll(main.scrollX, main.scrollY);
-    // The gameplay camera is reframed by the ViewportController, whose
-    // resize handling runs AFTER this HUD's listener inside the same
-    // event — copy once more on the next frame so the two cameras can
-    // never disagree (a disagreement detaches pause-control taps from
-    // where the controls render).
-    if (!this._uiCamResync) {
-      this._uiCamResync = s.events.once(Phaser.Scenes.Events.POST_UPDATE,
-        () => {
-          this._uiCamResync = null;
-          this.reframeUiCamera();
-        });
-    }
+    const view = this.computeView();
+    this.uiCam.setSize(s.scale.width, s.scale.height);
+    this.uiCam.setZoom(view.zoom);
+    this.uiCam.centerOn(WORLD.WIDTH / 2, WORLD.HEIGHT / 2);
   }
 
   /* ---------------------------------------------------------------- */
@@ -746,9 +825,11 @@ export class GameHUD {
     this.menu = s.add.container(WORLD.WIDTH / 2, WORLD.HEIGHT / 2).setDepth(HUD_DEPTH.MENU).setVisible(false);
 
     // dark transparent overlay over the frozen, softly blurred scenery.
+    // Created small and sized by reflowPauseChrome() to cover the ENTIRE
+    // visible view (never a world-sized rectangle with visible edges).
     // Object alpha animates 0→1 on open; the FILL alpha is the darkness
     // level (deepened when Canvas rendering cannot blur at all).
-    this.scrim = s.add.rectangle(0, 0, WORLD.WIDTH, WORLD.HEIGHT, PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA)
+    this.scrim = s.add.rectangle(0, 0, 64, 64, PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA)
       .setAlpha(0)
       .setInteractive({ useHandCursor: false }); // swallows gameplay taps
     this.scrim.on('pointerdown', () => this.markUi());
@@ -788,15 +869,15 @@ export class GameHUD {
     // top-left HOME: takes over the top bar's pause-button slot (that slot
     // is the only clean top-left corner — everything below the HUD band
     // collides with the docked question card). The bars button itself is
-    // hidden while paused; see openPause/closePause.
+    // hidden while paused; see openPause/closePause. Position/base anchor
+    // come from reflowPauseChrome (the slot moves with the bar on resize).
     // Confirmed before leaving (in-level progress protection) — the card
     // appears only after this button is tapped, never on the resting
     // pause screen.
-    const P = this.layout.elements.pause;
-    const H = { x: P.x, y: P.y, r: PAUSE_UI.HOME_R, hit: PAUSE_UI.HOME_HIT, icon: PAUSE_UI.HOME_ICON };
+    const H = { r: PAUSE_UI.HOME_R, hit: PAUSE_UI.HOME_HIT, icon: PAUSE_UI.HOME_ICON };
     const homeIconKey = s.textures.exists(PAUSE_ICON_ART.home.key)
       ? PAUSE_ICON_ART.home.key : TEX.homeIcon;
-    this.homeBtn = s.add.container(H.x - WORLD.WIDTH / 2, H.y - WORLD.HEIGHT / 2);
+    this.homeBtn = s.add.container(0, 0);
     const homeShadow = s.add.circle(3, 7, H.r * 1.04, 0x000000, 0.3);
     this.homeDisk = s.add.image(0, 0, HUD_ART.pauseBtn.key).setDisplaySize(H.r * 2, H.r * 2);
     const homeIco = s.add.image(0, 0, homeIconKey).setDisplaySize(H.r * 2 * H.icon, H.r * 2 * H.icon);
@@ -829,12 +910,13 @@ export class GameHUD {
 
     // Bottom-left EXIT FULLSCREEN disk — exists ONLY while the document is
     // actually fullscreen (the FullscreenController in the game registry
-    // owns the state; syncFullscreen flips visibility). Exiting resizes
-    // the canvas via the existing fullscreenchange → ViewportController
-    // path and re-arms the entry chip.
+    // owns the state; syncFullscreen flips visibility). Desktop rows hug
+    // the VISIBLE view's bottom-left corner (reflowPauseChrome); phones
+    // keep the historical world-anchored spot. Exiting resizes the canvas
+    // via the existing fullscreenchange → ViewportController path and
+    // re-arms the entry chip.
     const F = PAUSE_UI.FS_EXIT;
-    this.fsBtn = s.add.container(F.x - WORLD.WIDTH / 2, F.y - WORLD.HEIGHT / 2)
-      .setVisible(false);
+    this.fsBtn = s.add.container(0, 0).setVisible(false);
     const fsShadow = s.add.circle(3, 7, F.r * 1.04, 0x000000, 0.3);
     this.fsDisk = s.add.image(0, 0, HUD_ART.pauseBtn.key).setDisplaySize(F.r * 2, F.r * 2);
     const fsIco = s.add.image(0, -3, TEX.fsExitIcon)
@@ -860,10 +942,6 @@ export class GameHUD {
     });
 
     this.pauseStack = [this.resumeBtn, this.homeBtn, this.fsBtn];
-    for (const b of this.pauseStack) {
-      b.baseY = b.y;
-      b.baseX = b.x;
-    }
     // Input priority: Phaser's topOnly hit-sort compares each interactive
     // object's OWN depth — containers inherit nothing. Without this the
     // docked question card (also depth 0, tested first on the gameplay
@@ -871,6 +949,8 @@ export class GameHUD {
     this.resumeBtn.setDepth(1000);
     this.homeBtn.setDepth(1000);
     this.fsBtn.setDepth(1000);
+    // scrim coverage + control anchors from the live visible view
+    this.reflowPauseChrome();
 
     /* confirmation card (hidden until HOME asks for it) */
     this.confirmCard = s.add.container(0, 0).setVisible(false).setDepth(1001);
@@ -921,6 +1001,50 @@ export class GameHUD {
     }
   }
 
+  /**
+   * Re-anchor the pause chrome to the live visible view (initial build and
+   * every resize, including resizes WHILE PAUSED):
+   *   - the scrim grows to cover the ENTIRE visible view — one continuous
+   *     dark surface with no world-sized rectangle edge. setSize does not
+   *     resize an existing input hit area, so setInteractive re-fits it.
+   *   - HOME keeps the top bar's pause-slot anchor (the slot reflows with
+   *     the bar; the menu container is centered on the world center, which
+   *     the fit-view framing places at the visible view's center, so local
+   *     anchors are simple world offsets).
+   *   - EXIT-FULLSCREEN hugs the visible view's bottom-left on desktop
+   *     rows; phones keep the historical world-anchored position.
+   * The PLAY button needs no re-anchoring: it sits at the container's
+   * origin, i.e. the exact center of the visible view.
+   */
+  reflowPauseChrome() {
+    if (!this.menu || !this.view) return;
+    const view = this.view;
+    const phone = this.layout.mode === 'phone';
+    const cx = WORLD.WIDTH / 2, cyW = WORLD.HEIGHT / 2;
+
+    this.scrim.setSize(view.width, view.height);
+    this.scrim.setInteractive({ useHandCursor: false });
+
+    const P = this.layout.elements.pause;
+    const vx = this.viewX;
+    this.homeBtn.baseX = vx + P.x - cx;
+    this.homeBtn.baseY = P.y - cyW;
+
+    const F = PAUSE_UI.FS_EXIT;
+    const fx = phone ? F.x : view.x + F.x;
+    const fy = phone ? WORLD.HEIGHT - F.dy : view.y + view.height - F.dy;
+    this.fsBtn.baseX = fx - cx;
+    this.fsBtn.baseY = fy - cyW;
+
+    // PLAY never moves (0,0 = view center); re-place the two anchored
+    // controls. A resize mid-entrance just ends that leg of the glide.
+    this.resumeBtn.baseX = 0;
+    this.resumeBtn.baseY = PAUSE_UI.PLAY_Y;
+    if (this.homeTween) this.homeTween.stop();
+    this.homeBtn.setPosition(this.homeBtn.baseX, this.homeBtn.baseY);
+    this.fsBtn.setPosition(this.fsBtn.baseX, this.fsBtn.baseY);
+  }
+
   _scaleResume(to, duration = 110) {
     this.scene.tweens.add({
       targets: this.resumeBtn, scale: to, duration, ease: 'Sine.easeOut', overwrite: true
@@ -960,6 +1084,10 @@ export class GameHUD {
       this.scrim?.setFillStyle(PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA_FLAT);
       return;
     }
+    // Never stack: a close <260ms ago can still own a fading blur — drop
+    // it (and its tween) before attaching a fresh one, so no orphaned fx
+    // can survive a rapid pause → resume → pause sequence.
+    this.detachPauseBlur();
     const mobile = (s.registry.get('device') || { type: 'desktop' }).type === 'mobile';
     try {
       this.pauseBlur = cam.postFX.addBlur(
@@ -972,27 +1100,8 @@ export class GameHUD {
     }
   }
 
-  /** Ease the blur out alongside the menu fade (then detach the fx). */
-  fadePauseFx() {
-    const cam = this.scene.cameras && this.scene.cameras.main;
-    if (!this.pauseBlur || !cam || !cam.postFX) return;
-    const blur = this.pauseBlur;
-    if (this.reducedMotion) {
-      cam.postFX.remove(blur);
-      this.pauseBlur = null;
-      return;
-    }
-    this.scene.tweens.add({
-      targets: blur, strength: 0, duration: 260, ease: 'Sine.easeOut',
-      onComplete: () => {
-        this.pauseBlur = null;
-        try { cam.postFX && cam.postFX.remove(blur); } catch (e) { /* camera gone */ }
-      }
-    });
-  }
-
-  /** Restore the normal colorful gameplay presentation immediately. */
-  removePauseFx() {
+  /** Synchronously kill the fade tween and detach the current blur. */
+  detachPauseBlur() {
     const cam = this.scene.cameras && this.scene.cameras.main;
     try {
       if (cam && cam.postFX) {
@@ -1003,6 +1112,36 @@ export class GameHUD {
       }
     } catch (e) { /* camera already gone (scene restarting) */ }
     this.pauseBlur = null;
+  }
+
+  /** Ease the blur out alongside the menu fade (then detach the fx). */
+  fadePauseFx() {
+    const cam = this.scene.cameras && this.scene.cameras.main;
+    const blur = this.pauseBlur;
+    if (!blur || !cam || !cam.postFX) return;
+    if (this.reducedMotion) {
+      this.detachPauseBlur();
+      return;
+    }
+    this.scene.tweens.add({
+      targets: blur, strength: 0, duration: 260, ease: 'Sine.easeOut',
+      onComplete: () => {
+        // a newer pause may have taken over the camera mid-fade — only
+        // the CURRENT blur's completion may clear the handle
+        if (this.pauseBlur !== blur) return;
+        this.detachPauseBlur();
+      }
+    });
+    // safety net: if the tween's completion is ever dropped, force the
+    // detach shortly after the fade should have ended
+    this.scene.time.delayedCall(340, () => {
+      if (this.pauseBlur === blur) this.detachPauseBlur();
+    });
+  }
+
+  /** Restore the normal colorful gameplay presentation immediately. */
+  removePauseFx() {
+    this.detachPauseBlur();
     this.scrim?.setFillStyle(PAUSE_UI.SCRIM, PAUSE_UI.SCRIM_ALPHA);
   }
 
@@ -1101,6 +1240,7 @@ export class GameHUD {
    * }
    */
   sync(snap) {
+    this.lastSnap = snap; // bar rebuilds (resize) re-apply the live state
     this.setLevelTexts(snap.levelId, snap.levelName);
 
     this.questionText.setText(`Q ${snap.questionIndex + 1}/${snap.questionTotal}`);
@@ -1402,7 +1542,6 @@ export class GameHUD {
       ...this.heartIcons, ...this.starIcons.map((x) => x.group)]);
     if (this.onUiChildAdded) s.events.off('addedtoscene', this.onUiChildAdded);
     if (this.onUiScaleResize) s.scale.off('resize', this.onUiScaleResize);
-    if (this._uiCamResync) s.events.off(Phaser.Scenes.Events.POST_UPDATE, this._uiCamResync);
     if (this.offFsState) this.offFsState(); // drop the fullscreen subscription
     if (this.uiCam) s.cameras.remove(this.uiCam);
     this.uiCam = null;

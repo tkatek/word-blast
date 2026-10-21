@@ -1,15 +1,26 @@
 /**
  * HudLayout — ONE pure calculation that returns every top-bar component's
- * position and size (world px inside the fixed 1280×720 world).
+ * position and size.
  *
- * The Viewport always frames the whole world on every device, so the layout
- * never needs to move on resize; it is chosen once per scene from the device
- * class and keys every number the HUD renders with:
+ * Desktop/tablet rows are laid out across the FULL VISIBLE WORLD WIDTH —
+ * the width of the camera's fit-view rectangle (systems/Viewport.js
+ * computeFitView), which is ≥ 1280 and grows on aspect ratios wider than
+ * 16:9. Returned x coordinates are relative to the visible view's LEFT
+ * EDGE; the HUD anchors them into world space with view.x (GameHUD).
+ * On a 16:9 screen (view = exactly the 1280×720 world) the coordinates ARE
+ * world coordinates, so the row spans edge to edge there too.
  *
  *   desktop/tablet  [Pause] [LEVEL + title] [Q | clock MM:SS | ★★★] [♥♥♥] [bird ×N] [coin score] [Sound]
- *   phone           same row, compact: "LV n" chip, single summary star,
- *                   larger circular buttons with enlarged touch hit-boxes
- *                   (≥44 CSS px at phone zoom ≈ 0.52).
+ *   phone           fixed 1280-wide row (unchanged by viewports): "LV n" chip,
+ *                   single summary star, larger circular buttons with enlarged
+ *                   touch hit-boxes (≥44 CSS px at phone zoom ≈ 0.52).
+ *
+ * Width distribution: the row keeps its measured-artwork panel sizes and
+ * grows with the view only up to +15%; every remaining world pixel of width
+ * is shared EQUALLY by the six inter-panel gaps, so margins and spacing
+ * stay consistent while the bar always reaches both visible edges. The
+ * modest uniform growth also keeps the HUD's on-screen size stable when
+ * horizontal letterboxing lowers the camera zoom (browser chrome, etc.).
  *
  * All widths derive from each artwork's MEASURED aspect (HudArt) — panels
  * are never stretched. Module is Phaser-free and unit-tested in Node.
@@ -20,38 +31,52 @@ import { WORLD } from '../config.js';
 const W = WORLD.WIDTH;
 
 /**
- * Display heights (world px) per device class.
+ * Base display heights (world px at a 16:9 view) per device class.
  *
  * Final readability polish: the 1280-wide row is a zero-sum budget, so the
  * growth is spent where the player LOOKS — the center progress panel
  * (question · clock · stars) and the hearts/shots/score counters grow
  * ~10%, while the level plaque and the round buttons give the width back.
- * Typography scales with the panels (see `type` below).
+ * Typography scales with the panels (see `type` below) and was re-fitted
+ * to each panel's measured inner window for the desktop readability pass.
  */
 const SIZES = {
   desktop: {
-    cy: 40, gap: 9,
+    cy: 40, gap: 9, margins: 11,
     button: 60, soundButton: 54, hit: 60,
-    level: 57, progress: 73, counter: 60,
-    margins: 11
+    level: 57, progress: 73, counter: 60
   },
   phone: {
-    cy: 42, gap: 10,
+    cy: 42, gap: 10, margins: 26,
     button: 66, soundButton: 58, hit: 94,
-    level: 50, progress: 64, counter: 56,
-    margins: 26
+    level: 50, progress: 64, counter: 56
   }
 };
 
+/** Desktop row growth cap: wider views enlarge the bar at most this much. */
+const WIDE_GROWTH_CAP = 1.15;
+
 /**
  * @param {'desktop'|'tablet'|'mobile'} deviceType (Device.js DEVICE_TYPES)
- * @returns {object} full layout: band bottom, per-element {x,y,w,h,hit},
- *          progress-panel compartment rects, typography sizes and flags.
+ * @param {number} [viewWidth] visible world width (computeFitView().width,
+ *        ≥ 1280). Phone rows ignore it (fixed layout). Defaults to the
+ *        16:9 world width.
+ * @returns {object} full layout: band bottom, per-element {x,y,w,h,hit}
+ *          (x relative to the visible view's left edge), progress-panel
+ *          compartment rects, typography sizes and flags.
  */
-export function computeHudLayout(deviceType) {
+export function computeHudLayout(deviceType, viewWidth = WORLD.WIDTH) {
   const compact = deviceType === 'mobile';
-  const S = compact ? SIZES.phone : SIZES.desktop;
-  const { cy, gap } = S;
+  // the visible view is never narrower than the world (fit-view invariant)
+  const vw = compact ? W : Math.max(W, viewWidth || 0);
+  const k = compact ? 1 : Math.min(WIDE_GROWTH_CAP, vw / W);
+  const S0 = compact ? SIZES.phone : SIZES.desktop;
+  const S = {
+    cy: S0.cy, gap: S0.gap, margins: S0.margins,
+    button: S0.button * k, soundButton: S0.soundButton * k, hit: S0.hit * k,
+    level: S0.level * k, progress: S0.progress * k, counter: S0.counter * k
+  };
+  const { cy } = S;
 
   const panel = (art, h) => ({ w: h * art.aspect, h });
   const level = panel(HUD_ART.level, S.level);
@@ -60,14 +85,16 @@ export function computeHudLayout(deviceType) {
   const shots = panel(HUD_ART.shots, S.counter);
   const score = panel(HUD_ART.score, S.counter);
 
-  // pack one row from the left margin, then re-centre the whole row
+  // pack one row from the left margin; on views wider than the row the
+  // leftover width is shared equally by the gaps (margins stay consistent)
   const widths = [S.button, level.w, progress.w, hearts.w, shots.w, score.w, S.soundButton];
-  const rowW = widths.reduce((a, b) => a + b, 0) + gap * (widths.length - 1);
-  const slack = W - rowW - 2 * S.margins;
+  const rowW = widths.reduce((a, b) => a + b, 0);
+  const slack = vw - rowW - 2 * S.margins - (widths.length - 1) * S.gap;
   // sub-pixel slack comes from aspect-ratio rounding, not a real overflow —
   // clamp it away instead of killing the boot; genuine overflows still throw
   if (slack < -1) throw new Error(`HUD row overflows: ${(-slack).toFixed(1)}px over`);
-  const margin = S.margins + Math.max(0, slack) / 2;
+  const gap = S.gap + Math.max(0, slack) / (widths.length - 1);
+  const margin = S.margins;
 
   const centers = [];
   let cursor = margin;
@@ -83,11 +110,12 @@ export function computeHudLayout(deviceType) {
 
   return {
     mode: compact ? 'phone' : 'desktop',
+    viewWidth: vw,
     cy,
-    /** Lowest screen-space pixel the HUD artwork reaches (for docking). */
+    /** Lowest world-y the HUD artwork reaches (for docking). */
     bandBottom: Math.ceil(cy + Math.max(S.button, level.h, progress.h) / 2),
     rowLeft: margin,
-    rowRight: W - margin,
+    rowRight: vw - margin,
     elements: {
       pause: { x: pauseX, y: cy, w: S.button, h: S.button, hit: S.hit },
       sound: { x: soundX, y: cy, w: S.soundButton, h: S.soundButton, hit: S.hit },
@@ -98,8 +126,9 @@ export function computeHudLayout(deviceType) {
       score: { x: scoreX, y: cy, w: score.w, h: score.h }
     },
     cells: { timer: timerCell, question: qCell, stars: starCell },
-    // Final polish typography — the clock and the counters lead; the level
-    // plaque keeps its size (it traded width for the bigger center panel).
+    // Desktop readability pass: every size re-fitted against the measured
+    // inner windows (HudArt) with headroom verified up to the growth cap.
+    // Phone typography is untouched.
     type: compact
       ? {
           levelMain: 21, levelTitle: 0, levelShort: true,
@@ -108,15 +137,15 @@ export function computeHudLayout(deviceType) {
           stars: 20, starCount: 1
         }
       : {
-          levelMain: 14, levelTitle: 10, levelShort: false,
-          timer: 24, timerIcon: 21, question: 15,
-          hearts: 27, shotsIcon: 19, shots: 18, scoreIcon: 19, score: 18,
-          stars: 13.5, starCount: 3
+          levelMain: 15 * k, levelTitle: 11 * k, levelShort: false,
+          timer: 26 * k, timerIcon: 23 * k, question: 17 * k,
+          hearts: 29 * k, shotsIcon: 20 * k, shots: 19 * k, scoreIcon: 20 * k, score: 19 * k,
+          stars: 14 * k, starCount: 3
         }
   };
 }
 
-/** Absolute world rect of one progress-panel compartment. */
+/** Absolute rect of one progress-panel compartment (relative to the row). */
 function cellBox(art, name, x, y, box) {
   const c = art.cells[name];
   const i = art.inner;
