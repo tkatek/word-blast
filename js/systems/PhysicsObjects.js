@@ -808,7 +808,6 @@ export class ObjectFactory {
 
   /** Begin the amortized build-time settle (frame-sliced, no hitch). */
   beginSettle(steps) {
-    if (typeof process !== 'undefined' && process.env.WB_TRACE) console.log('[trace] beginSettle', steps);
     this.settling = true;
     this._settleStepsLeft = steps;
     this._settleStart = new Map();
@@ -825,7 +824,6 @@ export class ObjectFactory {
    */
   stepSettle(perFrame = 6) {
     if (!this.settling) return { done: true, drift: this._settleWorst, lost: this._settleLost };
-    if (typeof process !== 'undefined' && process.env.WB_TRACE) console.log('[trace] stepSettle left=', this._settleStepsLeft);
     const n = Math.min(perFrame, this._settleStepsLeft);
     for (let i = 0; i < n; i++) this._settleOneStep();
     this._settleStepsLeft -= n;
@@ -856,7 +854,7 @@ export class ObjectFactory {
     }
     for (const t of this.targets) MatterLib.Sleeping.set(t.body, true);
     this.settling = false;
-    return { drift: this._settleWorst, lost: this._settleLost };
+    return { done: true, drift: this._settleWorst, lost: this._settleLost };
   }
 
   /* ------------------------------------------------------------------ */

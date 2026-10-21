@@ -506,7 +506,6 @@ export class GameScene extends Phaser.Scene {
     // (towers must be at rest). Same deferral path as pause: update()
     // re-invokes armAiming the moment the settle completes.
     if (this.factory.settling) {
-      if (typeof process !== 'undefined' && process.env.WB_TRACE) console.log('[trace] armAiming deferred by settle');
       this.armPending = true;
       return;
     }
@@ -801,7 +800,6 @@ export class GameScene extends Phaser.Scene {
     if (this.factory.settling) {
       const r = this.factory.stepSettle(6);
       if (r.done) {
-        if (typeof process !== 'undefined' && process.env.WB_TRACE) console.log('[trace] settle done, armPending=', this.armPending, 'state=', this.stateMachine.current);
         if (r.drift > PHYSICS.SETTLE_MAX_DRIFT || r.lost > 0) {
           DebugLog.warn(`L${this.levelId}/Q${this.questionIndex + 1} settle drift ${r.drift.toFixed(1)}px, lost ${r.lost}`);
         }
