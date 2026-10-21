@@ -376,6 +376,7 @@ async function mobilePass() {
 
     // touch-tap PLAY resumes (retry + staged-press fallback covers the
     // headless touch stack's event batching)
+    await dismissPromos(page); // the DOM promo can re-pop and swallow taps
     await tapObj(page, 'resumeBtn',
       () => page.evaluate(() => window.__WB__.state() === 'AIMING'));
     check(await state(page) === 'AIMING', 'touch press on PLAY resumes on the phone layout');
