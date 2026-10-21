@@ -33,29 +33,36 @@ const TARGETS = [
 
 let beforeTotal = 0;
 let afterTotal = 0;
+const locked = [];
 for (const t of TARGETS) {
   const p = join(IMG, t.file);
-  const before = statSync(p).size;
-  const isPng = p.endsWith('.png');
-  let pipe = sharp(p).resize(t.width, t.height, { kernel: 'lanczos3', fit: 'fill' });
-  pipe = isPng
-    ? pipe.png({ compressionLevel: 9, palette: true, quality: 92 })
-    : pipe.webp({ quality: 90, alphaQuality: 100 });
-  // write via buffer (no temp-file rename: Windows EPERM on locked targets)
-  const buf = await pipe.toBuffer();
-  const { writeFileSync } = await import('node:fs');
-  let wrote = false;
-  for (let attempt = 0; attempt < 3 && !wrote; attempt++) {
-    try { writeFileSync(p, buf); wrote = true; }
-    catch (e) {
-      if (attempt === 2) throw e;
-      await new Promise((r) => setTimeout(r, 400));
+  try {
+    const before = statSync(p).size;
+    const isPng = p.endsWith('.png');
+    let pipe = sharp(p).resize(t.width, t.height, { kernel: 'lanczos3', fit: 'fill' });
+    pipe = isPng
+      ? pipe.png({ compressionLevel: 9, palette: true, quality: 92 })
+      : pipe.webp({ quality: 90, alphaQuality: 100 });
+    // write via buffer (no temp-file rename: Windows EPERM on locked targets)
+    const buf = await pipe.toBuffer();
+    const { writeFileSync } = await import('node:fs');
+    let wrote = false;
+    for (let attempt = 0; attempt < 4 && !wrote; attempt++) {
+      try { writeFileSync(p, buf); wrote = true; }
+      catch { await new Promise((r) => setTimeout(r, 600)); }
     }
+    if (!wrote) throw new Error('file locked by another process');
+    const after = statSync(p).size;
+    beforeTotal += before;
+    afterTotal += after;
+    const kb = (n) => (n / 1024).toFixed(0) + 'KB';
+    console.log(`${t.file.padEnd(30)} ${kb(before).padStart(7)} → ${kb(after).padStart(7)}  (${t.width}×${t.height})`);
+  } catch (e) {
+    locked.push(t.file);
+    console.log(`${t.file.padEnd(30)} SKIPPED (${e.message}) — retry later`);
   }
-  const after = statSync(p).size;
-  beforeTotal += before;
-  afterTotal += after;
-  const kb = (n) => (n / 1024).toFixed(0) + 'KB';
-  console.log(`${t.file.padEnd(30)} ${kb(before).padStart(7)} → ${kb(after).padStart(7)}  (${t.width}×${t.height})`);
 }
 console.log(`total ${ (beforeTotal / 1024).toFixed(0) }KB → ${ (afterTotal / 1024).toFixed(0) }KB`);
+if (locked.length) {
+  console.log(`locked (run this script again when the other session's servers stop): ${locked.join(', ')}`);
+}
