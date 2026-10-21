@@ -311,6 +311,20 @@ async function runProfile(profile) {
   await page.evaluate(() => {
     window.__perf.phase = 'restarts';
   });
+  const leakSnap = () => page.evaluate(() => {
+    const g = window.__WB__.game;
+    const scenes = g.scene.getScenes(true);
+    const s = window.__WB__.scene();
+    return {
+      bodies: s.matter.world.localWorld.bodies.length,
+      children: scenes.reduce((a, sc) => a + sc.children.length, 0),
+      textures: g.textures.getTextureKeys().length,
+      tweens: scenes.reduce((a, sc) => a + (sc.tweens.tweens ? sc.tweens.tweens.length : 0), 0),
+      sounds: g.sound ? g.sound.sounds.length : 0,
+      mem: performance.memory ? +(performance.memory.usedJSHeapSize / 1048576).toFixed(1) : null
+    };
+  });
+  let leakStart = null;
   for (let i = 0; i < 8; i++) {
     await page.evaluate(() => window.__WB__.gotoLevel(3));
     await page.waitForFunction(() => {
@@ -318,6 +332,7 @@ async function runProfile(profile) {
       return s && s.prepared;
     }, { timeout: 20000 });
     await sleep(250);
+    if (i === 0) leakStart = await leakSnap();
   }
   const leak = await page.evaluate(() => {
     const g = window.__WB__.game;
@@ -353,6 +368,7 @@ async function runProfile(profile) {
     return { count: t.length, worstMs: t.length ? Math.max(...t.map((x) => x.d)) : 0, totalMs: +total.toFixed(0) };
   });
   results.leak = leak;
+  results.leakStart = leakStart; // restart #1 — the growth baseline
   results.restarts = restartTasks;
 
   await page.close();
@@ -387,6 +403,14 @@ for (const p of PROFILES) {
   }
   console.log(`transition: wall ${r.transition.wallMs}ms, longtasks ${r.transition.longTasksMs}ms (worst ${r.transition.worstTaskMs}ms)`);
   console.log(`restarts(8): longtasks ${r.restarts.count} total ${r.restarts.totalMs}ms worst ${r.restarts.worstMs.toFixed(1)}ms`);
+  if (r.leakStart) {
+    console.log(`leak growth (restart 1 → 8): bodies ${r.leakStart.bodies}→${r.leak.bodies}` +
+      ` children ${r.leakStart.children}→${r.leak.children}` +
+      ` tweens ${r.leakStart.tweens}→${r.leak.tweens}` +
+      ` textures ${r.leakStart.textures}→${r.leak.textures}` +
+      ` sounds ${r.leakStart.sounds}→${r.leak.sounds}` +
+      ` heap ${r.leakStart.mem}→${r.leak.mem.usedMB}MB`);
+  }
   console.log(`leak sweep: ${JSON.stringify(r.leak)}`);
 }
 
