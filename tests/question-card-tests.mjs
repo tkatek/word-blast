@@ -109,7 +109,7 @@ const main = async () => {
 
   await test('card rests at the top below the HUD and arms gameplay', async () => {
     api.setCardTimings(FAST);
-    h.scene().stateChangeHandlers.push((n, p2) => console.log('TRANS', p2, '->', n));
+    { const s0 = h.scene(); const od = s0.doPause.bind(s0); s0.doPause = (...a) => { console.log('DO-PAUSE'); return od(...a); }; const oa = s0.autoPause.bind(s0); s0.autoPause = (...a) => { console.log('AUTO-PAUSE'); return oa(...a); }; const oo = s0.updateOrientationState.bind(s0); s0.updateOrientationState = (...a) => { const r = oo(...a); if (s0.rotationPaused) console.log('ROT-PAUSED'); return r; }; const oarm = s0.armAiming.bind(s0); s0.armAiming = (...a) => { console.log('ARM-AIMING state=', s0.stateMachine.current, 'paused=', s0.stateMachine.isPaused()); return oarm(...a); }; }
     await h.gotoLevel(1);
     await h.waitFor(() => api.cardInfo()?.phase === 'READY_TOP', 4000, 'READY_TOP');
     const c = api.cardInfo();
