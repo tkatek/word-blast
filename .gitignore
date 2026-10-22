@@ -3,6 +3,9 @@ dist/
 .DS_Store
 *.log
 
+# Server-upload archives (docs/DEPLOY-REMTOO.md) — built locally, never committed.
+word-blast-remtoo.zip
+
 # Local-only evidence/output — historical copies live in ../wb-archive/
 # and in git history; screenshot scripts recreate these folders on demand.
 screenshots/
