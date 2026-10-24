@@ -28,7 +28,6 @@
 import Phaser from 'phaser';
 import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
-import { createLoadingBar } from '../systems/LoadingBar.js';
 import {
   MENU_ART, menuPreloadList, ensureMenuArtFallback, isFallbackTexture,
   WoodButton, ArtButton, ConfirmDialog, PALETTE,
@@ -63,10 +62,6 @@ export class MenuScene extends Phaser.Scene {
   }
 
   preload() {
-    // Slim progress bar while the menu artwork batch downloads (the menu
-    // art is a few hundred KB after the optimization pass — a blink on
-    // fast connections, informative on slow ones). Retired in create().
-    this.loaderUi = createLoadingBar(this, { compact: true });
     const BASE = ((import.meta.env && import.meta.env.BASE_URL) || '/') + 'assets/images/menu/';
     for (const { key, file } of menuPreloadList()) {
       this.load.image(key, BASE + file);
@@ -80,7 +75,6 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
-    if (this.loaderUi) { this.loaderUi.destroy(); this.loaderUi = null; }
     const save = this.registry.get('save');
     this.save = save;
     this.transitioning = false;
@@ -106,6 +100,11 @@ export class MenuScene extends Phaser.Scene {
 
     this.playEntrance();
     this.deferMusicLoad();
+
+    // The HTML loading screen (index.html #wb-loader) covers the ENTIRE
+    // startup — bundle download, boot assets and this menu batch — and is
+    // retired exactly here: the first playable screen is on stage.
+    window.__wbBoot?.assetsDone?.();
 
     // Returning players: animate the numbers only when they truly changed.
     const { completed, stars } = this.readProgress();

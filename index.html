@@ -84,49 +84,57 @@
       touch-action: manipulation; -webkit-user-select: none; user-select: none; }
     #fs-chip.is-visible { display: block; }
     #fs-chip[disabled] { opacity: .6; }
-    /* Boot loading screen (upgraded watchdog chip): covers the JS-bundle
-       download + Phaser init — the window BEFORE any canvas exists. Removed
-       by window.__wbBoot.ok() (canvas ready); the Phaser-side loading bar
-       (js/systems/LoadingBar.js) then covers the asset download with the
-       same look. pointer-events:none so it can never trap input. */
+    /* Boot loading screen: THE loader — one full-page branded screen for the
+       whole startup (JS bundle + Phaser init + asset download). Stays up
+       until the menu is actually on screen (window.__wbBoot.assetsDone()
+       from MenuScene.create). Shows the red bird hopping over the game's
+       own scenery. pointer-events:none so it can never trap input. */
     #wb-loader { position: fixed; inset: 0; z-index: 2147482999; display: flex;
       align-items: center; justify-content: center; background: #081c15;
-      font-family: Arial, Helvetica, sans-serif; text-align: center;
-      pointer-events: none; transition: opacity .25s ease;
+      overflow: hidden; font-family: Arial, Helvetica, sans-serif;
+      text-align: center; pointer-events: none; transition: opacity .3s ease;
       -webkit-user-select: none; user-select: none; }
     #wb-loader.is-done { opacity: 0; }
-    #wb-loader .wb-box { display: flex; flex-direction: column; align-items: center;
-      gap: clamp(18px, 4.5vh, 44px); padding: 24px; width: 100%;
-      box-sizing: border-box; }
+    /* the game's own menu scenery, dimmed — it also pre-warms the browser
+       cache for the menu scene that loads the same URL moments later */
+    #wb-loader .wb-bg { position: absolute; inset: 0;
+      background: #081c15 url('./assets/images/menu/background.webp') center / cover no-repeat;
+      filter: brightness(.62) saturate(1.05); }
+    #wb-loader .wb-scrim { position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(8, 28, 21, .74) 0%,
+        rgba(8, 28, 21, .38) 45%, rgba(8, 28, 21, .74) 100%); }
+    #wb-loader .wb-box { position: relative; display: flex; flex-direction: column;
+      align-items: center; justify-content: space-evenly;
+      min-height: 100vh; min-height: 100dvh; width: 100%;
+      box-sizing: border-box; padding: 6vh 24px; }
     #wb-loader .wb-title { color: #ffd60a;
-      font-size: clamp(44px, 11vw, 118px); font-weight: bold;
+      font-size: clamp(48px, 12.5vw, 150px); font-weight: bold;
       letter-spacing: .05em; line-height: 1;
-      text-shadow: 0 5px 0 rgba(0, 0, 0, .35); }
-    #wb-loader .wb-egg { width: clamp(38px, 6vw, 62px);
-      height: clamp(48px, 7.6vw, 78px);
-      background: radial-gradient(circle at 35% 30%, #fffbe6 0%, #ffe98a 45%, #f4c542 100%);
-      border-radius: 50% 50% 48% 52% / 62% 62% 38% 38%;
-      box-shadow: 0 7px 0 rgba(0, 0, 0, .28);
-      animation: wb-hop 1.05s cubic-bezier(.3, 0, .4, 1) infinite; }
-    @keyframes wb-hop {
-      0%, 100% { transform: translateY(0) scale(1, 1); }
-      15%      { transform: translateY(3%) scale(1.1, .88); }
-      45%      { transform: translateY(-58%) scale(.94, 1.08); }
-      72%      { transform: translateY(0) scale(1, 1); }
+      text-shadow: 0 6px 0 rgba(0, 0, 0, .45), 0 0 34px rgba(0, 0, 0, .5); }
+    #wb-loader .wb-bird { width: clamp(88px, 15vw, 160px); aspect-ratio: 1 / 1;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 10px rgba(0, 0, 0, .38));
+      animation: wb-bird-hop 1.05s cubic-bezier(.3, 0, .4, 1) infinite; }
+    @keyframes wb-bird-hop {
+      0%, 100% { transform: translateY(0) rotate(-4deg); }
+      15%      { transform: translateY(3%) rotate(-6deg) scale(1.07, .93); }
+      45%      { transform: translateY(-46%) rotate(3deg) scale(.96, 1.05); }
+      72%      { transform: translateY(0) rotate(-4deg); }
     }
-    #wb-loader .wb-bar { width: min(88vw, 720px); height: clamp(22px, 3.4vh, 32px);
+    #wb-loader .wb-bar { width: min(92vw, 940px); height: clamp(24px, 3.8vh, 36px);
       box-sizing: border-box; padding: 4px; border: 4px solid #4d3218;
-      border-radius: 16px; background: #a4713d; overflow: hidden; }
-    #wb-loader .wb-fill { height: 100%; width: 46%; border-radius: 8px;
+      border-radius: 18px; background: #a4713d; overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .35); }
+    #wb-loader .wb-fill { height: 100%; width: 46%; border-radius: 9px;
       background: #ffd60a; animation: wb-sweep 1.15s ease-in-out infinite; }
     @keyframes wb-sweep {
       0%   { transform: translateX(-105%); }
       100% { transform: translateX(222%); }
     }
-    #wb-loader .wb-caption { color: #fff; font-size: clamp(15px, 2.4vh, 22px);
-      opacity: .85; letter-spacing: .04em; }
+    #wb-loader .wb-caption { color: #fff; font-size: clamp(16px, 2.8vh, 26px);
+      letter-spacing: .06em; text-shadow: 0 2px 4px rgba(0, 0, 0, .5); }
     @media (prefers-reduced-motion: reduce) {
-      #wb-loader .wb-egg { animation: none; }
+      #wb-loader .wb-bird { animation: none; transform: none; }
       #wb-loader .wb-fill { animation: none; width: 100%; opacity: .8; }
     }
   </style>
@@ -204,11 +212,13 @@
 
   <!-- Boot watchdog (Fix: Live Server blank screen). Dependency-free inline
        script so it survives any bundling/base-path problem and even a CSS 404:
-       shows the branded loading screen (covers the JS-bundle download before
-       the canvas exists), records module/resource errors and, if the Phaser
-       canvas never appears, replaces the blank page with an actionable error
-       card instead of an unexplained light-blue screen. js/main.js handshakes
-       via window.__wbBoot.ok()/fail(). -->
+       shows the ONE full-page branded loading screen (scenery + red bird),
+       which covers the ENTIRE startup — JS bundle, Phaser init, boot assets
+       and the menu batch — and is retired by MenuScene.create via
+       window.__wbBoot.assetsDone(). It records module/resource errors and,
+       if the Phaser canvas never appears, replaces the blank page with an
+       actionable error card instead of an unexplained light-blue screen.
+       js/main.js handshakes via window.__wbBoot.ok()/fail(). -->
   <script>
     (function () {
       var TIMEOUT_MS = 8000;
@@ -222,19 +232,26 @@
         return n;
       }
 
-      /** Branded full-screen loader: visible from first paint until the
-       *  Phaser canvas is ready (ok()). Styled by the #wb-loader rules in
-       *  <head> — including the fallback for prefers-reduced-motion. */
+      /** Branded full-page loader: visible from first paint until the MENU
+       *  is on screen (assetsDone()). Styled by the #wb-loader rules in
+       *  <head> — scenery photo, red bird, wooden bar. */
       function showChip() {
         if (chip) return;
         chip = el('div', null);
         chip.id = 'wb-loader';
+        var bg = el('div', null);
+        bg.className = 'wb-bg';
+        var scrim = el('div', null);
+        scrim.className = 'wb-scrim';
         var box = el('div', null);
         box.className = 'wb-box';
         var title = el('div', null, 'WORD BLAST');
         title.className = 'wb-title';
-        var egg = el('div', null);
-        egg.className = 'wb-egg';
+        var bird = document.createElement('img');
+        bird.className = 'wb-bird';
+        bird.src = './assets/images/birds/red_basic.png';
+        bird.alt = '';
+        bird.onerror = function () { bird.style.display = 'none'; };
         var bar = el('div', null);
         bar.className = 'wb-bar';
         var fill = el('div', null);
@@ -243,9 +260,11 @@
         var caption = el('div', null, 'Loading\u2026');
         caption.className = 'wb-caption';
         box.appendChild(title);
-        box.appendChild(egg);
+        box.appendChild(bird);
         box.appendChild(bar);
         box.appendChild(caption);
+        chip.appendChild(bg);
+        chip.appendChild(scrim);
         chip.appendChild(box);
         document.body.appendChild(chip);
       }
@@ -329,12 +348,16 @@
         get booted() { return booted; },
         /** Recorded resource/boot problems for the ?diag=1 diagnostics. */
         problems: function () { return problems.slice(); },
+        /** Canvas is alive — the watchdog is satisfied, but the LOADER
+         *  STAYS UP: it covers the whole asset download too, and is only
+         *  retired by assetsDone() (menu on screen). */
         ok: function () {
           booted = true;
           if (timer) { clearTimeout(timer); timer = null; }
-          hideChip();
           if (card && card.parentNode) card.parentNode.removeChild(card);
         },
+        /** The first playable screen is rendered — fade the loader out. */
+        assetsDone: function () { hideChip(); },
         fail: function (reason) { showCard(String(reason || 'Unknown initialization error.')); }
       };
 

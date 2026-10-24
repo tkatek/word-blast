@@ -19,7 +19,6 @@ import { preloadList, TOWER_ASSETS } from '../data/tower-assets.js';
 import { birdPreloadList } from '../data/birds.js';
 import { hudPreloadList, ensureHudArtFallback } from '../systems/HudArt.js';
 import { pauseIconPreloadList } from '../systems/GameHUD.js';
-import { createLoadingBar } from '../systems/LoadingBar.js';
 import questionsData from '../data/questions.json';
 import levelsData from '../data/levels.json';
 
@@ -41,10 +40,10 @@ export class BootScene extends Phaser.Scene {
    */
   preload() {
     this.registry.set('device', deviceInfo());
-    // Real progress UI while the gameplay batch downloads (load-time
-    // optimization pass): the bar is driven by this loader's own
-    // 'progress' events and retired first thing in create().
-    this.loaderUi = createLoadingBar(this);
+    // No in-canvas loader here: the full-page HTML loading screen
+    // (index.html #wb-loader) covers the WHOLE startup — bundle download,
+    // this asset batch and the menu batch — and MenuScene.create retires
+    // it when the first playable screen is on stage.
     BackgroundManager.preload(this);
 
     this.load.image(
@@ -157,7 +156,6 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     this.state = STATES.LOADING;
-    if (this.loaderUi) { this.loaderUi.destroy(); this.loaderUi = null; }
     this.generateTextures();
 
     try {
@@ -184,6 +182,8 @@ export class BootScene extends Phaser.Scene {
       this.scene.start('MenuScene');
     } catch (err) {
       console.error('[Boot] data validation failed:', err);
+      // The full-page HTML loader must not cover the error text.
+      window.__wbBoot?.assetsDone?.();
       this.cameras.main.setBackgroundColor('#2a2a2a');
       const lines = String(err.message).split('\n');
       this.add.text(40, 40, 'WORD BLAST — DATA ERROR\n\n' + lines.join('\n'), {

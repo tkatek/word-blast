@@ -1,11 +1,13 @@
 /**
  * LOAD-TIME PASS acceptance (visual): boots the REAL built game over HTTP
- * in Chrome/Edge with throttled networking and captures, as screenshots:
+ * in Chrome/Edge with throttled networking and verifies the ONE full-page
+ * loading screen lifecycle:
  *
- *   1. the new HTML boot loading screen (#wb-loader) mid-download
- *   2. the Phaser BootScene loading bar mid-asset-batch
- *   3. the menu once it appears (menu art batch done, music downloading)
- *   4. music asset landed in the audio cache shortly after (deferred load)
+ *   1. visible while the JS bundle downloads (before any canvas)
+ *   2. STILL visible (never shrinking/switching) while boot + menu assets
+ *      download behind it
+ *   3. fades away exactly when the menu is on screen
+ *   4. the music asset lands in the audio cache AFTER the menu (deferred)
  *
  * Plus console/page-error capture: the run FAILS on any page error or
  * failed request.
@@ -42,6 +44,14 @@ function findBrowser() {
   return null;
 }
 
+const loaderState = (page) => page.evaluate(() => {
+  const el = document.getElementById('wb-loader');
+  return {
+    visible: !!el && !el.classList.contains('is-done') && getComputedStyle(el).display !== 'none',
+    booted: !!(window.__wbBoot && window.__wbBoot.booted)
+  };
+}).catch(() => ({ visible: false, booted: false }));
+
 const main = async () => {
   const exe = findBrowser();
   if (!exe) throw new Error('No Chrome/Edge executable found');
@@ -61,8 +71,7 @@ const main = async () => {
   page.on('requestfailed', (r) => badRequests.push(r.url()));
   page.on('response', (r) => { if (r.status() >= 400) badRequests.push(`${r.status()} ${r.url()}`); });
 
-  // Simulate a mid-range mobile connection so the loaders are observable
-  // (page-level API — a raw CDP session does not reliably throttle).
+  // Simulate a mid-range mobile connection so the loader is observable.
   await page.emulateNetworkConditions({
     offline: false,
     latency: 150,
@@ -70,60 +79,47 @@ const main = async () => {
     uploadThroughput: Math.round((750 * 1024) / 8)
   });
 
-  // NOTE: module scripts execute BEFORE DOMContentLoaded — with a real
-  // throttle the HTML loader's visible window IS the bundle download, so
-  // polling must run WHILE the navigation is in flight (evaluate calls
-  // fail harmlessly until the first execution context exists).
+  // Module scripts execute BEFORE DOMContentLoaded — the loader's visible
+  // window starts with the bundle download, so poll WHILE the navigation
+  // is in flight (evaluate calls fail harmlessly until the context exists).
   const nav = page.goto(BASE + '/', { waitUntil: 'domcontentloaded' }).catch(() => {});
 
-  // 1 — HTML boot loader visible while the JS bundle downloads: poll from
-  // the first bytes until the boot handshake retires it.
-  let htmlLoaderSeen = false;
-  let shotTaken = false;
-  const bootDeadline = Date.now() + 45000;
-  while (Date.now() < bootDeadline) {
-    const state = await page.evaluate(() => {
-      const el = document.getElementById('wb-loader');
-      const api = window.__wbBoot;
-      return {
-        visible: !!el && !el.classList.contains('is-done') && getComputedStyle(el).display !== 'none',
-        booted: !!(api && api.booted)
-      };
-    }).catch(() => ({ visible: false, booted: false }));
-    if (state.visible) {
-      htmlLoaderSeen = true;
-      if (!shotTaken) {
-        await page.screenshot({ path: join(OUT, '01-html-boot-loader.png') });
-        shotTaken = true;
-      }
-    }
-    if (state.booted && htmlLoaderSeen) break;
-    if (state.booted && !htmlLoaderSeen) {
-      // booted without us catching it — give the poll a final grace sweep
-      await sleep(120);
-      continue;
-    }
-    await sleep(120);
+  // Phase 1 — loader up while the bundle downloads (before the canvas).
+  let phase1Seen = false;
+  const phase1Deadline = Date.now() + 45000;
+  while (Date.now() < phase1Deadline) {
+    const s = await loaderState(page);
+    if (s.visible) { phase1Seen = true; break; }
+    if (s.booted) break;
+    await sleep(100);
   }
-  if (!shotTaken) await page.screenshot({ path: join(OUT, '01-html-boot-loader.png') });
-  check(htmlLoaderSeen, 'HTML boot loading screen visible during bundle download');
-  await nav;
+  await page.screenshot({ path: join(OUT, '01-loader-bundle-phase.png') });
+  check(phase1Seen, 'full-page loader visible during bundle download');
 
-  // 2 — BootScene bar: wait for the canvas, then shoot mid-asset-batch.
-  await page.waitForSelector('#game canvas', { timeout: 30000 });
-  await sleep(250);
-  await page.screenshot({ path: join(OUT, '02-bootscene-loading-bar.png') });
+  // Phase 2 — canvas appears behind the loader, assets download: the SAME
+  // loader must stay up (no shrinking, no second bar taking over).
+  await page.waitForSelector('#game canvas', { timeout: 60000 });
+  const seenWithCanvas = await loaderState(page);
+  await page.screenshot({ path: join(OUT, '02-loader-asset-phase.png') });
+  check(seenWithCanvas.visible, 'same full-page loader still covering the asset download');
 
-  // 3 — menu visible (boot assets + menu art done).
+  // Phase 3 — menu appears: the loader fades away within a moment.
   await page.waitForFunction(() => {
     const wb = window.__WB__;
     return !!(wb && wb.menu && wb.menu().active);
   }, { timeout: 90000 });
   const menuAt = Date.now();
-  await sleep(400);
+  let loaderGone = false;
+  while (Date.now() - menuAt < 4000) {
+    const s = await loaderState(page);
+    if (!s.visible) { loaderGone = true; break; }
+    await sleep(120);
+  }
+  await sleep(300);
   await page.screenshot({ path: join(OUT, '03-menu.png') });
+  check(loaderGone, 'loader retires when the menu is on screen');
 
-  // 4 — deferred music: arrives AFTER the menu was already on screen.
+  // Phase 4 — deferred music: arrives AFTER the menu was already visible.
   const musicCached = await page.waitForFunction(() => {
     const g = window.__WB__ && window.__WB__.game;
     return !!(g && g.cache && g.cache.audio && g.cache.audio.exists('music-theme'));
