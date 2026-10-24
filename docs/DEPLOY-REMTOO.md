@@ -38,7 +38,7 @@ subpath.
 
 ## Upload (exact destination)
 
-1. Zip: `word-blast-remtoo.zip` (project root, ~7 MB, 151 entries —
+1. Zip: `word-blast-remtoo.zip` (project root, ~4 MB, 151 entries —
    `index.html` at the ZIP root, no `dist/` wrapper, no source, no
    `node_modules`).
 2. In the hosting file manager open `public_html/soufiane/` and create a
