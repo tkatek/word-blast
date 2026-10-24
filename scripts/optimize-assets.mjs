@@ -215,9 +215,10 @@ async function audio() {
 
   // Background theme: 2:22 stereo at 128 kbps CBR. It plays at music-bus
   // 0.55 under the SFX — a VBR re-encode keeps that context transparent
-  // and drops ~40% of the single largest shipped file. Skipped on re-run.
+  // and drops ~40% of the single largest shipped file. The done-marker
+  // lives OUTSIDE public/ (tests assert music/ holds exactly one file).
   const music = path.join(AUD_ROOT, 'music', 'background-music.mp3');
-  const musicDone = path.join(AUD_ROOT, 'music', '.optimized-q7');
+  const musicDone = path.join(BACKUP_ROOT, '.music-optimized-q7');
   if (fs.existsSync(music) && !fs.existsSync(musicDone)) {
     const before = fs.statSync(music).size;
     const tmp = music + '.tmp.mp3';

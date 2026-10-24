@@ -84,6 +84,34 @@
       touch-action: manipulation; -webkit-user-select: none; user-select: none; }
     #fs-chip.is-visible { display: block; }
     #fs-chip[disabled] { opacity: .6; }
+    /* Boot loading screen (upgraded watchdog chip): covers the JS-bundle
+       download + Phaser init — the window BEFORE any canvas exists. Removed
+       by window.__wbBoot.ok() (canvas ready); the Phaser-side loading bar
+       (js/systems/LoadingBar.js) then covers the asset download with the
+       same look. pointer-events:none so it can never trap input. */
+    #wb-loader { position: fixed; inset: 0; z-index: 2147482999; display: flex;
+      align-items: center; justify-content: center; background: #081c15;
+      font-family: Arial, Helvetica, sans-serif; text-align: center;
+      pointer-events: none; transition: opacity .25s ease;
+      -webkit-user-select: none; user-select: none; }
+    #wb-loader.is-done { opacity: 0; }
+    #wb-loader .wb-box { display: flex; flex-direction: column; align-items: center;
+      gap: 18px; padding: 24px; }
+    #wb-loader .wb-title { color: #ffd60a; font-size: clamp(30px, 8vw, 54px);
+      font-weight: bold; letter-spacing: .06em; }
+    #wb-loader .wb-bar { width: min(62vw, 330px); height: 18px; box-sizing: border-box;
+      padding: 3px; border: 3px solid #4d3218; border-radius: 11px;
+      background: #a4713d; overflow: hidden; }
+    #wb-loader .wb-fill { height: 100%; width: 42%; border-radius: 5px;
+      background: #ffd60a; animation: wb-sweep 1.15s ease-in-out infinite; }
+    @keyframes wb-sweep {
+      0%   { transform: translateX(-105%); }
+      100% { transform: translateX(240%); }
+    }
+    #wb-loader .wb-caption { color: #fff; font-size: 14px; opacity: .85; }
+    @media (prefers-reduced-motion: reduce) {
+      #wb-loader .wb-fill { animation: none; width: 100%; opacity: .8; }
+    }
   </style>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
@@ -159,7 +187,8 @@
 
   <!-- Boot watchdog (Fix: Live Server blank screen). Dependency-free inline
        script so it survives any bundling/base-path problem and even a CSS 404:
-       shows a loading chip, records module/resource errors and, if the Phaser
+       shows the branded loading screen (covers the JS-bundle download before
+       the canvas exists), records module/resource errors and, if the Phaser
        canvas never appears, replaces the blank page with an actionable error
        card instead of an unexplained light-blue screen. js/main.js handshakes
        via window.__wbBoot.ok()/fail(). -->
@@ -176,13 +205,40 @@
         return n;
       }
 
+      /** Branded full-screen loader: visible from first paint until the
+       *  Phaser canvas is ready (ok()). Styled by the #wb-loader rules in
+       *  <head> — including the fallback for prefers-reduced-motion. */
       function showChip() {
-        chip = el('div', {
-          position: 'fixed', right: '10px', bottom: '10px', zIndex: '2147483000',
-          padding: '6px 12px', borderRadius: '14px', background: 'rgba(8,28,21,.85)',
-          color: '#ffd60a', font: '13px Arial, sans-serif', pointerEvents: 'none'
-        }, 'Loading WORD BLAST\u2026');
+        if (chip) return;
+        chip = el('div', null);
+        chip.id = 'wb-loader';
+        var box = el('div', null);
+        box.className = 'wb-box';
+        var title = el('div', null, 'WORD BLAST');
+        title.className = 'wb-title';
+        var bar = el('div', null);
+        bar.className = 'wb-bar';
+        var fill = el('div', null);
+        fill.className = 'wb-fill';
+        bar.appendChild(fill);
+        var caption = el('div', null, 'Loading\u2026');
+        caption.className = 'wb-caption';
+        box.appendChild(title);
+        box.appendChild(bar);
+        box.appendChild(caption);
+        chip.appendChild(box);
         document.body.appendChild(chip);
+      }
+
+      /** Fade the loader out (a hard remove would flash mid-frame). */
+      function hideChip() {
+        if (!chip || !chip.parentNode) { chip = null; return; }
+        var node = chip;
+        chip = null;
+        node.classList.add('is-done');
+        setTimeout(function () {
+          if (node.parentNode) node.parentNode.removeChild(node);
+        }, 300);
       }
 
       function isUncompiledRoot() {
@@ -193,7 +249,7 @@
 
       function showCard(reason) {
         if (booted || !document.body) return;
-        if (chip && chip.parentNode) chip.parentNode.removeChild(chip);
+        hideChip();
         if (card && card.parentNode) card.parentNode.removeChild(card);
 
         card = el('div', {
@@ -256,7 +312,7 @@
         ok: function () {
           booted = true;
           if (timer) { clearTimeout(timer); timer = null; }
-          if (chip && chip.parentNode) chip.parentNode.removeChild(chip);
+          hideChip();
           if (card && card.parentNode) card.parentNode.removeChild(card);
         },
         fail: function (reason) { showCard(String(reason || 'Unknown initialization error.')); }

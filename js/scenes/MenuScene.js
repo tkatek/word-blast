@@ -28,6 +28,7 @@
 import Phaser from 'phaser';
 import { SAVE, WORLD } from '../config.js';
 import { attachViewport } from '../systems/Viewport.js';
+import { createLoadingBar } from '../systems/LoadingBar.js';
 import {
   MENU_ART, menuPreloadList, ensureMenuArtFallback, isFallbackTexture,
   WoodButton, ArtButton, ConfirmDialog, PALETTE,
@@ -62,18 +63,14 @@ export class MenuScene extends Phaser.Scene {
   }
 
   preload() {
+    // Slim progress bar while the menu artwork batch downloads (the menu
+    // art is a few hundred KB after the optimization pass — a blink on
+    // fast connections, informative on slow ones). Retired in create().
+    this.loaderUi = createLoadingBar(this, { compact: true });
     const BASE = ((import.meta.env && import.meta.env.BASE_URL) || '/') + 'assets/images/menu/';
     for (const { key, file } of menuPreloadList()) {
       this.load.image(key, BASE + file);
     }
-    // PERF: the looping background track (the single largest audio asset)
-    // is deferred here from the boot batch — the menu is the ONLY place
-    // the music can be started from (the PLAY press / music toggle), and
-    // this preload always completes before those controls exist.
-    this.load.audio(
-      'music-theme',
-      ((import.meta.env && import.meta.env.BASE_URL) || '/') + 'assets/audio/music/background-music.mp3'
-    );
     // Headless test envs cannot fetch the artwork — procedural stand-ins
     // under the same keys keep the scene fully renderable (project pattern).
     this.load.on('loaderror', (file) => {
@@ -83,17 +80,19 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    if (this.loaderUi) { this.loaderUi.destroy(); this.loaderUi = null; }
     const save = this.registry.get('save');
     this.save = save;
     this.transitioning = false;
     this.dialog = null;
-    this.reducedMotion = !!(save.data && save.data.settings && save.data.settings.reducedMotion);
+    this.reducedMotion = !!(save.data && save.data.settings && save.data.reducedMotion);
 
     // Audio: no music starts on menu entry — the background music begins
     // only from the PLAY press (a real user gesture). Button clicks are
-    // the only sounds before that. The deferred track has landed by now
-    // (create runs after preload completes): honor any recorded play
-    // intent from an earlier session state, exactly as the manager would.
+    // the only sounds before that. The track itself downloads AFTER the
+    // menu is on screen (deferMusicLoad below); the load-complete hook
+    // honors any play intent recorded in the meantime, exactly as the
+    // manager would.
     const audio = this.registry.get('audio');
     if (audio && typeof audio.startMusic === 'function' && audio.musicWanted?.()) {
       audio.startMusic();
@@ -106,6 +105,7 @@ export class MenuScene extends Phaser.Scene {
     if (!this.reducedMotion) this.buildAmbientEffects();
 
     this.playEntrance();
+    this.deferMusicLoad();
 
     // Returning players: animate the numbers only when they truly changed.
     const { completed, stars } = this.readProgress();
@@ -116,6 +116,37 @@ export class MenuScene extends Phaser.Scene {
     }
 
     this.events.once('shutdown', () => this.cleanup());
+  }
+
+  /**
+   * PERF (load-time pass): the looping theme is the single largest asset
+   * (~1.6 MB). Loading it in preload() would hold the menu hostage to it;
+   * instead it is queued AFTER the menu is fully on screen and downloads
+   * in the background — the sound manager caches it while the player
+   * reads the menu, long before the PLAY press (the only gesture that can
+   * start it) can happen. If the track arrives after an early PLAY press
+   * already recorded intent, that intent is honored the moment the file
+   * lands, so music can never be permanently lost to a slow connection.
+   */
+  deferMusicLoad() {
+    if (this.cache.audio.exists('music-theme')) return; // already cached (scene restart)
+    // A download left running by an earlier menu visit must not be queued
+    // twice (the audio cache is game-global, so the in-flight file still
+    // lands even after this scene shut down).
+    if (this.registry.get('music-theme-loading')) return;
+    this.registry.set('music-theme-loading', true);
+    this.load.audio(
+      'music-theme',
+      ((import.meta.env && import.meta.env.BASE_URL) || '/') + 'assets/audio/music/background-music.mp3'
+    );
+    this.load.once('filecomplete-audio-music-theme', () => {
+      this.registry.set('music-theme-loading', false);
+      const audio = this.registry.get('audio');
+      if (audio && typeof audio.startMusic === 'function' && audio.musicWanted?.()) {
+        audio.startMusic();
+      }
+    });
+    this.load.start();
   }
 
   /* ---------------------------------------------------------------- */

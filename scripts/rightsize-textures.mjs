@@ -5,7 +5,7 @@
  * here for ~2.2× their maximum on-screen WORLD size (phone landscape at
  * DPR 2 + fit-zoom ≈ 2.2 device px per world px), with headroom:
  *
- *   slingshot-wood.png   1254×1254 → 1024²   (max display ≈ 440 world px)
+ *   slingshot-wood.webp  1254×1254 → 512²    (max display ≈ 440 world px)
  *   menu/logo.webp       1774×887  → 1200×600 (display 530 world px)
  *   ui/level-card.webp   1192×1048 → 560×492  (card cap 232 world px)
  *   ui/menu-button.webp  2172×724  → 520×174  (button 176 world px)
@@ -25,7 +25,9 @@ const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const IMG = join(ROOT, 'public', 'assets', 'images');
 
 const TARGETS = [
-  { file: 'slingshot/slingshot-wood.png', width: 1024, height: 1024 },
+  // .webp since the load-time optimization pass (scripts/optimize-assets.mjs
+  // converted the PNG and updated the runtime path in js/scenes/BootScene.js)
+  { file: 'slingshot/slingshot-wood.webp', width: 512, height: 512 },
   { file: 'menu/logo.webp', width: 1200, height: 600 },
   { file: 'ui/level-card.webp', width: 560, height: 492 },
   { file: 'ui/menu-button.webp', width: 520, height: 174 }

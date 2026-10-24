@@ -6,7 +6,8 @@
  * scripts/prepare-feedback-card.mjs, so old invocations can never
  * overwrite the uploaded painting with the procedural stand-in.
  *
- * Output: public/assets/images/ui/feedback-card.png  (1424×972)
+ * Output: public/assets/images/ui/feedback-card.webp (via prepare-feedback-
+ *         card.mjs — WebP since the load-time optimization pass)
  * Run:    node scripts/build-feedback-card.mjs   (delegates)
  */
 import './prepare-feedback-card.mjs';

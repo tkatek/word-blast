@@ -119,10 +119,10 @@ export function audioManifestKeys() {
  * directly), so each file is decoded exactly once.
  *
  * {includeMusic:false} omits the looping background track (the single
- * largest audio asset): BootScene defers it to MenuScene.preload so the
- * 2.2 MB theme leaves the boot critical path — the menu scene (whose PLAY
- * press is the only thing that can start the track) always finishes
- * loading it before it can be needed.
+ * largest audio asset): BootScene defers it to MenuScene (queued AFTER the
+ * menu is on screen) so the theme leaves the boot critical path — the menu
+ * scene (whose PLAY press is the only thing that can start the track)
+ * finishes loading it well before it can be needed.
  */
 export function audioPreloadList({ includeMusic = true } = {}) {
   const list = [];
@@ -130,7 +130,7 @@ export function audioPreloadList({ includeMusic = true } = {}) {
     if (!includeMusic && def.cat === 'music') continue;
     if (def.vars && def.vars.length) {
       def.vars.forEach((v, i) => {
-        list.push({ key: v, file: def.file.replace(/(-\d+)?\.wav$/, `-${i + 1}.wav`) });
+        list.push({ key: v, file: def.file.replace(/(-\d+)?\.mp3$/, `-${i + 1}.mp3`) });
       });
     } else {
       list.push({ key, file: def.file });

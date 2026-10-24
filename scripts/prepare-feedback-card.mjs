@@ -16,7 +16,11 @@
  *   → side insets ≈ 9.2% / 10.1% of width, top ≈ 16.7%, bottom ≈ 13.5%
  *   (FeedbackCard.js L.* constants mirror these fractions).
  *
- * Output: public/assets/images/ui/feedback-card.png
+ * Output: public/assets/images/ui/feedback-card.webp (WebP since the
+ *         load-time optimization pass — the runtime path in
+ *         js/systems/FeedbackCard.js points here; re-run
+ *         scripts/optimize-assets.mjs afterwards to re-apply the
+ *         downsize/compress step)
  * Run:    node scripts/prepare-feedback-card.mjs
  */
 import sharp from 'sharp';
@@ -26,7 +30,7 @@ import { fileURLToPath } from 'url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'assets-src', 'parchment-new-a.png');
-const OUT = join(here, '..', 'public', 'assets', 'images', 'ui', 'feedback-card.png');
+const OUT = join(here, '..', 'public', 'assets', 'images', 'ui', 'feedback-card.webp');
 mkdirSync(dirname(OUT), { recursive: true });
 
 /** Smallest alpha bounding box (threshold 8) of the raw pixel buffer. */
@@ -48,9 +52,14 @@ async function alphaBBox(input) {
 }
 
 const box = await alphaBBox(SRC);
-await sharp(SRC)
-  .extract(box)
-  .png({ compressionLevel: 9 })
+// Trim via a lossless in-memory step, then encode the shipped WebP at the
+// same settings scripts/optimize-assets.mjs uses (900 px wide, q85) so a
+// re-install can never quietly regress the load-time budget.
+const trimmed = await sharp(SRC).extract(box).png({ compressionLevel: 9 }).toBuffer();
+const trimmedMeta = await sharp(trimmed).metadata();
+await sharp(trimmed)
+  .resize({ width: Math.min(900, trimmedMeta.width) })
+  .webp({ quality: 85, alphaQuality: 90, effort: 5 })
   .toFile(OUT);
 
 const meta = await sharp(OUT).metadata();
