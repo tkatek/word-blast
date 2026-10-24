@@ -213,6 +213,33 @@ async function audio() {
     record(relOf(mp3, AUD_ROOT), before, after, 'mp3 VBR q6 mono');
   }
 
+  // Background theme: 2:22 stereo at 128 kbps CBR. It plays at music-bus
+  // 0.55 under the SFX — a VBR re-encode keeps that context transparent
+  // and drops ~40% of the single largest shipped file. Skipped on re-run.
+  const music = path.join(AUD_ROOT, 'music', 'background-music.mp3');
+  const musicDone = path.join(AUD_ROOT, 'music', '.optimized-q7');
+  if (fs.existsSync(music) && !fs.existsSync(musicDone)) {
+    const before = fs.statSync(music).size;
+    const tmp = music + '.tmp.mp3';
+    execFileSync(ffmpegPath, [
+      '-y', '-loglevel', 'error',
+      '-i', music,
+      '-codec:a', 'libmp3lame',
+      '-q:a', '7',           // VBR ≈ 100–110 kbps stereo — fine under SFX
+      tmp
+    ]);
+    const after = fs.statSync(tmp).size;
+    if (after < before * 0.9) {
+      backup(music, AUD_ROOT);
+      fs.renameSync(tmp, music);
+      fs.writeFileSync(musicDone, 'q7');
+      record('music/background-music.mp3', before, after, 'mp3 VBR q7 stereo');
+    } else {
+      fs.unlinkSync(tmp);
+      console.log('skip (not smaller): music/background-music.mp3');
+    }
+  }
+
   report();
 }
 

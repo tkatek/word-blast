@@ -3,8 +3,9 @@
  * wrong), replacing the old plain dark-blue rectangle.
  *
  * ONE reusable component on the supplied blank parchment artwork
- * (assets/images/ui/feedback-card.png, installed verbatim — alpha-trimmed
- * only — by scripts/prepare-feedback-card.mjs from the uploaded PNG):
+ * (assets/images/ui/feedback-card.webp — the uploaded PNG alpha-trimmed by
+ * scripts/prepare-feedback-card.mjs, then sized/compressed by
+ * scripts/optimize-assets.mjs; same pixels to the eye, a third of the bytes):
  *
  *   ╔════════════════════════╗
  *   ║   ┌──[✓] GREEN/RED──┐  ║  gradient banner + gold trim +
@@ -53,14 +54,15 @@ import { woodButton } from './GameHUD.js';
 export const FEEDBACK_CARD = {
   TEXTURE: 'ui-feedback-card',
   /**
-   * Card size in world px at scale 1 (artwork is 1424×972 @ ~3.3× — stays
-   * crisp enlarged). Exact uploaded-artwork aspect (1.465) so the wooden
-   * frame is never stretched; long explanations grow the card through the
-   * fitting ladder instead of a huge fixed panel (MAX_SCALE below).
+   * Card size in world px at scale 1 (artwork is 900×614 @ ~2.1× — stays
+   * crisp enlarged; the game never renders above 2× logical resolution).
+   * Exact uploaded-artwork aspect (1.465) so the wooden frame is never
+   * stretched; long explanations grow the card through the fitting ladder
+   * instead of a huge fixed panel (MAX_SCALE below).
    */
   WIDTH: 428,
   HEIGHT: 292,
-  ART: 'assets/images/ui/feedback-card.png'
+  ART: 'assets/images/ui/feedback-card.webp'
 };
 
 /** Card layout (card-local px, origin = card center, scale-1 card).
