@@ -72,8 +72,9 @@ const main = async () => {
 
   // NOTE: module scripts execute BEFORE DOMContentLoaded — with a real
   // throttle the HTML loader's visible window IS the bundle download, so
-  // observation must start at navigation commit, not domcontentloaded.
-  await page.goto(BASE + '/', { waitUntil: 'commit' });
+  // polling must run WHILE the navigation is in flight (evaluate calls
+  // fail harmlessly until the first execution context exists).
+  const nav = page.goto(BASE + '/', { waitUntil: 'domcontentloaded' }).catch(() => {});
 
   // 1 — HTML boot loader visible while the JS bundle downloads: poll from
   // the first bytes until the boot handshake retires it.
@@ -106,6 +107,7 @@ const main = async () => {
   }
   if (!shotTaken) await page.screenshot({ path: join(OUT, '01-html-boot-loader.png') });
   check(htmlLoaderSeen, 'HTML boot loading screen visible during bundle download');
+  await nav;
 
   // 2 — BootScene bar: wait for the canvas, then shoot mid-asset-batch.
   await page.waitForSelector('#game canvas', { timeout: 30000 });

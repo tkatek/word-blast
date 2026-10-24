@@ -5,10 +5,12 @@
  * on slow connections; this keeps the player informed during every preload
  * batch instead of a blank sky-colored page. Two presentations:
  *
- *   full    — branded boot screen (title, caption, wooden bar + %):
+ *   full    — branded boot screen (big title, hopping egg, wooden bar + %):
  *             BootScene, shown while the gameplay asset batch downloads.
- *   compact — slim bottom bar with a small caption: MenuScene / any later
- *             scene that queues a visible batch.
+ *             Mirrors the #wb-loader HTML screen in index.html so the
+ *             handoff (bundle download → asset download) looks seamless.
+ *   compact — slim bottom bar: MenuScene / any later scene that queues a
+ *             short visible batch.
  *
  * The bar is driven by the SCENE's own loader 'progress' events, so it
  * reflects real network progress file-by-file. The caller owns the
@@ -23,6 +25,8 @@ const THEME = {
   wood: 0xa4713d,     // wooden frame (fullscreen-card palette)
   woodDark: 0x4d3218, // bar track
   fill: 0xffd60a,     // signature yellow
+  egg: 0xffe98a,      // egg body
+  eggLight: 0xfffbe6, // egg highlight
   title: '#ffd60a',
   caption: '#ffffff'
 };
@@ -33,36 +37,53 @@ const THEME = {
  * @param {Phaser.Scene} scene scene whose loader drives the bar
  * @param {object} [opts]
  * @param {string}  [opts.title='WORD BLAST']   heading (full mode only)
- * @param {string}  [opts.caption='Loading…']   small label under/next to the bar
+ * @param {string}  [opts.caption='Loading…']   small label under the bar
  * @param {boolean} [opts.compact=false]        slim bottom-bar presentation
  * @returns {{destroy: () => void}} handle; call destroy() in create()
  */
 export function createLoadingBar(scene, { title = 'WORD BLAST', caption = 'Loading\u2026', compact = false } = {}) {
   const cx = WORLD.WIDTH / 2;
-  const W = compact ? 420 : 560;
-  const H = compact ? 14 : 22;
-  const y = compact ? WORLD.HEIGHT - 48 : 436;
+  const W = compact ? 420 : 760;
+  const H = compact ? 14 : 26;
+  const y = compact ? WORLD.HEIGHT - 48 : 492;
   const depth = compact ? 900 : 8000; // full mode must cover everything at boot
 
   const objects = [];
+  const tweens = [];
 
   if (!compact) {
     objects.push(scene.add.rectangle(cx, WORLD.HEIGHT / 2, WORLD.WIDTH + 8, WORLD.HEIGHT + 8, THEME.bg).setDepth(depth));
-    objects.push(scene.add.text(cx, 296, title, {
+    objects.push(scene.add.text(cx, 250, title, {
       fontFamily: 'Arial, Helvetica, sans-serif',
-      fontSize: '54px', fontStyle: 'bold', color: THEME.title
+      fontSize: '80px', fontStyle: 'bold', color: THEME.title
     }).setOrigin(0.5).setDepth(depth + 1));
-    objects.push(scene.add.text(cx, 352, caption, {
+
+    // The hopping egg (matches the #wb-loader .wb-egg animation): one
+    // yoyo tween drives the hop; reduced-motion players get a still egg.
+    const egg = scene.add.container(cx, 360).setDepth(depth + 1);
+    const body = scene.add.ellipse(0, 0, 44, 58, THEME.egg);
+    const shine = scene.add.ellipse(-8, -12, 18, 24, THEME.eggLight, 0.85);
+    const shadow = scene.add.ellipse(0, 40, 40, 9, 0x000000, 0.28);
+    egg.add([shadow, body, shine]);
+    objects.push(egg);
+    if (!(scene.game?.registry?.get('save')?.data?.settings?.reducedMotion)) {
+      tweens.push(scene.tweens.add({
+        targets: [body, shine],
+        y: '-=30', duration: 470, yoyo: true, repeat: -1, ease: 'Quad.easeOut'
+      }));
+    }
+
+    objects.push(scene.add.text(cx, 418, caption, {
       fontFamily: 'Arial, Helvetica, sans-serif',
-      fontSize: '19px', color: THEME.caption
+      fontSize: '21px', color: THEME.caption
     }).setOrigin(0.5).setDepth(depth + 1));
   }
 
   const frame = scene.add.graphics().setDepth(depth + 1);
   frame.fillStyle(THEME.wood, 1)
-    .fillRoundedRect(cx - W / 2 - 6, y - H / 2 - 6, W + 12, H + 12, 10);
+    .fillRoundedRect(cx - W / 2 - 7, y - H / 2 - 7, W + 14, H + 14, 13);
   frame.fillStyle(THEME.woodDark, 1)
-    .fillRoundedRect(cx - W / 2, y - H / 2, W, H, 7);
+    .fillRoundedRect(cx - W / 2, y - H / 2, W, H, 9);
   objects.push(frame);
 
   const fill = scene.add.graphics().setDepth(depth + 2);
@@ -70,9 +91,9 @@ export function createLoadingBar(scene, { title = 'WORD BLAST', caption = 'Loadi
 
   let pctText = null;
   if (!compact) {
-    pctText = scene.add.text(cx, y - 44, '0%', {
+    pctText = scene.add.text(cx, y + 40, '0%', {
       fontFamily: 'Arial, Helvetica, sans-serif',
-      fontSize: '22px', fontStyle: 'bold', color: THEME.title
+      fontSize: '25px', fontStyle: 'bold', color: THEME.title
     }).setOrigin(0.5).setDepth(depth + 2);
     objects.push(pctText);
   }
@@ -80,10 +101,10 @@ export function createLoadingBar(scene, { title = 'WORD BLAST', caption = 'Loadi
   const setProgress = (value) => {
     const p = Phaser.Math.Clamp(value || 0, 0, 1);
     fill.clear();
-    const w = p * (W - 8);
+    const w = p * (W - 10);
     if (w > 2) {
       fill.fillStyle(THEME.fill, 1)
-        .fillRoundedRect(cx - W / 2 + 4, y - H / 2 + 4, w, H - 8, 4);
+        .fillRoundedRect(cx - W / 2 + 5, y - H / 2 + 5, w, H - 10, 5);
     }
     if (pctText) pctText.setText(`${Math.round(p * 100)}%`);
   };
@@ -95,6 +116,8 @@ export function createLoadingBar(scene, { title = 'WORD BLAST', caption = 'Loadi
   return {
     destroy() {
       scene.load.off('progress', onProgress);
+      for (const t of tweens) t.remove();
+      tweens.length = 0;
       for (const obj of objects) obj.destroy();
       objects.length = 0;
     }
