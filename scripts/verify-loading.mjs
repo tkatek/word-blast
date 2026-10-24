@@ -61,26 +61,51 @@ const main = async () => {
   page.on('requestfailed', (r) => badRequests.push(r.url()));
   page.on('response', (r) => { if (r.status() >= 400) badRequests.push(`${r.status()} ${r.url()}`); });
 
-  // Simulate a mid-range mobile connection so the loaders are observable.
-  const client = await page.createCDPSession();
-  await client.send('Network.enable');
-  await client.send('Network.emulateNetworkConditions', {
+  // Simulate a mid-range mobile connection so the loaders are observable
+  // (page-level API — a raw CDP session does not reliably throttle).
+  await page.emulateNetworkConditions({
     offline: false,
     latency: 150,
-    downloadThroughput: (1.6 * 1024 * 1024) / 8, // 1.6 Mbps
-    uploadThroughput: (750 * 1024) / 8
+    downloadThroughput: Math.round((1.6 * 1024 * 1024) / 8), // 1.6 Mbps, bytes/s
+    uploadThroughput: Math.round((750 * 1024) / 8)
   });
 
-  await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
+  // NOTE: module scripts execute BEFORE DOMContentLoaded — with a real
+  // throttle the HTML loader's visible window IS the bundle download, so
+  // observation must start at navigation commit, not domcontentloaded.
+  await page.goto(BASE + '/', { waitUntil: 'commit' });
 
-  // 1 — HTML boot loader visible while the JS bundle downloads.
-  await sleep(700);
-  await page.screenshot({ path: join(OUT, '01-html-boot-loader.png') });
-  const htmlLoaderVisible = await page.evaluate(() => {
-    const el = document.getElementById('wb-loader');
-    return !!el && getComputedStyle(el).display !== 'none';
-  });
-  check(htmlLoaderVisible, 'HTML boot loading screen visible during bundle download');
+  // 1 — HTML boot loader visible while the JS bundle downloads: poll from
+  // the first bytes until the boot handshake retires it.
+  let htmlLoaderSeen = false;
+  let shotTaken = false;
+  const bootDeadline = Date.now() + 45000;
+  while (Date.now() < bootDeadline) {
+    const state = await page.evaluate(() => {
+      const el = document.getElementById('wb-loader');
+      const api = window.__wbBoot;
+      return {
+        visible: !!el && !el.classList.contains('is-done') && getComputedStyle(el).display !== 'none',
+        booted: !!(api && api.booted)
+      };
+    }).catch(() => ({ visible: false, booted: false }));
+    if (state.visible) {
+      htmlLoaderSeen = true;
+      if (!shotTaken) {
+        await page.screenshot({ path: join(OUT, '01-html-boot-loader.png') });
+        shotTaken = true;
+      }
+    }
+    if (state.booted && htmlLoaderSeen) break;
+    if (state.booted && !htmlLoaderSeen) {
+      // booted without us catching it — give the poll a final grace sweep
+      await sleep(120);
+      continue;
+    }
+    await sleep(120);
+  }
+  if (!shotTaken) await page.screenshot({ path: join(OUT, '01-html-boot-loader.png') });
+  check(htmlLoaderSeen, 'HTML boot loading screen visible during bundle download');
 
   // 2 — BootScene bar: wait for the canvas, then shoot mid-asset-batch.
   await page.waitForSelector('#game canvas', { timeout: 30000 });
@@ -89,20 +114,17 @@ const main = async () => {
 
   // 3 — menu visible (boot assets + menu art done).
   await page.waitForFunction(() => {
-    const d = window.__WB__ && window.__WB__.diag && window.__WB__.diag();
-    if (!d || !d.game) return false;
-    const s = d.game.scene.getScene('MenuScene');
-    return !!(s && s.sys && s.sys.isActive());
-  }, { timeout: 60000 });
+    const wb = window.__WB__;
+    return !!(wb && wb.menu && wb.menu().active);
+  }, { timeout: 90000 });
   const menuAt = Date.now();
   await sleep(400);
   await page.screenshot({ path: join(OUT, '03-menu.png') });
 
   // 4 — deferred music: arrives AFTER the menu was already on screen.
   const musicCached = await page.waitForFunction(() => {
-    const d = window.__WB__ && window.__WB__.diag && window.__WB__.diag();
-    if (!d || !d.game || !d.game.cache) return false;
-    return d.game.cache.audio.exists('music-theme');
+    const g = window.__WB__ && window.__WB__.game;
+    return !!(g && g.cache && g.cache.audio && g.cache.audio.exists('music-theme'));
   }, { timeout: 90000 }).then(() => true).catch(() => false);
   const msAfterMenu = Date.now() - menuAt;
   await page.screenshot({ path: join(OUT, '04-menu-after-music.png') });
